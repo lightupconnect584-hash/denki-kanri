@@ -212,13 +212,13 @@ export default function ProjectDetailPage() {
                       {insp.photos.map((photo) => (
                         <a
                           key={photo.id}
-                          href={photo.filename}
+                          href={photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={photo.filename}
+                            src={photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`}
                             alt={photo.originalName}
                             className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
                           />

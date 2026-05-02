@@ -257,7 +257,8 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        {/* 訪問予定日 */}
+        {/* 訪問予定日 - 協力会社の見積依頼中は非表示 */}
+        {!(role === "PARTNER" && project.status === "QUOTE_REQUESTED") && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <h3 className="text-sm font-bold text-gray-800 mb-3">📅 訪問予定日</h3>
           {project.visitDate && visitLabel && (
@@ -306,6 +307,7 @@ export default function ProjectDetailPage() {
           </div>
           <p className="text-xs text-gray-400 mt-1">※ 時間は任意です（日付のみも可）</p>
         </div>
+        )}
 
         {/* 現場写真・PDF */}
         {project.projectPhotos && project.projectPhotos.length > 0 && (

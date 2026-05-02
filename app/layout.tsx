@@ -3,8 +3,8 @@ import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
-  title: "電気工事 案件管理",
-  description: "電気工事の案件管理システム",
+  title: "案件管理システム",
+  description: "案件管理システム",
 };
 
 export default function RootLayout({

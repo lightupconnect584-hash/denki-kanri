@@ -11,7 +11,7 @@ export default function Header() {
     <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       <Link href="/dashboard" className="flex items-center gap-2">
         <span className="text-xl">⚡</span>
-        <span className="font-bold text-gray-800 text-sm">電気工事 案件管理</span>
+        <span className="font-bold text-gray-800 text-sm">案件管理システム</span>
       </Link>
       <div className="flex items-center gap-3">
         <span className="text-xs text-gray-500">

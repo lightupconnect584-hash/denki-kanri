@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
   const statusOrder = ["PENDING", "INSPECTING", "QUOTE_REQUESTED", "QUOTE_RECEIVED", "INSPECTED", "COMPLETED"];
 
-  const DONE_STATUSES = ["COMPLETED", "INSPECTED", "REJECTED"];
+  const DONE_STATUSES = ["COMPLETED", "INSPECTED", "REJECTED", "QUOTE_RECEIVED"];
   const activeProjects = projects.filter((p) => !DONE_STATUSES.includes(p.status));
   const completedProjects = projects.filter((p) => DONE_STATUSES.includes(p.status));
 

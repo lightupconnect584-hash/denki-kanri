@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const role = (session?.user as { role?: string })?.role;
 
@@ -50,8 +51,43 @@ export default function DashboardPage() {
   }
 
   const statusOrder = ["PENDING", "INSPECTING", "QUOTE_REQUESTED", "QUOTE_RECEIVED", "INSPECTED", "COMPLETED"];
-  const sorted = [...projects].sort(
+
+  const activeProjects = projects.filter((p) => p.status !== "COMPLETED");
+  const completedProjects = projects.filter((p) => p.status === "COMPLETED");
+
+  const sortedActive = [...activeProjects].sort(
     (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
+  );
+  const sortedCompleted = [...completedProjects].sort(
+    (a, b) => new Date(b.dueDate || 0).getTime() - new Date(a.dueDate || 0).getTime()
+  );
+
+  const renderProject = (p: Project) => (
+    <Link
+      key={p.id}
+      href={`/projects/${p.id}`}
+      className="block bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-gray-800 truncate">{p.title}</p>
+          <p className="text-sm text-gray-500 mt-0.5">📍 {p.location}</p>
+          {p.assignedTo && (
+            <p className="text-xs text-gray-400 mt-0.5">
+              担当: {p.assignedTo.companyName || p.assignedTo.name}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <StatusBadge status={p.status} />
+          {p.dueDate && (
+            <p className="text-xs text-gray-400">
+              期日: {new Date(p.dueDate).toLocaleDateString("ja-JP")}
+            </p>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 
   return (
@@ -70,40 +106,33 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {projects.length === 0 ? (
+        {activeProjects.length === 0 && !showCompleted ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">📋</p>
-            <p>案件がありません</p>
+            <p>進行中の案件がありません</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {sorted.map((p) => (
-              <Link
-                key={p.id}
-                href={`/projects/${p.id}`}
-                className="block bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 truncate">{p.title}</p>
-                    <p className="text-sm text-gray-500 mt-0.5">📍 {p.location}</p>
-                    {p.assignedTo && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        担当: {p.assignedTo.companyName || p.assignedTo.name}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <StatusBadge status={p.status} />
-                    {p.dueDate && (
-                      <p className="text-xs text-gray-400">
-                        期日: {new Date(p.dueDate).toLocaleDateString("ja-JP")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
+            {sortedActive.map(renderProject)}
+          </div>
+        )}
+
+        {/* 完了済み案件 */}
+        {completedProjects.length > 0 && (
+          <div className="mt-6">
+            <button
+              onClick={() => setShowCompleted(!showCompleted)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 rounded-xl text-sm text-gray-600 hover:bg-gray-200 transition"
+            >
+              <span>✅ 完了済み案件 ({completedProjects.length}件)</span>
+              <span>{showCompleted ? "▲ 閉じる" : "▼ 表示する"}</span>
+            </button>
+
+            {showCompleted && (
+              <div className="space-y-3 mt-3">
+                {sortedCompleted.map(renderProject)}
+              </div>
+            )}
           </div>
         )}
       </main>

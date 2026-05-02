@@ -213,12 +213,12 @@ export default function ProjectDetailPage() {
                       {insp.photos.map((photo) => (
                         <a
                           key={photo.id}
-                          href={`/uploads/${photo.filename}`}
+                          href={photo.filename}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           <Image
-                            src={`/uploads/${photo.filename}`}
+                            src={photo.filename}
                             alt={photo.originalName}
                             width={200}
                             height={200}

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { writeFile } from "fs/promises";
-import { join } from "path";
+import { put } from "@vercel/blob";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -13,14 +12,14 @@ export async function POST(req: NextRequest) {
 
   if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
+  const blob = await put(file.name, file, {
+    access: "public",
+    addRandomSuffix: true,
+  });
 
-  const ext = file.name.split(".").pop();
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const path = join(process.cwd(), "public/uploads", filename);
-
-  await writeFile(path, buffer);
-
-  return NextResponse.json({ filename, originalName: file.name });
+  return NextResponse.json({
+    filename: blob.url,
+    originalName: file.name,
+    url: blob.url,
+  });
 }

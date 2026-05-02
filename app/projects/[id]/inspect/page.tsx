@@ -22,6 +22,7 @@ export default function InspectPage() {
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   if (status === "unauthenticated") {
     router.push("/login");
@@ -33,6 +34,7 @@ export default function InspectPage() {
     if (!files) return;
 
     setUploading(true);
+    setUploadError("");
     const uploaded: UploadedPhoto[] = [];
 
     for (const file of Array.from(files)) {
@@ -49,9 +51,12 @@ export default function InspectPage() {
             originalName: data.originalName,
             preview,
           });
+        } else {
+          const err = await res.json();
+          setUploadError(`エラー: ${err.error || res.status} (${file.name}, ${Math.round(file.size/1024)}KB)`);
         }
-      } catch {
-        // skip failed uploads
+      } catch (e) {
+        setUploadError(`エラー: ${e} (${file.name})`);
       }
     }
 
@@ -142,6 +147,9 @@ export default function InspectPage() {
               />
             </label>
 
+            {uploadError && (
+              <p className="text-xs text-red-500 mt-2 break-all">{uploadError}</p>
+            )}
             {photos.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {photos.map((photo) => (

@@ -39,7 +39,14 @@ export default function InspectPage() {
 
     for (const file of Array.from(files)) {
       try {
-        const preview = URL.createObjectURL(file);
+        // FileReaderで読み込んでからアップロード
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
         const formData = new FormData();
         formData.append("file", file);
 
@@ -49,14 +56,13 @@ export default function InspectPage() {
           uploaded.push({
             filename: data.filename,
             originalName: data.originalName,
-            preview,
+            preview: dataUrl,
           });
         } else {
-          const err = await res.json();
-          setUploadError(`エラー: ${err.error || res.status} (${file.name}, ${Math.round(file.size/1024)}KB)`);
+          setUploadError(`アップロード失敗 (${file.name}, ${Math.round(file.size/1024)}KB, status:${res.status})`);
         }
       } catch (e) {
-        setUploadError(`エラー: ${e} (${file.name})`);
+        setUploadError(`読み込みエラー: ${e} (${file.name})`);
       }
     }
 

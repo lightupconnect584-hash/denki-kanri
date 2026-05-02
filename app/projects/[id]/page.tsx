@@ -48,6 +48,7 @@ interface Project {
   description: string | null;
   urgency: string;
   amount: number | null;
+  visitDate: string | null;
   status: string;
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
@@ -66,6 +67,8 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [visitInput, setVisitInput] = useState("");
+  const [savingVisit, setSavingVisit] = useState(false);
 
   const role = (session?.user as { role?: string })?.role;
   const userId = (session?.user as { id?: string })?.id;
@@ -79,6 +82,16 @@ export default function ProjectDetailPage() {
       .then((r) => r.json())
       .then((data) => {
         setProject(data);
+        // visitDateをdatetime-local形式に変換してセット
+        if (data.visitDate) {
+          const d = new Date(data.visitDate);
+          const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+            .toISOString()
+            .slice(0, 16);
+          setVisitInput(local);
+        } else {
+          setVisitInput("");
+        }
         setLoading(false);
       });
   };
@@ -116,6 +129,17 @@ export default function ProjectDetailPage() {
     setUpdating(false);
   };
 
+  const saveVisitDate = async () => {
+    setSavingVisit(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitDate: visitInput || null }),
+    });
+    fetchProject();
+    setSavingVisit(false);
+  };
+
   if (loading || !project) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -126,6 +150,21 @@ export default function ProjectDetailPage() {
 
   const isAssigned = project.assignedTo?.id === userId;
   const canInspect = role === "PARTNER" && isAssigned;
+
+  // 訪問予定日のラベル
+  const getVisitLabel = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const visit = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.ceil((visit.setHours(0,0,0,0) - now.setHours(0,0,0,0)) / 86400000);
+    if (diffDays < 0) return { text: "訪問済み", color: "bg-gray-100 text-gray-500" };
+    if (diffDays === 0) return { text: "今日", color: "bg-red-100 text-red-700" };
+    if (diffDays === 1) return { text: "明日", color: "bg-orange-100 text-orange-700" };
+    if (diffDays <= 3) return { text: `${diffDays}日後`, color: "bg-yellow-100 text-yellow-700" };
+    return { text: `${diffDays}日後`, color: "bg-blue-50 text-blue-600" };
+  };
+
+  const visitLabel = getVisitLabel(project.visitDate);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -163,8 +202,13 @@ export default function ProjectDetailPage() {
           {project.contractorPhone && (
             <div>
               <p className="text-xs text-gray-500">契約者連絡先</p>
-              <div className="flex items-center gap-3">
-                <p className="text-sm text-gray-700">{project.contractorPhone}</p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <a
+                  href={`tel:${project.contractorPhone.replace(/[^0-9+]/g, "")}`}
+                  className="text-sm font-medium text-blue-600 hover:underline whitespace-nowrap"
+                >
+                  📞 {project.contractorPhone}
+                </a>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   project.smsAllowed ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
                 }`}>
@@ -213,11 +257,60 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
+        {/* 訪問予定日 */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+          <h3 className="text-sm font-bold text-gray-800 mb-3">📅 訪問予定日</h3>
+          {project.visitDate && visitLabel && (
+            <div className="flex items-center gap-2 mb-3">
+              <p className="text-sm font-medium text-gray-800">
+                {new Date(project.visitDate).toLocaleString("ja-JP", {
+                  year: "numeric", month: "long", day: "numeric",
+                  weekday: "short",
+                  hour: new Date(project.visitDate).getMinutes() !== 0 ||
+                    new Date(project.visitDate).getHours() !== 0 ? "2-digit" : undefined,
+                  minute: new Date(project.visitDate).getMinutes() !== 0 ||
+                    new Date(project.visitDate).getHours() !== 0 ? "2-digit" : undefined,
+                })}
+              </p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${visitLabel.color}`}>
+                {visitLabel.text}
+              </span>
+            </div>
+          )}
+          {!project.visitDate && (
+            <p className="text-sm text-gray-400 mb-3">未設定</p>
+          )}
+          <div className="flex gap-2">
+            <input
+              type="datetime-local"
+              value={visitInput}
+              onChange={(e) => setVisitInput(e.target.value)}
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={saveVisitDate}
+              disabled={savingVisit}
+              className="bg-blue-600 text-white text-sm px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition whitespace-nowrap"
+            >
+              {savingVisit ? "保存中" : "保存"}
+            </button>
+            {project.visitDate && (
+              <button
+                onClick={() => { setVisitInput(""); }}
+                className="text-gray-400 hover:text-red-500 text-sm px-2"
+                title="クリア"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">※ 時間は任意です（日付のみも可）</p>
+        </div>
+
         {/* 現場写真・PDF */}
         {project.projectPhotos && project.projectPhotos.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
             <h3 className="text-sm font-bold text-gray-800 mb-3">現場写真・PDF</h3>
-            {/* 画像サムネイル */}
             {(() => {
               const images = project.projectPhotos.filter((f) => !f.originalName.toLowerCase().endsWith(".pdf"));
               const pdfs = project.projectPhotos.filter((f) => f.originalName.toLowerCase().endsWith(".pdf"));
@@ -251,7 +344,6 @@ export default function ProjectDetailPage() {
                       })}
                     </div>
                   )}
-                  {/* PDFリスト */}
                   {pdfs.length > 0 && (
                     <div className="space-y-2">
                       {pdfs.map((pdf) => {
@@ -273,7 +365,6 @@ export default function ProjectDetailPage() {
                       })}
                     </div>
                   )}
-                  {/* 管理者向け画像一括ダウンロードリンク */}
                   {role === "ADMIN" && images.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {images.map((photo) => {
@@ -305,7 +396,7 @@ export default function ProjectDetailPage() {
                 点検を開始する
               </button>
             )}
-            {(project.status === "INSPECTING") && (
+            {project.status === "INSPECTING" && (
               <Link
                 href={`/projects/${id}/inspect`}
                 className="block w-full bg-green-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-green-700 transition text-center"

@@ -13,6 +13,7 @@ interface Project {
   location: string;
   status: string;
   dueDate: string | null;
+  visitDate: string | null;
   assignedTo: { name: string; companyName: string | null } | null;
   inspections: { id: string }[];
   quotes: { id: string; status: string }[];
@@ -56,9 +57,15 @@ export default function DashboardPage() {
   const activeProjects = projects.filter((p) => !DONE_STATUSES.includes(p.status));
   const completedProjects = projects.filter((p) => DONE_STATUSES.includes(p.status));
 
-  const sortedActive = [...activeProjects].sort(
-    (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
-  );
+  // 訪問予定日があるものを優先、次いでステータス順
+  const sortedActive = [...activeProjects].sort((a, b) => {
+    const aVisit = a.visitDate ? new Date(a.visitDate).getTime() : null;
+    const bVisit = b.visitDate ? new Date(b.visitDate).getTime() : null;
+    if (aVisit && bVisit) return aVisit - bVisit;
+    if (aVisit) return -1;
+    if (bVisit) return 1;
+    return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+  });
   const sortedCompleted = [...completedProjects].sort(
     (a, b) => new Date(b.dueDate || b.id).getTime() - new Date(a.dueDate || a.id).getTime()
   );
@@ -74,33 +81,54 @@ export default function DashboardPage() {
     completedByMonth[key].push(p);
   });
 
-  const renderProject = (p: Project) => (
-    <Link
-      key={p.id}
-      href={`/projects/${p.id}`}
-      className="block bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-gray-800 truncate">{p.title}</p>
-          <p className="text-sm text-gray-500 mt-0.5">📍 {p.location}</p>
-          {p.assignedTo && (
-            <p className="text-xs text-gray-400 mt-0.5">
-              担当: {p.assignedTo.companyName || p.assignedTo.name}
-            </p>
-          )}
+  const getVisitBadge = (visitDate: string | null) => {
+    if (!visitDate) return null;
+    const visit = new Date(visitDate);
+    const now = new Date();
+    const diffDays = Math.ceil((new Date(visit).setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 86400000);
+    const dateStr = visit.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
+    if (diffDays < 0) return null; // 訪問済みはバッジ非表示
+    if (diffDays === 0) return { text: `今日 ${dateStr}`, color: "bg-red-100 text-red-700 border border-red-200" };
+    if (diffDays === 1) return { text: `明日 ${dateStr}`, color: "bg-orange-100 text-orange-700 border border-orange-200" };
+    if (diffDays <= 3) return { text: `📅 ${dateStr}（${diffDays}日後）`, color: "bg-yellow-50 text-yellow-700 border border-yellow-200" };
+    return { text: `📅 ${dateStr}`, color: "bg-blue-50 text-blue-600 border border-blue-100" };
+  };
+
+  const renderProject = (p: Project) => {
+    const visitBadge = getVisitBadge(p.visitDate);
+    return (
+      <Link
+        key={p.id}
+        href={`/projects/${p.id}`}
+        className="block bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-gray-800 truncate">{p.title}</p>
+            <p className="text-sm text-gray-500 mt-0.5">📍 {p.location}</p>
+            {p.assignedTo && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                担当: {p.assignedTo.companyName || p.assignedTo.name}
+              </p>
+            )}
+            {visitBadge && (
+              <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium ${visitBadge.color}`}>
+                訪問予定: {visitBadge.text}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <StatusBadge status={p.status} />
+            {p.dueDate && (
+              <p className="text-xs text-gray-400">
+                期日: {new Date(p.dueDate).toLocaleDateString("ja-JP")}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <StatusBadge status={p.status} />
-          {p.dueDate && (
-            <p className="text-xs text-gray-400">
-              期日: {new Date(p.dueDate).toLocaleDateString("ja-JP")}
-            </p>
-          )}
-        </div>
-      </div>
-    </Link>
-  );
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">

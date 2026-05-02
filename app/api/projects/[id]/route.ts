@@ -58,12 +58,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json();
 
+  const updateData: Record<string, unknown> = {};
+  if (body.status !== undefined) updateData.status = body.status;
+  if (body.assignedToId !== undefined) updateData.assignedToId = body.assignedToId;
+  if (body.visitDate !== undefined) updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
+
   const project = await prisma.project.update({
     where: { id },
-    data: {
-      status: body.status,
-      assignedToId: body.assignedToId,
-    },
+    data: updateData,
   });
 
   return NextResponse.json(project);

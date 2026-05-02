@@ -29,16 +29,30 @@ export default function InspectPage() {
   }
 
   const convertToJpeg = async (file: File): Promise<File> => {
-    if (!file.type.includes("heic") && !file.type.includes("heif") && file.type !== "") {
-      return file;
-    }
-    try {
-      const heic2any = (await import("heic2any")).default;
-      const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.85 }) as Blob;
-      return new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), { type: "image/jpeg" });
-    } catch {
-      return file;
-    }
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(file); return; }
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (!blob) { resolve(file); return; }
+          const jpegFile = new File(
+            [blob],
+            file.name.replace(/\.[^.]+$/, ".jpg"),
+            { type: "image/jpeg" }
+          );
+          resolve(jpegFile);
+        }, "image/jpeg", 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

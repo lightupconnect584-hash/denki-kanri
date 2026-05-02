@@ -18,6 +18,7 @@ export default function InspectPage() {
   const id = params.id as string;
 
   const [result, setResult] = useState<"OK" | "REPAIR_NEEDED" | "">("");
+  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -102,6 +103,7 @@ export default function InspectPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         result,
+        workDate,
         notes,
         photos: photos.map((p) => ({ filename: p.filename, originalName: p.originalName })),
       }),
@@ -149,6 +151,18 @@ export default function InspectPage() {
                 🔧 修理が必要
               </button>
             </div>
+          </div>
+
+          {/* 作業日 */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <label className="block text-sm font-bold text-gray-700 mb-2">作業日 *</label>
+            <input
+              type="date"
+              required
+              value={workDate}
+              onChange={(e) => setWorkDate(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
           {/* 写真 */}
@@ -212,7 +226,7 @@ export default function InspectPage() {
 
           <button
             type="submit"
-            disabled={!result || submitting}
+            disabled={!result || !workDate || submitting}
             className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {submitting ? "送信中..." : "点検結果を送信する"}

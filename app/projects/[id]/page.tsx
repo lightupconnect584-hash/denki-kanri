@@ -16,6 +16,7 @@ interface Photo {
 interface Inspection {
   id: string;
   result: string;
+  workDate: string;
   notes: string | null;
   createdAt: string;
   inspector: { name: string; companyName: string | null };
@@ -423,7 +424,7 @@ export default function ProjectDetailPage() {
             <h3 className="text-sm font-bold text-gray-800 mb-3">点検報告</h3>
             {project.inspections.map((insp) => (
               <div key={insp.id} className="space-y-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={`text-xs px-2 py-1 rounded-full font-medium ${
                       insp.result === "REPAIR_NEEDED"
@@ -433,8 +434,10 @@ export default function ProjectDetailPage() {
                   >
                     {insp.result === "REPAIR_NEEDED" ? "修理が必要" : "問題なし"}
                   </span>
+                  <span className="text-xs text-gray-600 font-medium">
+                    🔧 作業日: {new Date(insp.workDate).toLocaleDateString("ja-JP")}
+                  </span>
                   <span className="text-xs text-gray-400">
-                    {new Date(insp.createdAt).toLocaleDateString("ja-JP")} /{" "}
                     {insp.inspector.companyName || insp.inspector.name}
                   </span>
                 </div>

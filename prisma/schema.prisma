@@ -62,6 +62,7 @@ model ProjectPhoto {
 model Inspection {
   id        String   @id @default(cuid())
   result    String
+  workDate  DateTime
   notes     String?
   createdAt DateTime @default(now())
 

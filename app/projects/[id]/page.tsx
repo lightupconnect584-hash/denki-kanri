@@ -86,6 +86,13 @@ export default function ProjectDetailPage() {
     setUpdating(false);
   };
 
+  const deleteProject = async () => {
+    if (!confirm("この案件を削除しますか？この操作は取り消せません。")) return;
+    setUpdating(true);
+    await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    router.push("/dashboard");
+  };
+
   const startInspection = async () => {
     setUpdating(true);
     await fetch(`/api/projects/${id}`, {
@@ -118,6 +125,15 @@ export default function ProjectDetailPage() {
           </button>
           <h2 className="text-lg font-bold text-gray-800 flex-1 truncate">{project.title}</h2>
           <StatusBadge status={project.status} />
+          {role === "ADMIN" && (
+            <button
+              onClick={deleteProject}
+              disabled={updating}
+              className="text-xs text-red-500 hover:text-red-700 border border-red-300 rounded px-2 py-1 disabled:opacity-50"
+            >
+              削除
+            </button>
+          )}
         </div>
 
         {/* 基本情報 */}

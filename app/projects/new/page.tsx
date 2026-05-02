@@ -133,7 +133,7 @@ export default function NewProjectPage() {
     }
   };
 
-  const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -240,7 +240,7 @@ export default function NewProjectPage() {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">¥</span>
               <input type="number" min="0" value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0" />
             </div>
           </div>

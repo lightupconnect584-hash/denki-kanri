@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  password    String
+  role        String    @default("PARTNER")
+  companyName String?
+  createdAt   DateTime  @default(now())
+
+  assignedProjects Project[]   @relation("AssignedTo")
+  createdProjects  Project[]   @relation("CreatedBy")
+  inspections      Inspection[]
+  quotes           Quote[]
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  title       String
+  location    String
+  description String?
+  status      String    @default("PENDING")
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedToId String?
+
+  createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById String
+
+  inspections Inspection[]
+  quotes      Quote[]
+}
+
+model Inspection {
+  id        String   @id @default(cuid())
+  result    String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+
+  inspector   User   @relation(fields: [inspectorId], references: [id])
+  inspectorId String
+
+  photos Photo[]
+}
+
+model Photo {
+  id           String     @id @default(cuid())
+  filename     String
+  originalName String
+  createdAt    DateTime   @default(now())
+
+  inspection   Inspection @relation(fields: [inspectionId], references: [id])
+  inspectionId String
+}
+
+model Quote {
+  id        String   @id @default(cuid())
+  amount    Int?
+  notes     String?
+  filename  String?
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+
+  submittedBy   User   @relation(fields: [submittedById], references: [id])
+  submittedById String
+}

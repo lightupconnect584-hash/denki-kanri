@@ -129,7 +129,7 @@ export default function InspectPage() {
               </span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                 multiple
                 className="hidden"
                 onChange={handlePhotoUpload}

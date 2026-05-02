@@ -6,7 +6,6 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
-import Image from "next/image";
 
 interface Photo {
   id: string;
@@ -217,11 +216,10 @@ export default function ProjectDetailPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <Image
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
                             src={photo.filename}
                             alt={photo.originalName}
-                            width={200}
-                            height={200}
                             className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
                           />
                         </a>

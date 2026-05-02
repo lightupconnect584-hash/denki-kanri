@@ -178,13 +178,21 @@ export default function ProjectDetailPage() {
           <h2 className="text-lg font-bold text-gray-800 flex-1 truncate">{project.title}</h2>
           <StatusBadge status={project.status} />
           {role === "ADMIN" && (
-            <button
-              onClick={deleteProject}
-              disabled={updating}
-              className="text-xs text-red-500 hover:text-red-700 border border-red-300 rounded px-2 py-1 disabled:opacity-50"
-            >
-              削除
-            </button>
+            <div className="flex gap-2">
+              <Link
+                href={`/projects/${id}/edit`}
+                className="text-xs text-blue-500 hover:text-blue-700 border border-blue-300 rounded px-2 py-1"
+              >
+                編集
+              </Link>
+              <button
+                onClick={deleteProject}
+                disabled={updating}
+                className="text-xs text-red-500 hover:text-red-700 border border-red-300 rounded px-2 py-1 disabled:opacity-50"
+              >
+                削除
+              </button>
+            </div>
           )}
         </div>
 

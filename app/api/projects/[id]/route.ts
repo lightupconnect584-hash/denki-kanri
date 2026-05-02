@@ -46,6 +46,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   await prisma.photo.deleteMany({ where: { inspection: { projectId: id } } });
   await prisma.inspection.deleteMany({ where: { projectId: id } });
   await prisma.quote.deleteMany({ where: { projectId: id } });
+  await prisma.projectPhoto.deleteMany({ where: { projectId: id } });
   await prisma.project.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
@@ -60,8 +61,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const updateData: Record<string, unknown> = {};
   if (body.status !== undefined) updateData.status = body.status;
-  if (body.assignedToId !== undefined) updateData.assignedToId = body.assignedToId;
+  if (body.assignedToId !== undefined) updateData.assignedToId = body.assignedToId !== "" ? body.assignedToId : null;
   if (body.visitDate !== undefined) updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
+  // 編集フィールド
+  if (body.title !== undefined) updateData.title = body.title;
+  if (body.location !== undefined) updateData.location = body.location;
+  if (body.contractorName !== undefined) updateData.contractorName = body.contractorName || null;
+  if (body.contractorPhone !== undefined) updateData.contractorPhone = body.contractorPhone || null;
+  if (body.smsAllowed !== undefined) updateData.smsAllowed = body.smsAllowed;
+  if (body.description !== undefined) updateData.description = body.description || null;
+  if (body.urgency !== undefined) updateData.urgency = body.urgency;
+  if (body.amount !== undefined) updateData.amount = body.amount ? parseInt(body.amount) : null;
+  if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
 
   const project = await prisma.project.update({
     where: { id },

@@ -28,33 +28,6 @@ export default function InspectPage() {
     return null;
   }
 
-  const convertToJpeg = async (file: File): Promise<File> => {
-    return new Promise((resolve) => {
-      const img = new window.Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) { resolve(file); return; }
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob((blob) => {
-          URL.revokeObjectURL(url);
-          if (!blob) { resolve(file); return; }
-          const jpegFile = new File(
-            [blob],
-            file.name.replace(/\.[^.]+$/, ".jpg"),
-            { type: "image/jpeg" }
-          );
-          resolve(jpegFile);
-        }, "image/jpeg", 0.85);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
-      img.src = url;
-    });
-  };
-
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -62,19 +35,23 @@ export default function InspectPage() {
     setUploading(true);
     const uploaded: UploadedPhoto[] = [];
 
-    for (const originalFile of Array.from(files)) {
-      const file = await convertToJpeg(originalFile);
-      const formData = new FormData();
-      formData.append("file", file);
+    for (const file of Array.from(files)) {
+      try {
+        const preview = URL.createObjectURL(file);
+        const formData = new FormData();
+        formData.append("file", file);
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      if (res.ok) {
-        const data = await res.json();
-        uploaded.push({
-          filename: data.filename,
-          originalName: data.originalName,
-          preview: URL.createObjectURL(file),
-        });
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        if (res.ok) {
+          const data = await res.json();
+          uploaded.push({
+            filename: data.filename,
+            originalName: data.originalName,
+            preview,
+          });
+        }
+      } catch {
+        // skip failed uploads
       }
     }
 

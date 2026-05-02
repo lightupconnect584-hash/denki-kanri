@@ -171,53 +171,83 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        {/* 現場写真 */}
+        {/* 現場写真・PDF */}
         {project.projectPhotos && project.projectPhotos.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-            <h3 className="text-sm font-bold text-gray-800 mb-3">現場写真 ({project.projectPhotos.length}枚)</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {project.projectPhotos.map((photo) => {
-                const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
-                return (
-                  <div key={photo.id} className="relative group">
-                    <a href={url} target="_blank" rel="noopener noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt={photo.originalName}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
-                      />
-                    </a>
-                    {role === "ADMIN" && (
-                      <a
-                        href={url}
-                        download={photo.originalName}
-                        className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition"
-                      >
-                        ↓
-                      </a>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {role === "ADMIN" && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {project.projectPhotos.map((photo) => {
-                  const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
-                  return (
-                    <a
-                      key={photo.id}
-                      href={url}
-                      download={photo.originalName}
-                      className="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition"
-                    >
-                      ↓ {photo.originalName}
-                    </a>
-                  );
-                })}
-              </div>
-            )}
+            <h3 className="text-sm font-bold text-gray-800 mb-3">現場写真・PDF</h3>
+            {/* 画像サムネイル */}
+            {(() => {
+              const images = project.projectPhotos.filter((f) => !f.originalName.toLowerCase().endsWith(".pdf"));
+              const pdfs = project.projectPhotos.filter((f) => f.originalName.toLowerCase().endsWith(".pdf"));
+              return (
+                <>
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {images.map((photo) => {
+                        const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
+                        return (
+                          <div key={photo.id} className="relative group">
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={url}
+                                alt={photo.originalName}
+                                className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
+                              />
+                            </a>
+                            {role === "ADMIN" && (
+                              <a
+                                href={url}
+                                download={photo.originalName}
+                                className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition"
+                              >
+                                ↓
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* PDFリスト */}
+                  {pdfs.length > 0 && (
+                    <div className="space-y-2">
+                      {pdfs.map((pdf) => {
+                        const url = pdf.filename.startsWith("http") ? pdf.filename : `/uploads/${pdf.filename}`;
+                        return (
+                          <div key={pdf.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                            <a href={url} target="_blank" rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <span>📄</span>{pdf.originalName}
+                            </a>
+                            {role === "ADMIN" && (
+                              <a href={url} download={pdf.originalName}
+                                className="text-xs text-green-600 border border-green-300 rounded px-2 py-0.5 hover:bg-green-50 transition">
+                                ↓ DL
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* 管理者向け画像一括ダウンロードリンク */}
+                  {role === "ADMIN" && images.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {images.map((photo) => {
+                        const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
+                        return (
+                          <a key={photo.id} href={url} download={photo.originalName}
+                            className="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition">
+                            ↓ {photo.originalName}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
 

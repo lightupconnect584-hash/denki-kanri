@@ -11,10 +11,11 @@ interface Partner {
   companyName: string | null;
 }
 
-interface UploadedPhoto {
+interface UploadedFile {
   filename: string;
   originalName: string;
-  preview: string;
+  preview: string; // blob URL for images, "" for PDFs
+  isPdf: boolean;
 }
 
 export default function NewProjectPage() {
@@ -28,7 +29,7 @@ export default function NewProjectPage() {
     dueDate: "",
     assignedToId: "",
   });
-  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+  const [photos, setPhotos] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -45,46 +46,61 @@ export default function NewProjectPage() {
     }
   }, [status]);
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     setUploading(true);
-    const uploaded: UploadedPhoto[] = [];
+    const uploaded: UploadedFile[] = [];
 
     for (const file of Array.from(files)) {
       try {
-        const compressedFile = await new Promise<File>((resolve, reject) => {
-          const img = new window.Image();
-          const url = URL.createObjectURL(file);
-          img.onload = () => {
-            const MAX = 1920;
-            let w = img.width, h = img.height;
-            if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-            const canvas = document.createElement("canvas");
-            canvas.width = w; canvas.height = h;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) { resolve(file); return; }
-            ctx.drawImage(img, 0, 0, w, h);
-            canvas.toBlob((blob) => {
-              URL.revokeObjectURL(url);
-              if (!blob) { resolve(file); return; }
-              resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
-            }, "image/jpeg", 0.75);
-          };
-          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("読み込み失敗")); };
-          img.src = url;
-        });
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
-        const formData = new FormData();
-        formData.append("file", compressedFile);
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        if (res.ok) {
-          const data = await res.json();
-          uploaded.push({
-            filename: data.filename,
-            originalName: data.originalName,
-            preview: URL.createObjectURL(compressedFile),
+        if (isPdf) {
+          // PDFはそのままアップロード
+          const formData = new FormData();
+          formData.append("file", file);
+          const res = await fetch("/api/upload", { method: "POST", body: formData });
+          if (res.ok) {
+            const data = await res.json();
+            uploaded.push({ filename: data.filename, originalName: data.originalName, preview: "", isPdf: true });
+          }
+        } else {
+          // 画像はキャンバスで圧縮
+          const compressedFile = await new Promise<File>((resolve, reject) => {
+            const img = new window.Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+              const MAX = 1920;
+              let w = img.width, h = img.height;
+              if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+              const canvas = document.createElement("canvas");
+              canvas.width = w; canvas.height = h;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) { resolve(file); return; }
+              ctx.drawImage(img, 0, 0, w, h);
+              canvas.toBlob((blob) => {
+                URL.revokeObjectURL(url);
+                if (!blob) { resolve(file); return; }
+                resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+              }, "image/jpeg", 0.75);
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("読み込み失敗")); };
+            img.src = url;
           });
+
+          const formData = new FormData();
+          formData.append("file", compressedFile);
+          const res = await fetch("/api/upload", { method: "POST", body: formData });
+          if (res.ok) {
+            const data = await res.json();
+            uploaded.push({
+              filename: data.filename,
+              originalName: data.originalName,
+              preview: URL.createObjectURL(compressedFile),
+              isPdf: false,
+            });
+          }
         }
       } catch {
         // skip
@@ -169,26 +185,44 @@ export default function NewProjectPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">現場写真</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">現場写真・PDF</label>
             <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-300 rounded-xl py-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
-              <span className="text-2xl">📷</span>
+              <span className="text-2xl">📎</span>
               <span className="text-sm text-gray-600">
-                {uploading ? "アップロード中..." : "現場写真を添付（複数可）"}
+                {uploading ? "アップロード中..." : "写真・PDFを添付（複数可）"}
               </span>
-              <input type="file" accept="image/*" multiple className="hidden"
-                onChange={handlePhotoUpload} disabled={uploading} />
+              <input type="file" accept="image/*,application/pdf" multiple className="hidden"
+                onChange={handleFileUpload} disabled={uploading} />
             </label>
             {photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mt-3">
-                {photos.map((photo) => (
-                  <div key={photo.filename} className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photo.preview} alt={photo.originalName}
-                      className="w-full h-24 object-cover rounded-lg" />
+              <div className="mt-3 space-y-2">
+                {/* 画像プレビュー */}
+                {photos.filter((p) => !p.isPdf).length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {photos.filter((p) => !p.isPdf).map((photo) => (
+                      <div key={photo.filename} className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={photo.preview} alt={photo.originalName}
+                          className="w-full h-24 object-cover rounded-lg" />
+                        <button type="button"
+                          onClick={() => setPhotos((prev) => prev.filter((p) => p.filename !== photo.filename))}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* PDFリスト */}
+                {photos.filter((p) => p.isPdf).map((pdf) => (
+                  <div key={pdf.filename} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    <span className="text-sm text-gray-700 flex items-center gap-2">
+                      <span>📄</span>{pdf.originalName}
+                    </span>
                     <button type="button"
-                      onClick={() => setPhotos((prev) => prev.filter((p) => p.filename !== photo.filename))}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
-                      ×
+                      onClick={() => setPhotos((prev) => prev.filter((p) => p.filename !== pdf.filename))}
+                      className="text-red-500 text-xs hover:text-red-700">
+                      削除
                     </button>
                   </div>
                 ))}

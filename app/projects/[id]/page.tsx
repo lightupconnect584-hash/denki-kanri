@@ -225,22 +225,48 @@ export default function ProjectDetailPage() {
                   <div>
                     <p className="text-xs text-gray-500 mb-2">点検写真 ({insp.photos.length}枚)</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {insp.photos.map((photo) => (
-                        <a
-                          key={photo.id}
-                          href={photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`}
-                            alt={photo.originalName}
-                            className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
-                          />
-                        </a>
-                      ))}
+                      {insp.photos.map((photo) => {
+                        const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
+                        return (
+                          <div key={photo.id} className="relative group">
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={url}
+                                alt={photo.originalName}
+                                className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
+                              />
+                            </a>
+                            {role === "ADMIN" && (
+                              <a
+                                href={url}
+                                download={photo.originalName}
+                                className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition"
+                              >
+                                ↓
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
+                    {role === "ADMIN" && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {insp.photos.map((photo) => {
+                          const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
+                          return (
+                            <a
+                              key={photo.id}
+                              href={url}
+                              download={photo.originalName}
+                              className="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition"
+                            >
+                              ↓ {photo.originalName}
+                            </a>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -276,14 +302,25 @@ export default function ProjectDetailPage() {
                   </p>
                 )}
                 {quote.filename && (
-                  <a
-                    href={quote.filename}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                  >
-                    📎 見積書ファイルを開く
-                  </a>
+                  <div className="flex gap-2 flex-wrap">
+                    <a
+                      href={quote.filename}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      📎 見積書を開く
+                    </a>
+                    {role === "ADMIN" && (
+                      <a
+                        href={quote.filename}
+                        download
+                        className="text-xs text-green-600 border border-green-300 rounded px-2 py-0.5 hover:bg-green-50 transition"
+                      >
+                        ↓ ダウンロード
+                      </a>
+                    )}
+                  </div>
                 )}
                 <p className="text-xs text-gray-400">
                   {new Date(quote.createdAt).toLocaleDateString("ja-JP")} /{" "}

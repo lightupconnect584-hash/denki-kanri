@@ -52,8 +52,9 @@ export default function DashboardPage() {
 
   const statusOrder = ["PENDING", "INSPECTING", "QUOTE_REQUESTED", "QUOTE_RECEIVED", "INSPECTED", "COMPLETED"];
 
-  const activeProjects = projects.filter((p) => p.status !== "COMPLETED");
-  const completedProjects = projects.filter((p) => p.status === "COMPLETED");
+  const DONE_STATUSES = ["COMPLETED", "INSPECTED", "REJECTED"];
+  const activeProjects = projects.filter((p) => !DONE_STATUSES.includes(p.status));
+  const completedProjects = projects.filter((p) => DONE_STATUSES.includes(p.status));
 
   const sortedActive = [...activeProjects].sort(
     (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)

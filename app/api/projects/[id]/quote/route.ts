@@ -50,6 +50,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       where: { id },
       data: { status: "COMPLETED" },
     });
+  } else if (body.status === "REJECTED") {
+    await prisma.project.update({
+      where: { id },
+      data: { status: "REJECTED" },
+    });
   }
 
   return NextResponse.json(quote);

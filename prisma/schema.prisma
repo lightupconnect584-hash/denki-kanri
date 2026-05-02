@@ -38,8 +38,19 @@ model Project {
   createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
   createdById String
 
-  inspections Inspection[]
-  quotes      Quote[]
+  inspections   Inspection[]
+  quotes        Quote[]
+  projectPhotos ProjectPhoto[]
+}
+
+model ProjectPhoto {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  createdAt    DateTime @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
 }
 
 model Inspection {

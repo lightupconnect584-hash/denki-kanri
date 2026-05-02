@@ -13,6 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     include: {
       assignedTo: { select: { id: true, name: true, companyName: true, email: true } },
       createdBy: { select: { name: true } },
+      projectPhotos: true,
       inspections: {
         include: {
           photos: true,

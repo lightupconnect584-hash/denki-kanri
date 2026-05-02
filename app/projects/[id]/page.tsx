@@ -32,6 +32,12 @@ interface Quote {
   submittedBy: { name: string; companyName: string | null };
 }
 
+interface ProjectPhoto {
+  id: string;
+  filename: string;
+  originalName: string;
+}
+
 interface Project {
   id: string;
   title: string;
@@ -41,6 +47,7 @@ interface Project {
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
   createdBy: { name: string };
+  projectPhotos: ProjectPhoto[];
   inspections: Inspection[];
   quotes: Quote[];
 }
@@ -163,6 +170,56 @@ export default function ProjectDetailPage() {
             </div>
           )}
         </div>
+
+        {/* 現場写真 */}
+        {project.projectPhotos && project.projectPhotos.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+            <h3 className="text-sm font-bold text-gray-800 mb-3">現場写真 ({project.projectPhotos.length}枚)</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {project.projectPhotos.map((photo) => {
+                const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
+                return (
+                  <div key={photo.id} className="relative group">
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={photo.originalName}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
+                      />
+                    </a>
+                    {role === "ADMIN" && (
+                      <a
+                        href={url}
+                        download={photo.originalName}
+                        className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition"
+                      >
+                        ↓
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {role === "ADMIN" && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {project.projectPhotos.map((photo) => {
+                  const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
+                  return (
+                    <a
+                      key={photo.id}
+                      href={url}
+                      download={photo.originalName}
+                      className="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition"
+                    >
+                      ↓ {photo.originalName}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 協力会社向けアクションボタン */}
         {canInspect && (

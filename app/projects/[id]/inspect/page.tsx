@@ -39,16 +39,34 @@ export default function InspectPage() {
 
     for (const file of Array.from(files)) {
       try {
-        // FileReaderで読み込んでからアップロード
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
+        // canvas で圧縮してJPEGに変換
+        const compressedFile = await new Promise<File>((resolve, reject) => {
+          const img = new window.Image();
+          const url = URL.createObjectURL(file);
+          img.onload = () => {
+            // 最大幅1920px
+            const MAX = 1920;
+            let w = img.width;
+            let h = img.height;
+            if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) { resolve(file); return; }
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+              URL.revokeObjectURL(url);
+              if (!blob) { resolve(file); return; }
+              resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+            }, "image/jpeg", 0.75);
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("画像の読み込みに失敗しました")); };
+          img.src = url;
         });
 
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressedFile);
 
         const res = await fetch("/api/upload", { method: "POST", body: formData });
         if (res.ok) {
@@ -56,13 +74,13 @@ export default function InspectPage() {
           uploaded.push({
             filename: data.filename,
             originalName: data.originalName,
-            preview: dataUrl,
+            preview: URL.createObjectURL(compressedFile),
           });
         } else {
-          setUploadError(`アップロード失敗 (${file.name}, ${Math.round(file.size/1024)}KB, status:${res.status})`);
+          setUploadError(`アップロード失敗 (${file.name}, status:${res.status})`);
         }
       } catch (e) {
-        setUploadError(`読み込みエラー: ${e} (${file.name})`);
+        setUploadError(`エラー: ${String(e)} (${file.name})`);
       }
     }
 

@@ -263,7 +263,7 @@ export default function ProjectDetailPage() {
                 )}
                 {quote.filename && (
                   <a
-                    href={`/uploads/${quote.filename}`}
+                    href={quote.filename}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-blue-600 hover:underline flex items-center gap-1"

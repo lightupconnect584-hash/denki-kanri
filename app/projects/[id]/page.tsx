@@ -42,7 +42,12 @@ interface Project {
   id: string;
   title: string;
   location: string;
+  contractorName: string | null;
+  contractorPhone: string | null;
+  smsAllowed: boolean;
   description: string | null;
+  urgency: string;
+  amount: number | null;
   status: string;
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
@@ -146,13 +151,50 @@ export default function ProjectDetailPage() {
         {/* 基本情報 */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-3">
           <div>
-            <p className="text-xs text-gray-500">場所</p>
+            <p className="text-xs text-gray-500">住所</p>
             <p className="text-sm font-medium text-gray-800">📍 {project.location}</p>
           </div>
+          {project.contractorName && (
+            <div>
+              <p className="text-xs text-gray-500">契約者名</p>
+              <p className="text-sm text-gray-700">{project.contractorName}</p>
+            </div>
+          )}
+          {project.contractorPhone && (
+            <div>
+              <p className="text-xs text-gray-500">契約者連絡先</p>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-gray-700">{project.contractorPhone}</p>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  project.smsAllowed ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+                }`}>
+                  SMS {project.smsAllowed ? "可" : "不可"}
+                </span>
+              </div>
+            </div>
+          )}
           {project.description && (
             <div>
-              <p className="text-xs text-gray-500">内容・備考</p>
+              <p className="text-xs text-gray-500">依頼内容</p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{project.description}</p>
+            </div>
+          )}
+          <div>
+            <p className="text-xs text-gray-500">緊急度</p>
+            <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${
+              project.urgency === "HIGH"
+                ? "bg-red-100 text-red-700"
+                : project.urgency === "MEDIUM"
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-green-100 text-green-700"
+            }`}>
+              {project.urgency === "HIGH" ? "高" : project.urgency === "MEDIUM" ? "中" : "低"}
+            </span>
+          </div>
+          {project.amount != null && (
+            <div>
+              <p className="text-xs text-gray-500">金額【税別】</p>
+              <p className="text-sm font-medium text-gray-800">¥{project.amount.toLocaleString()}</p>
             </div>
           )}
           {project.dueDate && (

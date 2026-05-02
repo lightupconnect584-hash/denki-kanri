@@ -38,7 +38,12 @@ export async function POST(req: NextRequest) {
     data: {
       title: body.title,
       location: body.location,
+      contractorName: body.contractorName || null,
+      contractorPhone: body.contractorPhone || null,
+      smsAllowed: body.smsAllowed ?? false,
       description: body.description,
+      urgency: body.urgency || "LOW",
+      amount: body.amount ? parseInt(body.amount) : null,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       assignedToId: body.assignedToId || null,
       createdById: userId,

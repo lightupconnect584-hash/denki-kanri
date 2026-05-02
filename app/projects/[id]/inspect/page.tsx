@@ -28,6 +28,19 @@ export default function InspectPage() {
     return null;
   }
 
+  const convertToJpeg = async (file: File): Promise<File> => {
+    if (!file.type.includes("heic") && !file.type.includes("heif") && file.type !== "") {
+      return file;
+    }
+    try {
+      const heic2any = (await import("heic2any")).default;
+      const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.85 }) as Blob;
+      return new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), { type: "image/jpeg" });
+    } catch {
+      return file;
+    }
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -35,7 +48,8 @@ export default function InspectPage() {
     setUploading(true);
     const uploaded: UploadedPhoto[] = [];
 
-    for (const file of Array.from(files)) {
+    for (const originalFile of Array.from(files)) {
+      const file = await convertToJpeg(originalFile);
       const formData = new FormData();
       formData.append("file", file);
 

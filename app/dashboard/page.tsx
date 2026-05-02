@@ -60,8 +60,19 @@ export default function DashboardPage() {
     (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
   );
   const sortedCompleted = [...completedProjects].sort(
-    (a, b) => new Date(b.dueDate || 0).getTime() - new Date(a.dueDate || 0).getTime()
+    (a, b) => new Date(b.dueDate || b.id).getTime() - new Date(a.dueDate || a.id).getTime()
   );
+
+  // 月ごとにグループ化
+  const completedByMonth: Record<string, Project[]> = {};
+  sortedCompleted.forEach((p) => {
+    const date = p.dueDate ? new Date(p.dueDate) : null;
+    const key = date
+      ? `${date.getFullYear()}年${date.getMonth() + 1}月`
+      : "日付なし";
+    if (!completedByMonth[key]) completedByMonth[key] = [];
+    completedByMonth[key].push(p);
+  });
 
   const renderProject = (p: Project) => (
     <Link
@@ -130,8 +141,15 @@ export default function DashboardPage() {
             </button>
 
             {showCompleted && (
-              <div className="space-y-3 mt-3">
-                {sortedCompleted.map(renderProject)}
+              <div className="mt-3 space-y-5">
+                {Object.entries(completedByMonth).map(([month, ps]) => (
+                  <div key={month}>
+                    <p className="text-xs font-bold text-gray-500 mb-2 px-1">📅 {month}（{ps.length}件）</p>
+                    <div className="space-y-3">
+                      {ps.map(renderProject)}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

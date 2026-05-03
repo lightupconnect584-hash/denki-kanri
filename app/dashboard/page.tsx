@@ -25,7 +25,7 @@ interface Project {
 }
 
 const URGENCY_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-const STATUS_ORDER = ["PENDING", "REWORK", "ACCEPTED", "INSPECTED", "QUOTE_REQUESTED", "CONFIRMED", "COMPLETED", "REJECTED"];
+const STATUS_ORDER = ["PENDING", "REWORK", "ACCEPTED", "INSPECTED", "QUOTE_REQUESTED", "QUOTE_REVIEWING", "CONFIRMED", "COMPLETED", "REJECTED"];
 const DONE_STATUSES = ["CONFIRMED", "COMPLETED"];
 
 export default function DashboardPage() {
@@ -253,6 +253,7 @@ export default function DashboardPage() {
               <option value="INSPECTED">完了報告済</option>
               <option value="CONFIRMED">確認済</option>
               <option value="QUOTE_REQUESTED">見積依頼中</option>
+              <option value="QUOTE_REVIEWING">見積り中</option>
               <option value="COMPLETED">完了</option>
               <option value="REJECTED">差し戻し</option>
             </select>

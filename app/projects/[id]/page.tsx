@@ -154,8 +154,9 @@ export default function ProjectDetailPage() {
   const changeStatus = async (newStatus: string) => {
     const labels: Record<string, string> = {
       QUOTE_REQUESTED: "見積依頼",
+      QUOTE_REVIEWING: "見積り中（確認済）",
       COMPLETED: "完了",
-      CONFIRMED: "確認",
+      CONFIRMED: "確認・完了",
       ACCEPTED: "受注",
       REJECTED: "差し戻し",
       PENDING: "進行中に戻す",
@@ -387,7 +388,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* 訪問予定日 */}
-        {!(role === "PARTNER" && project.status === "QUOTE_REQUESTED") && (
+        {!(role === "PARTNER" && ["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status)) && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <h3 className="text-sm font-bold text-gray-800 mb-3">📅 訪問予定日</h3>
           {project.visitDate && visitLabel && (
@@ -524,7 +525,7 @@ export default function ProjectDetailPage() {
         )}
 
         {/* 管理者向けステータス操作（完了報告後のみ表示） */}
-        {role === "ADMIN" && ["INSPECTED", "QUOTE_REQUESTED"].includes(project.status) && (
+        {role === "ADMIN" && ["INSPECTED", "QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status) && (
           <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-2">
             <p className="text-xs font-bold text-gray-500 mb-3">管理者操作</p>
             <div className="flex flex-wrap gap-2">
@@ -537,13 +538,26 @@ export default function ProjectDetailPage() {
                   📋 見積依頼する
                 </button>
               )}
-              <button
-                onClick={() => changeStatus("CONFIRMED")}
-                disabled={updating}
-                className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
-              >
-                ✅ 確認する
-              </button>
+              {/* QUOTE_REQUESTED: 修理報告確認 → 見積り中へ（完了ではない） */}
+              {project.status === "QUOTE_REQUESTED" && (
+                <button
+                  onClick={() => changeStatus("QUOTE_REVIEWING")}
+                  disabled={updating}
+                  className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
+                >
+                  ✅ 確認する（見積り中へ）
+                </button>
+              )}
+              {/* INSPECTED / QUOTE_REVIEWING: 確認 → 完了 */}
+              {["INSPECTED", "QUOTE_REVIEWING"].includes(project.status) && (
+                <button
+                  onClick={() => changeStatus("CONFIRMED")}
+                  disabled={updating}
+                  className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
+                >
+                  ✅ 確認・完了する
+                </button>
+              )}
               <button
                 onClick={() => changeStatus("REWORK")}
                 disabled={updating}
@@ -601,7 +615,7 @@ export default function ProjectDetailPage() {
                 </Link>
               </div>
             )}
-            {project.status === "QUOTE_REQUESTED" && (
+            {project.status === "QUOTE_REVIEWING" && (
               <Link
                 href={`/projects/${id}/quote`}
                 className="block w-full bg-orange-500 text-white rounded-xl py-3 text-sm font-medium hover:bg-orange-600 transition text-center"

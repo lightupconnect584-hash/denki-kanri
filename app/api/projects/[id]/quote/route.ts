@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
 
-  // ステータスは変えず QUOTE_REQUESTED のまま（管理者が確認後に CONFIRMED へ）
+  // ステータスは変えず QUOTE_REVIEWING のまま（管理者が確認後に CONFIRMED へ）
   // 管理者へ通知のみ更新
   const project = await prisma.project.update({
     where: { id },

@@ -23,7 +23,7 @@ interface Project {
 }
 
 const URGENCY_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-const STATUS_ORDER = ["PENDING", "ACCEPTED", "INSPECTED", "CONFIRMED", "QUOTE_REQUESTED", "COMPLETED", "REJECTED"];
+const STATUS_ORDER = ["PENDING", "REWORK", "ACCEPTED", "INSPECTED", "QUOTE_REQUESTED", "CONFIRMED", "COMPLETED", "REJECTED"];
 const DONE_STATUSES = ["CONFIRMED", "COMPLETED", "REJECTED"];
 
 export default function DashboardPage() {
@@ -246,6 +246,7 @@ export default function DashboardPage() {
               className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">全ステータス</option>
               <option value="PENDING">依頼中</option>
+              <option value="REWORK">再報告待ち</option>
               <option value="ACCEPTED">受注済</option>
               <option value="INSPECTED">完了報告済</option>
               <option value="CONFIRMED">確認済</option>

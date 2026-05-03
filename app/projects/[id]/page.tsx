@@ -160,6 +160,7 @@ export default function ProjectDetailPage() {
       ACCEPTED: "受注",
       REJECTED: "差し戻し",
       PENDING: "進行中に戻す",
+      REWORK: "再報告要求",
     };
     if (!confirm(`ステータスを「${labels[newStatus] ?? newStatus}」に変更しますか？`)) return;
     setUpdating(true);
@@ -407,7 +408,7 @@ export default function ProjectDetailPage() {
             <p className="text-sm text-gray-400 mb-3">未設定</p>
           )}
           {/* 担当協力会社のみ・PENDING or ACCEPTED中は編集可 */}
-          {role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED"].includes(project.status) ? (
+          {role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? (
             <>
               <div className="flex gap-2">
                 <input
@@ -520,8 +521,8 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* 管理者向けステータス操作 */}
-        {role === "ADMIN" && !["CONFIRMED", "COMPLETED"].includes(project.status) && (
+        {/* 管理者向けステータス操作（完了報告後のみ表示） */}
+        {role === "ADMIN" && ["INSPECTED", "QUOTE_REQUESTED"].includes(project.status) && (
           <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-2">
             <p className="text-xs font-bold text-gray-500 mb-3">管理者操作</p>
             <div className="flex flex-wrap gap-2">
@@ -534,24 +535,20 @@ export default function ProjectDetailPage() {
                   📋 見積依頼する
                 </button>
               )}
-              {["INSPECTED", "QUOTE_REQUESTED", "COMPLETED"].includes(project.status) && (
-                <button
-                  onClick={() => changeStatus("CONFIRMED")}
-                  disabled={updating}
-                  className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
-                >
-                  ✅ 確認する
-                </button>
-              )}
-              {!["PENDING", "REJECTED"].includes(project.status) && (
-                <button
-                  onClick={() => changeStatus("PENDING")}
-                  disabled={updating}
-                  className="flex-1 min-w-0 bg-gray-200 text-gray-600 text-sm rounded-lg py-2.5 font-medium hover:bg-red-100 hover:text-red-600 disabled:opacity-50 transition"
-                >
-                  ↩ 却下（進行中に戻す）
-                </button>
-              )}
+              <button
+                onClick={() => changeStatus("CONFIRMED")}
+                disabled={updating}
+                className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
+              >
+                ✅ 確認する
+              </button>
+              <button
+                onClick={() => changeStatus("REWORK")}
+                disabled={updating}
+                className="flex-1 min-w-0 bg-gray-200 text-gray-600 text-sm rounded-lg py-2.5 font-medium hover:bg-red-100 hover:text-red-600 disabled:opacity-50 transition"
+              >
+                ↩ 差し戻す（再報告要求）
+              </button>
             </div>
           </div>
         )}
@@ -589,6 +586,18 @@ export default function ProjectDetailPage() {
               >
                 📋 完了報告する
               </Link>
+            )}
+            {/* REWORK：再報告 */}
+            {project.status === "REWORK" && (
+              <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
+                <p className="text-xs text-amber-700 font-medium mb-3 text-center">⚠ 管理者から内容の確認・修正を求められています</p>
+                <Link
+                  href={`/projects/${id}/inspect`}
+                  className="block w-full bg-amber-500 text-white rounded-xl py-3 text-sm font-medium hover:bg-amber-600 transition text-center"
+                >
+                  📋 再報告する
+                </Link>
+              </div>
             )}
             {project.status === "QUOTE_REQUESTED" && (
               <Link

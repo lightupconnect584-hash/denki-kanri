@@ -18,7 +18,7 @@ export default function InspectPage() {
   const id = params.id as string;
 
   const [result, setResult] = useState<"OK" | "REPAIR_NEEDED" | "">("");
-  const [workDates, setWorkDates] = useState<string[]>([new Date().toISOString().slice(0, 10)]);
+  const [workDates, setWorkDates] = useState<string[]>([""]);
 
   // 最終日（最も遅い日付）を完了日・請求日の基準とする
   const finalWorkDate = workDates.filter(Boolean).sort().at(-1) ?? "";

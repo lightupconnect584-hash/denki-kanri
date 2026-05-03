@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import { Caveat } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
-  title: "案件管理システム",
-  description: "案件管理システム",
+  title: "After-Service Management System",
+  description: "After-Service Management System",
 };
+
+export const caveat = Caveat({ subsets: ["latin"], weight: ["600"] });
 
 export default function RootLayout({
   children,

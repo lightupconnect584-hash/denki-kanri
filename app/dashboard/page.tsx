@@ -24,7 +24,7 @@ interface Project {
 
 const URGENCY_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 const STATUS_ORDER = ["PENDING", "REWORK", "ACCEPTED", "INSPECTED", "QUOTE_REQUESTED", "CONFIRMED", "COMPLETED", "REJECTED"];
-const DONE_STATUSES = ["CONFIRMED", "COMPLETED", "REJECTED"];
+const DONE_STATUSES = ["CONFIRMED", "COMPLETED"];
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -109,8 +109,9 @@ export default function DashboardPage() {
     });
   }, [projects, search, filterStatus, filterUrgency]);
 
-  const activeProjects = filtered.filter((p) => !DONE_STATUSES.includes(p.status));
+  const activeProjects = filtered.filter((p) => !DONE_STATUSES.includes(p.status) && p.status !== "REJECTED");
   const completedProjects = filtered.filter((p) => DONE_STATUSES.includes(p.status));
+  const rejectedProjects = filtered.filter((p) => p.status === "REJECTED");
 
   const sortedActive = [...activeProjects].sort((a, b) => {
     if (sortMode === "urgency") return URGENCY_ORDER[a.urgency] - URGENCY_ORDER[b.urgency];
@@ -144,7 +145,7 @@ export default function DashboardPage() {
     return latestActivity > seen;
   };
 
-  const unreadCount = filtered.filter(isUnread).length;
+  const unreadCount = filtered.filter((p) => p.status !== "REJECTED" && isUnread(p)).length;
 
   const getVisitBadge = (visitDate: string | null) => {
     if (!visitDate) return null;
@@ -283,6 +284,19 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-3">{sortedActive.map(renderProject)}</div>
+        )}
+
+        {/* 差し戻しゾーン（管理者のみ） */}
+        {role === "ADMIN" && rejectedProjects.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-3">
+              <span className="text-base">↩</span>
+              <span className="font-medium">差し戻しゾーン</span>
+              <span className="ml-1 text-red-500">（{rejectedProjects.length}件）</span>
+              <span className="text-xs text-red-400 ml-1">— 協力会社が受けられなかった案件</span>
+            </div>
+            <div className="space-y-3">{rejectedProjects.map(renderProject)}</div>
+          </div>
         )}
 
         {completedProjects.length > 0 && (

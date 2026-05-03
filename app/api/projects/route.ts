@@ -11,7 +11,7 @@ export async function GET() {
   const role = (session.user as { role: string }).role;
 
   const projects = await prisma.project.findMany({
-    where: role === "ADMIN" ? {} : { assignedToId: userId },
+    where: role === "ADMIN" ? {} : { assignedToId: userId, status: { not: "REJECTED" } },
     include: {
       assignedTo: { select: { name: true, companyName: true } },
       createdBy: { select: { name: true, avatarUrl: true } },

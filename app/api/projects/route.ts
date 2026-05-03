@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       assignedToId: body.assignedToId || null,
       createdById: userId,
       status: "PENDING",
+      notifyPartnerAt: new Date(),
       projectPhotos: {
         create: (body.photos || []).map((p: { filename: string; originalName: string }) => ({
           filename: p.filename,

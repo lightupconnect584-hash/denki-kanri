@@ -28,7 +28,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }),
     prisma.project.update({
       where: { id },
-      data: { updatedAt: new Date() },
+      data: {
+        updatedAt: new Date(),
+        // 管理者コメント → 協力会社に通知、協力会社コメント → 管理者に通知
+        ...(role === "ADMIN" ? { notifyPartnerAt: new Date() } : { notifyAdminAt: new Date() }),
+      },
       include: {
         assignedTo: { select: { email: true } },
         createdBy: { select: { email: true } },

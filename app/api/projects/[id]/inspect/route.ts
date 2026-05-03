@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const newStatus = body.result === "REPAIR_NEEDED" ? "QUOTE_REQUESTED" : "INSPECTED";
   const project = await prisma.project.update({
     where: { id },
-    data: { status: newStatus },
+    data: { status: newStatus, notifyAdminAt: new Date() },
   });
 
   // アクティビティログ

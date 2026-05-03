@@ -16,6 +16,8 @@ interface Project {
   dueDate: string | null;
   visitDate: string | null;
   updatedAt: string;
+  notifyAdminAt: string | null;
+  notifyPartnerAt: string | null;
   assignedTo: { name: string; companyName: string | null } | null;
   inspections: { id: string }[];
   quotes: { id: string; status: string }[];
@@ -138,11 +140,10 @@ export default function DashboardPage() {
 
   const isUnread = (p: Project) => {
     const seen = seenMap[p.id];
+    const notifyAt = role === "ADMIN" ? p.notifyAdminAt : p.notifyPartnerAt;
+    if (!notifyAt) return false;
     if (!seen) return true;
-    const latestActivity = [p.updatedAt, ...(p.comments.map((c) => c.createdAt))].reduce(
-      (a, b) => (a > b ? a : b), p.updatedAt
-    );
-    return latestActivity > seen;
+    return notifyAt > seen;
   };
 
   const unreadCount = filtered.filter((p) => p.status !== "REJECTED" && isUnread(p)).length;

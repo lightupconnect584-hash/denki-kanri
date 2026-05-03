@@ -78,8 +78,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const userId = (session.user as { id: string }).id;
 
   const updateData: Record<string, unknown> = {};
-  if (body.status !== undefined) updateData.status = body.status;
-  if (body.assignedToId !== undefined) updateData.assignedToId = body.assignedToId !== "" ? body.assignedToId : null;
+  if (body.status !== undefined) {
+    updateData.status = body.status;
+    // 協力会社が差し戻し → 管理者に通知
+    if (body.status === "REJECTED") updateData.notifyAdminAt = new Date();
+    // 管理者が再報告要求 → 協力会社に通知
+    if (body.status === "REWORK") updateData.notifyPartnerAt = new Date();
+  }
+  // 担当変更（再アサイン）→ 協力会社に通知
+  if (body.assignedToId !== undefined) {
+    updateData.assignedToId = body.assignedToId !== "" ? body.assignedToId : null;
+    if (role === "ADMIN" && body.assignedToId) updateData.notifyPartnerAt = new Date();
+  }
 
   // 訪問予定日は担当協力会社のみ変更可
   if (body.visitDate !== undefined) {
@@ -89,7 +99,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     // 管理者は visitDate を変更不可（無視）
   }
-  // 編集フィールド
+  // 編集フィールド（管理者が内容を変更した場合 → 協力会社に通知）
+  const contentFields = ["title", "location", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate"];
+  const contentEdited = role === "ADMIN" && contentFields.some(f => body[f] !== undefined);
+  if (contentEdited) updateData.notifyPartnerAt = new Date();
   if (body.title !== undefined) updateData.title = body.title;
   if (body.location !== undefined) updateData.location = body.location;
   if (body.contractorName !== undefined) updateData.contractorName = body.contractorName || null;

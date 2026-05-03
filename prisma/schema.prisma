@@ -41,6 +41,8 @@ model Project {
   dueDate          DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+  notifyAdminAt    DateTime?
+  notifyPartnerAt  DateTime?
 
   assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
   assignedToId String?

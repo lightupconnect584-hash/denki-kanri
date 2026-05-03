@@ -80,8 +80,10 @@ export default function DashboardPage() {
 
   // 画面に戻ってきた時にseenMapを再読み込み
   useEffect(() => {
-    const onFocus = () => loadSeenMap();
-    const onVisible = () => { if (document.visibilityState === "visible") loadSeenMap(); };
+    const onFocus = () => { loadSeenMap(); fetchProjects(true); };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") { loadSeenMap(); fetchProjects(true); }
+    };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
     return () => {

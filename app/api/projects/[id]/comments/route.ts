@@ -26,8 +26,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: { projectId: id, authorId: userId, content: body.content.trim() },
       include: { author: { select: { name: true, companyName: true, role: true, avatarUrl: true } } },
     }),
-    prisma.project.findUnique({
+    prisma.project.update({
       where: { id },
+      data: { updatedAt: new Date() },
       include: {
         assignedTo: { select: { email: true } },
         createdBy: { select: { email: true } },

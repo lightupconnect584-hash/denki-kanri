@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import StatusBadge from "@/components/StatusBadge";
 
 interface Project {
   id: string;
@@ -12,8 +13,11 @@ interface Project {
   status: string;
   amount: number | null;
   createdAt: string;
+  dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null } | null;
 }
+
+const DONE_STATUSES = ["CONFIRMED", "COMPLETED"];
 
 export default function BillingPage() {
   const { data: session, status } = useSession();
@@ -22,6 +26,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [selectedPartner, setSelectedPartner] = useState<string>("all");
+  const [onlyDone, setOnlyDone] = useState(true);
 
   const role = (session?.user as { role?: string })?.role;
   const userId = (session?.user as { id?: string })?.id;
@@ -40,46 +45,41 @@ export default function BillingPage() {
       });
   }, [status]);
 
-  // パートナーのみ自分の案件に絞る
   const myProjects = useMemo(() => {
     if (role === "PARTNER") return projects.filter((p) => p.assignedTo?.id === userId);
     return projects;
   }, [projects, role, userId]);
 
-  // 月一覧を生成
+  // 月ラベル用のキー（dueDate優先、なければcreatedAt）
+  const getMonthKey = (p: Project) => {
+    const d = new Date(p.dueDate || p.createdAt);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
   const months = useMemo(() => {
     const set = new Set<string>();
-    myProjects.forEach((p) => {
-      const d = new Date(p.createdAt);
-      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-    });
+    myProjects.forEach((p) => set.add(getMonthKey(p)));
     return Array.from(set).sort().reverse();
   }, [myProjects]);
 
-  // 協力会社一覧（管理者のみ）
   const partners = useMemo(() => {
     if (role !== "ADMIN") return [];
     const map = new Map<string, string>();
     myProjects.forEach((p) => {
-      if (p.assignedTo) map.set(p.assignedTo.id, p.assignedTo.companyName || p.assignedTo.name);
+      if (p.assignedTo?.id) map.set(p.assignedTo.id, p.assignedTo.companyName || p.assignedTo.name);
     });
     return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
   }, [myProjects, role]);
 
-  // フィルタリング
   const filtered = useMemo(() => {
     return myProjects.filter((p) => {
-      if (selectedMonth !== "all") {
-        const d = new Date(p.createdAt);
-        const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        if (m !== selectedMonth) return false;
-      }
+      if (onlyDone && !DONE_STATUSES.includes(p.status)) return false;
+      if (selectedMonth !== "all" && getMonthKey(p) !== selectedMonth) return false;
       if (selectedPartner !== "all" && p.assignedTo?.id !== selectedPartner) return false;
       return true;
     });
-  }, [myProjects, selectedMonth, selectedPartner]);
+  }, [myProjects, selectedMonth, selectedPartner, onlyDone]);
 
-  // 協力会社別に集計
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; projects: Project[]; total: number }>();
     filtered.forEach((p) => {
@@ -116,29 +116,40 @@ export default function BillingPage() {
         </div>
 
         {/* フィルター */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4 flex gap-2 flex-wrap">
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">全期間</option>
-            {months.map((m) => (
-              <option key={m} value={m}>{monthLabel(m)}</option>
-            ))}
-          </select>
-          {role === "ADMIN" && (
+        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4 space-y-2">
+          <div className="flex gap-2 flex-wrap">
             <select
-              value={selectedPartner}
-              onChange={(e) => setSelectedPartner(e.target.value)}
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
               className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">全協力会社</option>
-              {partners.map(([id, name]) => (
-                <option key={id} value={id}>{name}</option>
+              <option value="all">全期間</option>
+              {months.map((m) => (
+                <option key={m} value={m}>{monthLabel(m)}</option>
               ))}
             </select>
-          )}
+            {role === "ADMIN" && (
+              <select
+                value={selectedPartner}
+                onChange={(e) => setSelectedPartner(e.target.value)}
+                className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">全協力会社</option>
+                {partners.map(([id, name]) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={onlyDone}
+              onChange={(e) => setOnlyDone(e.target.checked)}
+              className="rounded"
+            />
+            確認済み・完了のみ表示
+          </label>
         </div>
 
         {/* 合計金額バナー */}
@@ -169,14 +180,16 @@ export default function BillingPage() {
                 )}
                 <div className="divide-y divide-gray-100">
                   {group.projects.map((p) => {
-                    const d = new Date(p.createdAt);
-                    const monthKey = `${d.getFullYear()}年${d.getMonth() + 1}月`;
+                    const dateStr = new Date(p.dueDate || p.createdAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long" });
                     return (
                       <div key={p.id} className="px-4 py-3 flex items-start gap-3">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-800 truncate">{p.title}</p>
                           <p className="text-xs text-gray-500 mt-0.5">📍 {p.location}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{monthKey}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-xs text-gray-400">{dateStr}</p>
+                            <StatusBadge status={p.status} />
+                          </div>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-bold text-gray-800">¥{(p.amount || 0).toLocaleString()}</p>

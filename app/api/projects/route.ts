@@ -13,7 +13,7 @@ export async function GET() {
   const projects = await prisma.project.findMany({
     where: role === "ADMIN" ? {} : { assignedToId: userId, status: { not: "REJECTED" } },
     include: {
-      assignedTo: { select: { name: true, companyName: true } },
+      assignedTo: { select: { id: true, name: true, companyName: true } },
       createdBy: { select: { name: true, avatarUrl: true } },
       inspections: { include: { photos: true } },
       quotes: true,

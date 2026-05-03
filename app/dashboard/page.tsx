@@ -18,7 +18,7 @@ interface Project {
   updatedAt: string;
   notifyAdminAt: string | null;
   notifyPartnerAt: string | null;
-  assignedTo: { name: string; companyName: string | null } | null;
+  assignedTo: { id: string; name: string; companyName: string | null } | null;
   inspections: { id: string }[];
   quotes: { id: string; status: string }[];
   comments: { createdAt: string }[];

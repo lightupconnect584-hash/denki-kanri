@@ -78,6 +78,18 @@ export default function DashboardPage() {
     if (status === "authenticated") fetchProjects();
   }, [status]);
 
+  // 画面に戻ってきた時にseenMapを再読み込み
+  useEffect(() => {
+    const onFocus = () => loadSeenMap();
+    const onVisible = () => { if (document.visibilityState === "visible") loadSeenMap(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
   // 30秒ごとに自動更新
   useEffect(() => {
     if (status !== "authenticated") return;

@@ -118,8 +118,8 @@ export default function ProjectDetailPage() {
         setLoading(false);
         setRefreshing(false);
         setLastUpdated(new Date());
-        // 既読としてlocalStorageに記録
-        try { localStorage.setItem(`proj-seen-${id}`, data.updatedAt || new Date().toISOString()); } catch {}
+        // 既読としてlocalStorageに記録（閲覧した時刻を保存）
+        try { localStorage.setItem(`proj-seen-${id}`, new Date().toISOString()); } catch {}
       });
   };
 

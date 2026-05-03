@@ -27,6 +27,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         },
         orderBy: { createdAt: "desc" },
       },
+      comments: {
+        include: { author: { select: { name: true, companyName: true, role: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+      activityLogs: {
+        include: { user: { select: { name: true, role: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      },
     },
   });
 

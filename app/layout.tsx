@@ -5,6 +5,9 @@ import SessionProvider from "@/components/SessionProvider";
 export const metadata: Metadata = {
   title: "After-Service Management System",
   description: "After-Service Management System",
+  manifest: "/manifest.json",
+  themeColor: "#2563eb",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "案件管理" },
 };
 
 export default function RootLayout({

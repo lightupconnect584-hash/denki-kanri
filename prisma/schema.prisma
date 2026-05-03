@@ -20,6 +20,8 @@ model User {
   createdProjects  Project[]   @relation("CreatedBy")
   inspections      Inspection[]
   quotes           Quote[]
+  comments         Comment[]
+  activityLogs     ActivityLog[]
 }
 
 model Project {
@@ -47,6 +49,8 @@ model Project {
   inspections   Inspection[]
   quotes        Quote[]
   projectPhotos ProjectPhoto[]
+  comments      Comment[]
+  activityLogs  ActivityLog[]
 }
 
 model ProjectPhoto {
@@ -83,6 +87,31 @@ model Photo {
 
   inspection   Inspection @relation(fields: [inspectionId], references: [id])
   inspectionId String
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+
+  user      User?   @relation(fields: [userId], references: [id])
+  userId    String?
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+
+  author    User   @relation(fields: [authorId], references: [id])
+  authorId  String
 }
 
 model Quote {

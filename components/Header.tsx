@@ -29,6 +29,9 @@ export default function Header() {
             ユーザー管理
           </Link>
         )}
+        <Link href="/settings" className="text-xs text-gray-500 hover:text-gray-700">
+          設定
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="text-xs text-gray-500 hover:text-red-500"

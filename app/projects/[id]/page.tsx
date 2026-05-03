@@ -39,6 +39,21 @@ interface ProjectPhoto {
   originalName: string;
 }
 
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: { name: string; companyName: string | null; role: string };
+}
+
+interface ActivityLog {
+  id: string;
+  action: string;
+  detail: string | null;
+  createdAt: string;
+  user: { name: string; role: string } | null;
+}
+
 interface Project {
   id: string;
   title: string;
@@ -57,6 +72,8 @@ interface Project {
   projectPhotos: ProjectPhoto[];
   inspections: Inspection[];
   quotes: Quote[];
+  comments: Comment[];
+  activityLogs: ActivityLog[];
 }
 
 export default function ProjectDetailPage() {
@@ -70,6 +87,9 @@ export default function ProjectDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [visitInput, setVisitInput] = useState("");
   const [savingVisit, setSavingVisit] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [sendingComment, setSendingComment] = useState(false);
+  const [showLog, setShowLog] = useState(false);
 
   const role = (session?.user as { role?: string })?.role;
   const userId = (session?.user as { id?: string })?.id;
@@ -128,6 +148,19 @@ export default function ProjectDetailPage() {
     });
     fetchProject();
     setUpdating(false);
+  };
+
+  const sendComment = async () => {
+    if (!commentText.trim()) return;
+    setSendingComment(true);
+    await fetch(`/api/projects/${id}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: commentText.trim() }),
+    });
+    setCommentText("");
+    fetchProject();
+    setSendingComment(false);
   };
 
   const saveVisitDate = async () => {
@@ -580,6 +613,102 @@ export default function ProjectDetailPage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* コメント */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mt-4">
+          <h3 className="text-sm font-bold text-gray-800 mb-3">💬 コメント</h3>
+          {project.comments.length === 0 && (
+            <p className="text-sm text-gray-400 mb-3">まだコメントはありません</p>
+          )}
+          {project.comments.length > 0 && (
+            <div className="space-y-3 mb-4">
+              {project.comments.map((c) => {
+                const isMe = c.author.role === role;
+                const isAdmin = c.author.role === "ADMIN";
+                return (
+                  <div key={c.id} className={`flex flex-col ${isAdmin ? "items-start" : "items-end"}`}>
+                    <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
+                      isAdmin
+                        ? "bg-blue-50 text-gray-800 rounded-tl-none"
+                        : "bg-gray-100 text-gray-800 rounded-tr-none"
+                    }`}>
+                      <p className="whitespace-pre-wrap">{c.content}</p>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5 px-1">
+                      {c.author.companyName || c.author.name} · {new Date(c.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendComment(); }}
+              rows={2}
+              placeholder="コメントを入力… (Cmd+Enter で送信)"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+            <button
+              onClick={sendComment}
+              disabled={sendingComment || !commentText.trim()}
+              className="bg-blue-600 text-white text-sm px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition self-end"
+            >
+              送信
+            </button>
+          </div>
+        </div>
+
+        {/* 活動ログ */}
+        {project.activityLogs.length > 0 && (
+          <div className="mt-4">
+            <button
+              onClick={() => setShowLog(!showLog)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 rounded-xl text-sm text-gray-600 hover:bg-gray-200 transition"
+            >
+              <span>🕐 活動履歴 ({project.activityLogs.length}件)</span>
+              <span>{showLog ? "▲ 閉じる" : "▼ 表示する"}</span>
+            </button>
+            {showLog && (
+              <div className="mt-2 bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+                {project.activityLogs.map((log) => {
+                  const actionLabel: Record<string, string> = {
+                    CREATED: "案件作成",
+                    STATUS_CHANGED: "ステータス変更",
+                    INSPECTION: "点検報告",
+                    QUOTE_SUBMITTED: "見積提出",
+                    QUOTE_APPROVED: "見積承認",
+                    QUOTE_REJECTED: "見積却下",
+                    COMMENT: "コメント",
+                    ASSIGNED: "担当者設定",
+                  };
+                  return (
+                    <div key={log.id} className="px-4 py-3 flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-700">
+                          {actionLabel[log.action] || log.action}
+                        </p>
+                        {log.detail && (
+                          <p className="text-xs text-gray-500 mt-0.5">{log.detail}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-gray-400">
+                          {new Date(log.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                        {log.user && (
+                          <p className="text-xs text-gray-400">{log.user.name}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </main>

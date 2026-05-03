@@ -437,7 +437,6 @@ export default function ProjectDetailPage() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1">※ 保存すると9時訪問として登録されます</p>
             </>
           ) : role === "PARTNER" && isAssigned && !["PENDING", "ACCEPTED"].includes(project.status) ? (
             <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">

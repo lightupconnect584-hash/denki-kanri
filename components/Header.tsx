@@ -2,7 +2,9 @@
 
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { caveat } from "@/app/layout";
+import { Caveat } from "next/font/google";
+
+const caveat = Caveat({ subsets: ["latin"], weight: ["600"] });
 
 export default function Header() {
   const { data: session } = useSession();

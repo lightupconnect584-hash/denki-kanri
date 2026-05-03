@@ -26,6 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       inspectorId: userId,
       result: body.result,
       workDate: new Date(body.workDate),
+      workDates: (body.workDates || [body.workDate]).filter(Boolean),
       notes: body.notes,
       photos: {
         create: (body.photos || []).map((p: { filename: string; originalName: string }) => ({

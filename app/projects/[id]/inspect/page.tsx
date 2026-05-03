@@ -18,7 +18,13 @@ export default function InspectPage() {
   const id = params.id as string;
 
   const [result, setResult] = useState<"OK" | "REPAIR_NEEDED" | "">("");
-  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
+  const [workDates, setWorkDates] = useState<string[]>([new Date().toISOString().slice(0, 10)]);
+
+  // 最終日（最も遅い日付）を完了日・請求日の基準とする
+  const finalWorkDate = workDates.filter(Boolean).sort().at(-1) ?? "";
+  const addWorkDate = () => setWorkDates([...workDates, ""]);
+  const removeWorkDate = (i: number) => setWorkDates(workDates.filter((_, idx) => idx !== i));
+  const setWorkDate = (i: number, v: string) => setWorkDates(workDates.map((d, idx) => idx === i ? v : d));
 
   // 詳細内容テンプレート（4セクション）
   const [situation, setSituation] = useState("");
@@ -101,7 +107,7 @@ export default function InspectPage() {
   const buildNotes = () =>
     `【状況】\n${situation.trim()}\n\n【原因】\n${cause.trim()}\n\n【対応】\n${response.trim()}${other.trim() ? `\n\n【その他】\n${other.trim()}` : ""}`;
 
-  const canSubmit = !!result && !!workDate && situation.trim() && cause.trim() && response.trim();
+  const canSubmit = !!result && !!finalWorkDate && situation.trim() && cause.trim() && response.trim();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +119,8 @@ export default function InspectPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         result,
-        workDate,
+        workDate: finalWorkDate,
+        workDates: workDates.filter(Boolean).sort(),
         notes: buildNotes(),
         photos: photos.map((p) => ({ filename: p.filename, originalName: p.originalName })),
       }),
@@ -165,16 +172,42 @@ export default function InspectPage() {
             </div>
           </div>
 
-          {/* 作業日 */}
+          {/* 作業日（複数日対応） */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <label className="block text-sm font-bold text-gray-700 mb-2">作業日 *</label>
-            <input
-              type="date"
-              required
-              value={workDate}
-              onChange={(e) => setWorkDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-bold text-gray-700">作業日 *</label>
+              <button
+                type="button"
+                onClick={addWorkDate}
+                className="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition"
+              >
+                ＋ 日付を追加
+              </button>
+            </div>
+            <div className="space-y-2">
+              {workDates.map((d, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={d}
+                    onChange={(e) => setWorkDate(i, e.target.value)}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {workDates.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeWorkDate(i)}
+                      className="text-gray-400 hover:text-red-500 text-sm px-2"
+                    >✕</button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {workDates.filter(Boolean).length > 1 && (
+              <p className="text-xs text-gray-500 mt-2">
+                最終日（完了日）: <span className="font-medium text-gray-700">{new Date(finalWorkDate).toLocaleDateString("ja-JP")}</span>
+              </p>
+            )}
           </div>
 
           {/* 詳細内容（4セクション） */}

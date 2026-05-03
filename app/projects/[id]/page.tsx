@@ -17,6 +17,7 @@ interface Inspection {
   id: string;
   result: string;
   workDate: string;
+  workDates: string[];
   notes: string | null;
   createdAt: string;
   inspector: { name: string; companyName: string | null };
@@ -645,7 +646,11 @@ export default function ProjectDetailPage() {
                     {insp.result === "REPAIR_NEEDED" ? "修理が必要" : "問題なし"}
                   </span>
                   <span className="text-xs text-gray-600 font-medium">
-                    🔧 作業日: {new Date(insp.workDate).toLocaleDateString("ja-JP")}
+                    🔧 作業日: {
+                      insp.workDates.length > 1
+                        ? insp.workDates.sort().map((d) => new Date(d).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })).join("・") + `（最終: ${new Date(insp.workDate).toLocaleDateString("ja-JP")}）`
+                        : new Date(insp.workDate).toLocaleDateString("ja-JP")
+                    }
                   </span>
                   <span className="text-xs text-gray-400">
                     {insp.inspector.companyName || insp.inspector.name}

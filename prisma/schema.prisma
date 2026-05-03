@@ -71,6 +71,7 @@ model Inspection {
   id        String   @id @default(cuid())
   result    String
   workDate  DateTime
+  workDates String[] @default([])
   notes     String?
   createdAt DateTime @default(now())
 

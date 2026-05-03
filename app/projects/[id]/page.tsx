@@ -242,11 +242,10 @@ export default function ProjectDetailPage() {
           <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 text-lg">
             ←
           </button>
-          <h2 className="text-lg font-bold text-gray-800 flex-1 truncate">{project.title}</h2>
           <button
             onClick={() => fetchProject(true)}
             disabled={refreshing}
-            className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40 shrink-0"
+            className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40 shrink-0 ml-auto"
             title="更新"
           >
             <span className={`text-base ${refreshing ? "animate-spin inline-block" : ""}`}>🔄</span>
@@ -273,6 +272,9 @@ export default function ProjectDetailPage() {
 
         {/* 基本情報 */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-3">
+          <div>
+            <h2 className="text-base font-bold text-gray-800 leading-snug">{project.title}</h2>
+          </div>
           <div>
             <p className="text-xs text-gray-500">住所</p>
             <p className="text-sm font-medium text-gray-800">📍 {project.location}</p>
@@ -304,7 +306,7 @@ export default function ProjectDetailPage() {
           {project.description && (
             <div>
               <p className="text-xs text-gray-500">依頼内容</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{project.description}</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-hidden">{project.description}</p>
             </div>
           )}
           <div>

@@ -106,12 +106,11 @@ export default function ProjectDetailPage() {
       .then((r) => r.json())
       .then((data) => {
         setProject(data);
-        // visitDateをdatetime-local形式に変換してセット
+        // visitDateを日付のみ（YYYY-MM-DD）に変換してセット
         if (data.visitDate) {
           const d = new Date(data.visitDate);
           const pad = (n: number) => String(n).padStart(2, "0");
-          const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-          setVisitInput(local);
+          setVisitInput(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
         } else {
           setVisitInput("");
         }
@@ -199,15 +198,12 @@ export default function ProjectDetailPage() {
 
   const saveVisitDate = async () => {
     setSavingVisit(true);
-    let dateToSave = visitInput;
-    // 時刻未入力（00:00）の場合は09:00をデフォルトにする
-    if (dateToSave && /T00:00$/.test(dateToSave)) {
-      dateToSave = dateToSave.replace(/T00:00$/, "T09:00");
-    }
+    // 日付のみ入力 → 09:00 JST として保存
+    const dateToSave = visitInput ? new Date(`${visitInput}T09:00:00`).toISOString() : null;
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitDate: dateToSave ? new Date(dateToSave).toISOString() : null }),
+      body: JSON.stringify({ visitDate: dateToSave }),
     });
     fetchProject();
     setSavingVisit(false);
@@ -419,7 +415,7 @@ export default function ProjectDetailPage() {
             <>
               <div className="flex gap-2">
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={visitInput}
                   onChange={(e) => setVisitInput(e.target.value)}
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -441,7 +437,7 @@ export default function ProjectDetailPage() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1">※ 時間は任意です（日付のみも可）</p>
+              <p className="text-xs text-gray-400 mt-1">※ 保存すると9時訪問として登録されます</p>
             </>
           ) : role === "PARTNER" && isAssigned && !["PENDING", "ACCEPTED"].includes(project.status) ? (
             <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">

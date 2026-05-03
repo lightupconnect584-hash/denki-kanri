@@ -156,8 +156,10 @@ export default function ProjectDetailPage() {
     const labels: Record<string, string> = {
       QUOTE_REQUESTED: "見積依頼",
       COMPLETED: "完了",
-      REJECTED: "却下",
-      INSPECTING: "点検開始",
+      CONFIRMED: "確認",
+      ACCEPTED: "受注",
+      REJECTED: "差し戻し",
+      PENDING: "進行中に戻す",
     };
     if (!confirm(`ステータスを「${labels[newStatus] ?? newStatus}」に変更しますか？`)) return;
     setUpdating(true);
@@ -380,7 +382,7 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* 訪問予定日 - 協力会社の見積依頼中は非表示 */}
+        {/* 訪問予定日 */}
         {!(role === "PARTNER" && project.status === "QUOTE_REQUESTED") && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <h3 className="text-sm font-bold text-gray-800 mb-3">📅 訪問予定日</h3>
@@ -404,8 +406,8 @@ export default function ProjectDetailPage() {
           {!project.visitDate && (
             <p className="text-sm text-gray-400 mb-3">未設定</p>
           )}
-          {/* 担当協力会社のみ・PENDING中のみ編集可 */}
-          {role === "PARTNER" && isAssigned && project.status === "PENDING" ? (
+          {/* 担当協力会社のみ・PENDING or ACCEPTED中は編集可 */}
+          {role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED"].includes(project.status) ? (
             <>
               <div className="flex gap-2">
                 <input
@@ -433,9 +435,9 @@ export default function ProjectDetailPage() {
               </div>
               <p className="text-xs text-gray-400 mt-1">※ 時間は任意です（日付のみも可）</p>
             </>
-          ) : role === "PARTNER" && isAssigned && project.status !== "PENDING" ? (
+          ) : role === "PARTNER" && isAssigned && !["PENDING", "ACCEPTED"].includes(project.status) ? (
             <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
-              🔒 点検開始後は訪問予定日を変更できません
+              🔒 完了報告後は訪問予定日を変更できません
             </p>
           ) : null}
         </div>
@@ -519,7 +521,7 @@ export default function ProjectDetailPage() {
         )}
 
         {/* 管理者向けステータス操作 */}
-        {role === "ADMIN" && !["COMPLETED", "REJECTED"].includes(project.status) && (
+        {role === "ADMIN" && !["CONFIRMED", "COMPLETED"].includes(project.status) && (
           <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-2">
             <p className="text-xs font-bold text-gray-500 mb-3">管理者操作</p>
             <div className="flex flex-wrap gap-2">
@@ -532,22 +534,22 @@ export default function ProjectDetailPage() {
                   📋 見積依頼する
                 </button>
               )}
-              {["INSPECTED", "QUOTE_REQUESTED", "QUOTE_RECEIVED"].includes(project.status) && (
+              {["INSPECTED", "QUOTE_REQUESTED", "COMPLETED"].includes(project.status) && (
                 <button
-                  onClick={() => changeStatus("COMPLETED")}
+                  onClick={() => changeStatus("CONFIRMED")}
                   disabled={updating}
                   className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
                 >
-                  ✅ 完了にする
+                  ✅ 確認する
                 </button>
               )}
-              {project.status !== "PENDING" && (
+              {!["PENDING", "REJECTED"].includes(project.status) && (
                 <button
-                  onClick={() => changeStatus("REJECTED")}
+                  onClick={() => changeStatus("PENDING")}
                   disabled={updating}
                   className="flex-1 min-w-0 bg-gray-200 text-gray-600 text-sm rounded-lg py-2.5 font-medium hover:bg-red-100 hover:text-red-600 disabled:opacity-50 transition"
                 >
-                  ✕ 却下する
+                  ↩ 却下（進行中に戻す）
                 </button>
               )}
             </div>
@@ -556,22 +558,36 @@ export default function ProjectDetailPage() {
 
         {/* 協力会社向けアクションボタン */}
         {canInspect && (
-          <div className="mb-4 space-y-2">
+          <div className="mb-4 space-y-3">
+            {/* PENDING：受注 or 差し戻し */}
             {project.status === "PENDING" && (
-              <button
-                onClick={startInspection}
-                disabled={updating}
-                className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-              >
-                点検を開始する
-              </button>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-xs text-gray-500 mb-3 text-center">この依頼を受けますか？</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => changeStatus("REJECTED")}
+                    disabled={updating}
+                    className="bg-gray-100 text-gray-600 border border-gray-300 rounded-xl py-3 text-sm font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-300 disabled:opacity-50 transition"
+                  >
+                    ✕ 差し戻す
+                  </button>
+                  <button
+                    onClick={() => changeStatus("ACCEPTED")}
+                    disabled={updating}
+                    className="bg-blue-600 text-white rounded-xl py-3 text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition shadow-sm"
+                  >
+                    ✓ 受注する
+                  </button>
+                </div>
+              </div>
             )}
-            {project.status === "INSPECTING" && (
+            {/* ACCEPTED：完了報告 */}
+            {project.status === "ACCEPTED" && (
               <Link
                 href={`/projects/${id}/inspect`}
                 className="block w-full bg-green-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-green-700 transition text-center"
               >
-                点検結果を報告する
+                📋 完了報告する
               </Link>
             )}
             {project.status === "QUOTE_REQUESTED" && (
@@ -585,10 +601,10 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* 点検報告 */}
+        {/* 完了報告 */}
         {project.inspections.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-            <h3 className="text-sm font-bold text-gray-800 mb-3">点検報告</h3>
+            <h3 className="text-sm font-bold text-gray-800 mb-3">完了報告</h3>
             {project.inspections.map((insp) => (
               <div key={insp.id} className="space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -615,7 +631,7 @@ export default function ProjectDetailPage() {
                 )}
                 {insp.photos.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-2">点検写真 ({insp.photos.length}枚)</p>
+                    <p className="text-xs text-gray-500 mb-2">作業写真 ({insp.photos.length}枚)</p>
                     <div className="grid grid-cols-3 gap-2">
                       {insp.photos.map((photo) => {
                         const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
@@ -810,7 +826,7 @@ export default function ProjectDetailPage() {
                   const actionLabel: Record<string, string> = {
                     CREATED: "案件作成",
                     STATUS_CHANGED: "ステータス変更",
-                    INSPECTION: "点検報告",
+                    INSPECTION: "完了報告",
                     QUOTE_SUBMITTED: "見積提出",
                     QUOTE_APPROVED: "見積承認",
                     QUOTE_REJECTED: "見積却下",

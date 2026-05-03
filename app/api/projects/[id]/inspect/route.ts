@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     data: {
       projectId: id, userId,
       action: "INSPECTION",
-      detail: body.result === "REPAIR_NEEDED" ? "点検結果: 修理が必要" : "点検結果: 問題なし",
+      detail: body.result === "REPAIR_NEEDED" ? "完了報告: 修理が必要" : "完了報告: 問題なし",
     },
   });
 

@@ -132,13 +132,13 @@ export default function InspectPage() {
           <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600">
             ←
           </button>
-          <h2 className="text-lg font-bold text-gray-800">点検結果を報告</h2>
+          <h2 className="text-lg font-bold text-gray-800">完了報告</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 点検結果 */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">点検結果 *</label>
+            <label className="block text-sm font-bold text-gray-700 mb-3">作業結果 *</label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -241,7 +241,7 @@ export default function InspectPage() {
 
           {/* 写真 */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">点検写真</label>
+            <label className="block text-sm font-bold text-gray-700 mb-3">作業写真</label>
             <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-300 rounded-xl py-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
               <span className="text-2xl">📷</span>
               <span className="text-sm text-gray-600">
@@ -288,10 +288,10 @@ export default function InspectPage() {
             disabled={!canSubmit || submitting}
             className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            {submitting ? "送信中..." : "点検結果を送信する"}
+            {submitting ? "送信中..." : "完了報告を送信する"}
           </button>
           {!canSubmit && (
-            <p className="text-xs text-center text-red-400">点検結果・作業日・詳細内容（状況・原因・対応）は必須です</p>
+            <p className="text-xs text-center text-red-400">作業結果・作業日・詳細内容（状況・原因・対応）は必須です</p>
           )}
         </form>
       </main>

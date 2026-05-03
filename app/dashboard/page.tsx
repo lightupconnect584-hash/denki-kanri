@@ -23,8 +23,8 @@ interface Project {
 }
 
 const URGENCY_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-const STATUS_ORDER = ["PENDING", "INSPECTING", "QUOTE_REQUESTED", "QUOTE_RECEIVED", "INSPECTED", "COMPLETED"];
-const DONE_STATUSES = ["COMPLETED", "INSPECTED", "REJECTED", "QUOTE_RECEIVED"];
+const STATUS_ORDER = ["PENDING", "ACCEPTED", "INSPECTED", "CONFIRMED", "QUOTE_REQUESTED", "COMPLETED", "REJECTED"];
+const DONE_STATUSES = ["CONFIRMED", "COMPLETED", "REJECTED"];
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -246,12 +246,12 @@ export default function DashboardPage() {
               className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">全ステータス</option>
               <option value="PENDING">依頼中</option>
-              <option value="INSPECTING">点検中</option>
+              <option value="ACCEPTED">受注済</option>
+              <option value="INSPECTED">完了報告済</option>
+              <option value="CONFIRMED">確認済</option>
               <option value="QUOTE_REQUESTED">見積依頼中</option>
-              <option value="QUOTE_RECEIVED">確認中</option>
-              <option value="INSPECTED">点検完了</option>
               <option value="COMPLETED">完了</option>
-              <option value="REJECTED">却下</option>
+              <option value="REJECTED">差し戻し</option>
             </select>
             <select value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value)}
               className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">

@@ -84,7 +84,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 訪問予定日は担当協力会社のみ変更可
   if (body.visitDate !== undefined) {
     const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true } });
-    if (role === "PARTNER" && project?.assignedToId === userId && project?.status === "PENDING") {
+    if (role === "PARTNER" && project?.assignedToId === userId && ["PENDING", "ACCEPTED"].includes(project?.status ?? "")) {
       updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
     }
     // 管理者は visitDate を変更不可（無視）

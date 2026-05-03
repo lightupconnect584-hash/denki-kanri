@@ -199,10 +199,15 @@ export default function ProjectDetailPage() {
 
   const saveVisitDate = async () => {
     setSavingVisit(true);
+    let dateToSave = visitInput;
+    // 時刻未入力（00:00）の場合は09:00をデフォルトにする
+    if (dateToSave && /T00:00$/.test(dateToSave)) {
+      dateToSave = dateToSave.replace(/T00:00$/, "T09:00");
+    }
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitDate: visitInput ? new Date(visitInput).toISOString() : null }),
+      body: JSON.stringify({ visitDate: dateToSave ? new Date(dateToSave).toISOString() : null }),
     });
     fetchProject();
     setSavingVisit(false);

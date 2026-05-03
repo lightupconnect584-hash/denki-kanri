@@ -96,8 +96,8 @@ export default function EditProjectPage() {
       <Header />
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600">←</button>
-          <h2 className="text-lg font-bold text-gray-800">案件を編集</h2>
+          <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
+          <h2 className="text-lg font-bold text-white">案件を編集</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">

@@ -129,10 +129,10 @@ export default function InspectPage() {
       <Header />
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => router.back()} className="text-gray-400 hover:text-white">
             ←
           </button>
-          <h2 className="text-lg font-bold text-gray-800">完了報告</h2>
+          <h2 className="text-lg font-bold text-white">完了報告</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

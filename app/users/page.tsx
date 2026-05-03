@@ -217,7 +217,7 @@ export default function UsersPage() {
       <Header />
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-gray-800">ユーザー管理</h2>
+          <h2 className="text-lg font-bold text-white">ユーザー管理</h2>
           <button
             onClick={() => { setShowForm(!showForm); setNewRole("PARTNER"); }}
             className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"

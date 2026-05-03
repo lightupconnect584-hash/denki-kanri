@@ -109,8 +109,8 @@ export default function BillingPage() {
       <Header />
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 text-lg">←</button>
-          <h2 className="text-lg font-bold text-gray-800">
+          <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
+          <h2 className="text-lg font-bold text-white">
             {role === "PARTNER" ? "請求金額一覧" : "協力会社別 費用集計"}
           </h2>
         </div>

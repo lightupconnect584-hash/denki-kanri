@@ -240,7 +240,7 @@ export default function ProjectDetailPage() {
       <Header />
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 text-lg">
+          <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">
             ←
           </button>
           <button
@@ -826,7 +826,7 @@ export default function ProjectDetailPage() {
           <div className="mt-4">
             <button
               onClick={() => setShowLog(!showLog)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 rounded-xl text-sm text-gray-600 hover:bg-gray-200 transition"
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 rounded-xl text-sm text-gray-300 hover:bg-gray-700 transition"
             >
               <span>🕐 活動履歴 ({project.activityLogs.length}件)</span>
               <span>{showLog ? "▲ 閉じる" : "▼ 表示する"}</span>

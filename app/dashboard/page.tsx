@@ -205,7 +205,7 @@ export default function DashboardPage() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-gray-800">案件一覧</h2>
+            <h2 className="text-lg font-bold text-white">案件一覧</h2>
             <button
               onClick={() => fetchProjects(true)}
               disabled={refreshing}
@@ -216,7 +216,7 @@ export default function DashboardPage() {
             </button>
             {lastUpdated && (
               <span className="text-xs text-gray-400">
-                {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} 更新
+                {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </span>
             )}
           </div>
@@ -289,11 +289,11 @@ export default function DashboardPage() {
         {/* 差し戻しゾーン（管理者のみ） */}
         {role === "ADMIN" && rejectedProjects.length > 0 && (
           <div className="mt-6">
-            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-3">
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-950 border border-red-800 rounded-xl text-sm text-red-300 mb-3">
               <span className="text-base">↩</span>
               <span className="font-medium">差し戻しゾーン</span>
               <span className="ml-1 text-red-500">（{rejectedProjects.length}件）</span>
-              <span className="text-xs text-red-400 ml-1">— 協力会社が受けられなかった案件</span>
+              <span className="text-xs text-red-500 ml-1">— 協力会社が受けられなかった案件</span>
             </div>
             <div className="space-y-3">{rejectedProjects.map(renderProject)}</div>
           </div>
@@ -302,7 +302,7 @@ export default function DashboardPage() {
         {completedProjects.length > 0 && (
           <div className="mt-6">
             <button onClick={() => setShowCompleted(!showCompleted)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 rounded-xl text-sm text-gray-600 hover:bg-gray-200 transition">
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 rounded-xl text-sm text-gray-300 hover:bg-gray-700 transition">
               <span>✅ 完了済み案件 ({completedProjects.length}件)</span>
               <span>{showCompleted ? "▲ 閉じる" : "▼ 表示する"}</span>
             </button>
@@ -310,7 +310,7 @@ export default function DashboardPage() {
               <div className="mt-3 space-y-5">
                 {Object.entries(completedByMonth).map(([month, ps]) => (
                   <div key={month}>
-                    <p className="text-xs font-bold text-gray-500 mb-2 px-1">📅 {month}（{ps.length}件）</p>
+                    <p className="text-xs font-bold text-gray-400 mb-2 px-1">📅 {month}（{ps.length}件）</p>
                     <div className="space-y-3">{ps.map(renderProject)}</div>
                   </div>
                 ))}

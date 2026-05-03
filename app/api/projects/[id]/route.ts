@@ -80,10 +80,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const updateData: Record<string, unknown> = {};
   if (body.status !== undefined) {
     updateData.status = body.status;
-    // 協力会社が差し戻し → 管理者に通知
-    if (body.status === "REJECTED") updateData.notifyAdminAt = new Date();
-    // 管理者が再報告要求 → 協力会社に通知
-    if (body.status === "REWORK") updateData.notifyPartnerAt = new Date();
+    // ボタンを押したタイミング＝相手側に通知（全ステータス変更が対象）
+    if (role === "ADMIN") updateData.notifyPartnerAt = new Date();
+    if (role === "PARTNER") updateData.notifyAdminAt = new Date();
   }
   // 担当変更（再アサイン）→ 協力会社に通知
   if (body.assignedToId !== undefined) {

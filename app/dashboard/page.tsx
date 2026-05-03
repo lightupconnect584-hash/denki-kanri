@@ -19,7 +19,7 @@ interface Project {
   notifyAdminAt: string | null;
   notifyPartnerAt: string | null;
   assignedTo: { id: string; name: string; companyName: string | null } | null;
-  inspections: { id: string }[];
+  inspections: { id: string; workDate: string }[];
   quotes: { id: string; status: string }[];
   comments: { createdAt: string }[];
 }
@@ -111,8 +111,27 @@ export default function DashboardPage() {
     });
   }, [projects, search, filterStatus, filterUrgency]);
 
+  // 作業日を取得（inspectionsのworkDate最新値、なければdueDate）
+  const getWorkDate = (p: Project): Date | null => {
+    if (p.inspections.length > 0) {
+      const latest = p.inspections.reduce((a, b) =>
+        new Date(a.workDate) > new Date(b.workDate) ? a : b
+      );
+      return new Date(latest.workDate);
+    }
+    return p.dueDate ? new Date(p.dueDate) : null;
+  };
+
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
   const activeProjects = filtered.filter((p) => !DONE_STATUSES.includes(p.status) && p.status !== "REJECTED");
-  const completedProjects = filtered.filter((p) => DONE_STATUSES.includes(p.status));
+  // 完了済みは作業日ベースで過去1年のみ表示
+  const completedProjects = filtered.filter((p) => {
+    if (!DONE_STATUSES.includes(p.status)) return false;
+    const d = getWorkDate(p);
+    return d ? d >= oneYearAgo : true;
+  });
   const rejectedProjects = filtered.filter((p) => p.status === "REJECTED");
 
   const sortedActive = [...activeProjects].sort((a, b) => {
@@ -127,13 +146,16 @@ export default function DashboardPage() {
     return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
   });
 
-  const sortedCompleted = [...completedProjects].sort(
-    (a, b) => new Date(b.dueDate || b.id).getTime() - new Date(a.dueDate || a.id).getTime()
-  );
+  // 作業日で降順ソート・月別グルーピング
+  const sortedCompleted = [...completedProjects].sort((a, b) => {
+    const da = getWorkDate(a)?.getTime() ?? 0;
+    const db = getWorkDate(b)?.getTime() ?? 0;
+    return db - da;
+  });
   const completedByMonth: Record<string, Project[]> = {};
   sortedCompleted.forEach((p) => {
-    const date = p.dueDate ? new Date(p.dueDate) : null;
-    const key = date ? `${date.getFullYear()}年${date.getMonth() + 1}月` : "日付なし";
+    const d = getWorkDate(p);
+    const key = d ? `${d.getFullYear()}年${d.getMonth() + 1}月` : "日付なし";
     if (!completedByMonth[key]) completedByMonth[key] = [];
     completedByMonth[key].push(p);
   });

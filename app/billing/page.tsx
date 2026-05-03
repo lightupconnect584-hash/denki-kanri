@@ -14,6 +14,7 @@ interface Project {
   amount: number | null;
   createdAt: string;
   dueDate: string | null;
+  inspections: { workDate: string }[];
   assignedTo: { id: string; name: string; companyName: string | null } | null;
 }
 
@@ -50,9 +51,23 @@ export default function BillingPage() {
     return projects;
   }, [projects, role, userId]);
 
-  // 月ラベル用のキー（dueDate優先、なければcreatedAt）
+  // 作業日を取得（inspectionsのworkDate最新値、なければdueDate→createdAt）
+  const getWorkDate = (p: Project): Date => {
+    if (p.inspections.length > 0) {
+      const latest = p.inspections.reduce((a, b) =>
+        new Date(a.workDate) > new Date(b.workDate) ? a : b
+      );
+      return new Date(latest.workDate);
+    }
+    return new Date(p.dueDate || p.createdAt);
+  };
+
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+  // 月ラベル用のキー（作業日ベース）
   const getMonthKey = (p: Project) => {
-    const d = new Date(p.dueDate || p.createdAt);
+    const d = getWorkDate(p);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
 
@@ -74,6 +89,8 @@ export default function BillingPage() {
   const filtered = useMemo(() => {
     return myProjects.filter((p) => {
       if (onlyDone && !DONE_STATUSES.includes(p.status)) return false;
+      // 過去1年以内のみ表示
+      if (getWorkDate(p) < oneYearAgo) return false;
       if (selectedMonth !== "all" && getMonthKey(p) !== selectedMonth) return false;
       if (selectedPartner !== "all" && p.assignedTo?.id !== selectedPartner) return false;
       return true;
@@ -180,7 +197,7 @@ export default function BillingPage() {
                 )}
                 <div className="divide-y divide-gray-100">
                   {group.projects.map((p) => {
-                    const dateStr = new Date(p.dueDate || p.createdAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long" });
+                    const dateStr = getWorkDate(p).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
                     return (
                       <div key={p.id} className="px-4 py-3 flex items-start gap-3">
                         <div className="flex-1 min-w-0">

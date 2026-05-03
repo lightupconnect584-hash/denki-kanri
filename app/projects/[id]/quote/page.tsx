@@ -38,15 +38,18 @@ export default function QuotePage() {
     setUploading(false);
   };
 
+  const canSubmit = amount.trim() !== "" && Number(amount) > 0 && notes.trim() !== "";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
 
     await fetch(`/api/projects/${id}/quote`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        amount: amount || null,
+        amount: Number(amount),
         notes,
         filename: file?.filename || null,
       }),
@@ -68,10 +71,15 @@ export default function QuotePage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            {/* 金額（必須） */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">見積金額（円）</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">
+                見積金額（円）<span className="text-red-500 ml-1">*</span>
+              </label>
               <input
                 type="number"
+                required
+                min={1}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -79,19 +87,27 @@ export default function QuotePage() {
               />
             </div>
 
+            {/* 内容（必須） */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">内容・備考</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">
+                内容・備考<span className="text-red-500 ml-1">*</span>
+              </label>
               <textarea
+                required
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="工事内容の詳細、工期など"
+                rows={5}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                placeholder="工事内容の詳細、工期、使用材料など"
               />
             </div>
 
+            {/* 見積書ファイル（任意） */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">見積書ファイル</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                見積書ファイル
+                <span className="text-gray-400 font-normal ml-1">（任意）</span>
+              </label>
               <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-300 rounded-xl py-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
                 <span className="text-2xl">📎</span>
                 <span className="text-sm text-gray-600">
@@ -113,11 +129,14 @@ export default function QuotePage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={!canSubmit || submitting}
             className="w-full bg-orange-500 text-white rounded-xl py-3 text-sm font-medium hover:bg-orange-600 disabled:opacity-50 transition"
           >
             {submitting ? "送信中..." : "見積もりを送信する"}
           </button>
+          {!canSubmit && (
+            <p className="text-xs text-center text-red-400">金額と内容は必須入力です</p>
+          )}
         </form>
       </main>
     </div>

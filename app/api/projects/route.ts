@@ -14,9 +14,10 @@ export async function GET() {
     where: role === "ADMIN" ? {} : { assignedToId: userId },
     include: {
       assignedTo: { select: { name: true, companyName: true } },
-      createdBy: { select: { name: true } },
+      createdBy: { select: { name: true, avatarUrl: true } },
       inspections: { include: { photos: true } },
       quotes: true,
+      comments: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
     },
     orderBy: { createdAt: "desc" },
   });

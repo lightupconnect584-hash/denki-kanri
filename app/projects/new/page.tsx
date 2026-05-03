@@ -9,6 +9,7 @@ interface Partner {
   id: string;
   name: string;
   companyName: string | null;
+  role: string;
 }
 
 interface UploadedFile {
@@ -47,7 +48,7 @@ export default function NewProjectPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetch("/api/users").then((r) => r.json()).then(setPartners);
+      fetch("/api/users").then((r) => r.json()).then((data) => setPartners(data.filter((u: Partner) => u.role === "PARTNER")));
     }
   }, [status]);
 
@@ -255,11 +256,11 @@ export default function NewProjectPage() {
 
           {/* 担当協力会社 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">担当協力会社</label>
-            <select value={form.assignedToId}
+            <label className="block text-sm font-medium text-gray-700 mb-1">担当協力会社 *</label>
+            <select required value={form.assignedToId}
               onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
               className={inputClass}>
-              <option value="">未割当</option>
+              <option value=""></option>
               {partners.map((p) => (
                 <option key={p.id} value={p.id}>{p.companyName || p.name}</option>
               ))}

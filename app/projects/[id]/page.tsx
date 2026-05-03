@@ -43,7 +43,7 @@ interface Comment {
   id: string;
   content: string;
   createdAt: string;
-  author: { name: string; companyName: string | null; role: string };
+  author: { name: string; companyName: string | null; role: string; avatarUrl: string | null };
 }
 
 interface ActivityLog {
@@ -68,7 +68,7 @@ interface Project {
   status: string;
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
-  createdBy: { name: string };
+  createdBy: { name: string; avatarUrl: string | null; phone: string | null };
   projectPhotos: ProjectPhoto[];
   inspections: Inspection[];
   quotes: Quote[];
@@ -84,6 +84,8 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [updating, setUpdating] = useState(false);
   const [visitInput, setVisitInput] = useState("");
   const [savingVisit, setSavingVisit] = useState(false);
@@ -98,7 +100,8 @@ export default function ProjectDetailPage() {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  const fetchProject = () => {
+  const fetchProject = (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     fetch(`/api/projects/${id}`)
       .then((r) => r.json())
       .then((data) => {
@@ -106,19 +109,29 @@ export default function ProjectDetailPage() {
         // visitDateをdatetime-local形式に変換してセット
         if (data.visitDate) {
           const d = new Date(data.visitDate);
-          const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 16);
+          const pad = (n: number) => String(n).padStart(2, "0");
+          const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
           setVisitInput(local);
         } else {
           setVisitInput("");
         }
         setLoading(false);
+        setRefreshing(false);
+        setLastUpdated(new Date());
+        // 既読としてlocalStorageに記録
+        try { localStorage.setItem(`proj-seen-${id}`, data.updatedAt || new Date().toISOString()); } catch {}
       });
   };
 
   useEffect(() => {
     if (status === "authenticated") fetchProject();
+  }, [status, id]);
+
+  // 30秒ごとに自動更新（コメント・ステータス変化を反映）
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const timer = setInterval(() => fetchProject(true), 30000);
+    return () => clearInterval(timer);
   }, [status, id]);
 
   const updateQuoteStatus = async (quoteId: string, newStatus: string) => {
@@ -137,6 +150,24 @@ export default function ProjectDetailPage() {
     setUpdating(true);
     await fetch(`/api/projects/${id}`, { method: "DELETE" });
     router.push("/dashboard");
+  };
+
+  const changeStatus = async (newStatus: string) => {
+    const labels: Record<string, string> = {
+      QUOTE_REQUESTED: "見積依頼",
+      COMPLETED: "完了",
+      REJECTED: "却下",
+      INSPECTING: "点検開始",
+    };
+    if (!confirm(`ステータスを「${labels[newStatus] ?? newStatus}」に変更しますか？`)) return;
+    setUpdating(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    fetchProject();
+    setUpdating(false);
   };
 
   const startInspection = async () => {
@@ -168,7 +199,7 @@ export default function ProjectDetailPage() {
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitDate: visitInput || null }),
+      body: JSON.stringify({ visitDate: visitInput ? new Date(visitInput).toISOString() : null }),
     });
     fetchProject();
     setSavingVisit(false);
@@ -209,6 +240,14 @@ export default function ProjectDetailPage() {
             ←
           </button>
           <h2 className="text-lg font-bold text-gray-800 flex-1 truncate">{project.title}</h2>
+          <button
+            onClick={() => fetchProject(true)}
+            disabled={refreshing}
+            className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40 shrink-0"
+            title="更新"
+          >
+            <span className={`text-base ${refreshing ? "animate-spin inline-block" : ""}`}>🔄</span>
+          </button>
           <StatusBadge status={project.status} />
           {role === "ADMIN" && (
             <div className="flex gap-2">
@@ -280,7 +319,23 @@ export default function ProjectDetailPage() {
           {project.amount != null && (
             <div>
               <p className="text-xs text-gray-500">金額【税別】</p>
-              <p className="text-sm font-medium text-gray-800">¥{project.amount.toLocaleString()}</p>
+              {(() => {
+                const lastChange = project.activityLogs.find((l) => l.action === "AMOUNT_CHANGED");
+                const originalAmountStr = lastChange?.detail?.split(" → ")[0];
+                return (
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    {originalAmountStr && originalAmountStr !== "未設定" && originalAmountStr !== `¥${project.amount.toLocaleString()}` && (
+                      <span className="text-sm text-gray-400 line-through">{originalAmountStr}</span>
+                    )}
+                    <span className={`text-sm font-medium ${lastChange && originalAmountStr !== `¥${project.amount.toLocaleString()}` ? "text-orange-700" : "text-gray-800"}`}>
+                      ¥{project.amount.toLocaleString()}
+                    </span>
+                    {lastChange && originalAmountStr !== `¥${project.amount.toLocaleString()}` && (
+                      <span className="text-xs text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">変更済</span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
           {project.dueDate && (
@@ -297,6 +352,32 @@ export default function ProjectDetailPage() {
               </p>
             </div>
           )}
+          <div>
+            <p className="text-xs text-gray-500">依頼者</p>
+            <div className="flex items-center gap-2 mt-1">
+              {project.createdBy.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={project.createdBy.avatarUrl.startsWith("http") ? project.createdBy.avatarUrl : `/uploads/${project.createdBy.avatarUrl}`}
+                  alt={project.createdBy.name}
+                  className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 border border-gray-200">
+                  {project.createdBy.name[0]?.toUpperCase()}
+                </div>
+              )}
+              <p className="text-sm text-gray-700">{project.createdBy.name}</p>
+            </div>
+            {role === "PARTNER" && project.createdBy.phone && (
+              <a
+                href={`tel:${project.createdBy.phone.replace(/[^0-9+]/g, "")}`}
+                className="inline-flex items-center gap-1.5 mt-2 bg-green-50 border border-green-300 text-green-700 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-green-100 transition"
+              >
+                📞 管理者に電話する ({project.createdBy.phone})
+              </a>
+            )}
+          </div>
         </div>
 
         {/* 訪問予定日 - 協力会社の見積依頼中は非表示 */}
@@ -323,31 +404,40 @@ export default function ProjectDetailPage() {
           {!project.visitDate && (
             <p className="text-sm text-gray-400 mb-3">未設定</p>
           )}
-          <div className="flex gap-2">
-            <input
-              type="datetime-local"
-              value={visitInput}
-              onChange={(e) => setVisitInput(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={saveVisitDate}
-              disabled={savingVisit}
-              className="bg-blue-600 text-white text-sm px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition whitespace-nowrap"
-            >
-              {savingVisit ? "保存中" : "保存"}
-            </button>
-            {project.visitDate && (
-              <button
-                onClick={() => { setVisitInput(""); }}
-                className="text-gray-400 hover:text-red-500 text-sm px-2"
-                title="クリア"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          <p className="text-xs text-gray-400 mt-1">※ 時間は任意です（日付のみも可）</p>
+          {/* 担当協力会社のみ・PENDING中のみ編集可 */}
+          {role === "PARTNER" && isAssigned && project.status === "PENDING" ? (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="datetime-local"
+                  value={visitInput}
+                  onChange={(e) => setVisitInput(e.target.value)}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={saveVisitDate}
+                  disabled={savingVisit}
+                  className="bg-blue-600 text-white text-sm px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition whitespace-nowrap"
+                >
+                  {savingVisit ? "保存中" : "保存"}
+                </button>
+                {project.visitDate && (
+                  <button
+                    onClick={() => { setVisitInput(""); }}
+                    className="text-gray-400 hover:text-red-500 text-sm px-2"
+                    title="クリア"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">※ 時間は任意です（日付のみも可）</p>
+            </>
+          ) : role === "PARTNER" && isAssigned && project.status !== "PENDING" ? (
+            <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+              🔒 点検開始後は訪問予定日を変更できません
+            </p>
+          ) : null}
         </div>
         )}
 
@@ -425,6 +515,42 @@ export default function ProjectDetailPage() {
                 </>
               );
             })()}
+          </div>
+        )}
+
+        {/* 管理者向けステータス操作 */}
+        {role === "ADMIN" && !["COMPLETED", "REJECTED"].includes(project.status) && (
+          <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+            <p className="text-xs font-bold text-gray-500 mb-3">管理者操作</p>
+            <div className="flex flex-wrap gap-2">
+              {project.status === "INSPECTED" && (
+                <button
+                  onClick={() => changeStatus("QUOTE_REQUESTED")}
+                  disabled={updating}
+                  className="flex-1 min-w-0 bg-orange-500 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-orange-600 disabled:opacity-50 transition"
+                >
+                  📋 見積依頼する
+                </button>
+              )}
+              {["INSPECTED", "QUOTE_REQUESTED", "QUOTE_RECEIVED"].includes(project.status) && (
+                <button
+                  onClick={() => changeStatus("COMPLETED")}
+                  disabled={updating}
+                  className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
+                >
+                  ✅ 完了にする
+                </button>
+              )}
+              {project.status !== "PENDING" && (
+                <button
+                  onClick={() => changeStatus("REJECTED")}
+                  disabled={updating}
+                  className="flex-1 min-w-0 bg-gray-200 text-gray-600 text-sm rounded-lg py-2.5 font-medium hover:bg-red-100 hover:text-red-600 disabled:opacity-50 transition"
+                >
+                  ✕ 却下する
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -550,16 +676,8 @@ export default function ProjectDetailPage() {
                   <span className="text-sm font-medium text-gray-800">
                     {quote.amount ? `¥${quote.amount.toLocaleString()}` : "金額未記入"}
                   </span>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      quote.status === "APPROVED"
-                        ? "bg-green-100 text-green-700"
-                        : quote.status === "REJECTED"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {quote.status === "APPROVED" ? "承認済" : quote.status === "REJECTED" ? "却下" : "確認中"}
+                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700">
+                    提出済み
                   </span>
                 </div>
                 {quote.notes && (
@@ -593,24 +711,6 @@ export default function ProjectDetailPage() {
                   {quote.submittedBy.companyName || quote.submittedBy.name}
                 </p>
 
-                {role === "ADMIN" && quote.status === "PENDING" && (
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={() => updateQuoteStatus(quote.id, "APPROVED")}
-                      disabled={updating}
-                      className="flex-1 bg-green-600 text-white text-xs rounded-lg py-2 hover:bg-green-700 disabled:opacity-50 transition"
-                    >
-                      承認する
-                    </button>
-                    <button
-                      onClick={() => updateQuoteStatus(quote.id, "REJECTED")}
-                      disabled={updating}
-                      className="flex-1 bg-red-500 text-white text-xs rounded-lg py-2 hover:bg-red-600 disabled:opacity-50 transition"
-                    >
-                      却下する
-                    </button>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -618,27 +718,58 @@ export default function ProjectDetailPage() {
 
         {/* コメント */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mt-4">
-          <h3 className="text-sm font-bold text-gray-800 mb-3">💬 コメント</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-800">💬 相談・確認チャット</h3>
+            <div className="flex items-center gap-2">
+              {lastUpdated && (
+                <span className="text-xs text-gray-400">
+                  {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} 更新
+                </span>
+              )}
+              <button
+                onClick={() => fetchProject(true)}
+                disabled={refreshing}
+                className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40 text-sm"
+                title="コメントを更新"
+              >
+                <span className={refreshing ? "animate-spin inline-block" : ""}>🔄</span>
+              </button>
+            </div>
+          </div>
           {project.comments.length === 0 && (
             <p className="text-sm text-gray-400 mb-3">まだコメントはありません</p>
           )}
           {project.comments.length > 0 && (
             <div className="space-y-3 mb-4">
               {project.comments.map((c) => {
-                const isMe = c.author.role === role;
                 const isAdmin = c.author.role === "ADMIN";
+                const displayName = c.author.companyName || c.author.name;
+                const avatarSrc = c.author.avatarUrl
+                  ? (c.author.avatarUrl.startsWith("http") ? c.author.avatarUrl : `/uploads/${c.author.avatarUrl}`)
+                  : null;
                 return (
-                  <div key={c.id} className={`flex flex-col ${isAdmin ? "items-start" : "items-end"}`}>
-                    <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
-                      isAdmin
-                        ? "bg-blue-50 text-gray-800 rounded-tl-none"
-                        : "bg-gray-100 text-gray-800 rounded-tr-none"
-                    }`}>
-                      <p className="whitespace-pre-wrap">{c.content}</p>
+                  <div key={c.id} className={`flex gap-2 ${isAdmin ? "flex-row" : "flex-row-reverse"}`}>
+                    {/* アバター */}
+                    {avatarSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarSrc} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-gray-200 shrink-0 self-end" />
+                    ) : (
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 self-end border ${isAdmin ? "bg-blue-100 text-blue-600 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                        {displayName[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <div className={`flex flex-col max-w-[75%] ${isAdmin ? "items-start" : "items-end"}`}>
+                      <div className={`rounded-xl px-3 py-2 text-sm ${
+                        isAdmin
+                          ? "bg-blue-50 text-gray-800 rounded-tl-none"
+                          : "bg-gray-100 text-gray-800 rounded-tr-none"
+                      }`}>
+                        <p className="whitespace-pre-wrap">{c.content}</p>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5 px-1">
+                        {displayName} · {new Date(c.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5 px-1">
-                      {c.author.companyName || c.author.name} · {new Date(c.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </p>
                   </div>
                 );
               })}

@@ -19,7 +19,13 @@ export default function InspectPage() {
 
   const [result, setResult] = useState<"OK" | "REPAIR_NEEDED" | "">("");
   const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
-  const [notes, setNotes] = useState("");
+
+  // 詳細内容テンプレート（4セクション）
+  const [situation, setSituation] = useState("");
+  const [cause, setCause] = useState("");
+  const [response, setResponse] = useState("");
+  const [other, setOther] = useState("");
+
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -40,12 +46,10 @@ export default function InspectPage() {
 
     for (const file of Array.from(files)) {
       try {
-        // canvas で圧縮してJPEGに変換
         const compressedFile = await new Promise<File>((resolve, reject) => {
           const img = new window.Image();
           const url = URL.createObjectURL(file);
           img.onload = () => {
-            // 最大幅1920px
             const MAX = 1920;
             let w = img.width;
             let h = img.height;
@@ -93,9 +97,15 @@ export default function InspectPage() {
     setPhotos((prev) => prev.filter((p) => p.filename !== filename));
   };
 
+  // 4セクションを1つの文字列に結合
+  const buildNotes = () =>
+    `【状況】\n${situation.trim()}\n\n【原因】\n${cause.trim()}\n\n【対応】\n${response.trim()}${other.trim() ? `\n\n【その他】\n${other.trim()}` : ""}`;
+
+  const canSubmit = !!result && !!workDate && situation.trim() && cause.trim() && response.trim();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!result) return;
+    if (!canSubmit) return;
 
     setSubmitting(true);
     await fetch(`/api/projects/${id}/inspect`, {
@@ -104,13 +114,15 @@ export default function InspectPage() {
       body: JSON.stringify({
         result,
         workDate,
-        notes,
+        notes: buildNotes(),
         photos: photos.map((p) => ({ filename: p.filename, originalName: p.originalName })),
       }),
     });
 
     router.push(`/projects/${id}`);
   };
+
+  const fieldClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -165,11 +177,71 @@ export default function InspectPage() {
             />
           </div>
 
+          {/* 詳細内容（4セクション） */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            <p className="text-sm font-bold text-gray-700">詳細内容 *</p>
+            <p className="text-xs text-gray-400 -mt-2">状況・原因・対応は必須入力です</p>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                状況 <span className="text-red-500">*</span>
+                <span className="font-normal text-gray-400 ml-1">例：漏電による共用ブレーカー落ち</span>
+              </label>
+              <textarea
+                rows={2}
+                value={situation}
+                onChange={(e) => setSituation(e.target.value)}
+                placeholder="どのような状況だったか"
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                原因 <span className="text-red-500">*</span>
+                <span className="font-normal text-gray-400 ml-1">例：漏電箇所を具体的に</span>
+              </label>
+              <textarea
+                rows={2}
+                value={cause}
+                onChange={(e) => setCause(e.target.value)}
+                placeholder="原因の詳細"
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                対応 <span className="text-red-500">*</span>
+                <span className="font-normal text-gray-400 ml-1">例：漏電箇所を切り離して復旧させた</span>
+              </label>
+              <textarea
+                rows={2}
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                placeholder="実施した対応内容"
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                その他
+                <span className="font-normal text-gray-400 ml-1">気になったことなど（任意）</span>
+              </label>
+              <textarea
+                rows={2}
+                value={other}
+                onChange={(e) => setOther(e.target.value)}
+                placeholder="その他、特記事項があれば"
+                className={fieldClass}
+              />
+            </div>
+          </div>
+
           {/* 写真 */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">
-              点検写真
-            </label>
+            <label className="block text-sm font-bold text-gray-700 mb-3">点検写真</label>
             <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-300 rounded-xl py-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
               <span className="text-2xl">📷</span>
               <span className="text-sm text-gray-600">
@@ -192,6 +264,7 @@ export default function InspectPage() {
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {photos.map((photo) => (
                   <div key={photo.filename} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.preview}
                       alt={photo.originalName}
@@ -210,27 +283,16 @@ export default function InspectPage() {
             )}
           </div>
 
-          {/* 備考 */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              コメント・備考
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={4}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="点検の詳細や気になった点など"
-            />
-          </div>
-
           <button
             type="submit"
-            disabled={!result || !workDate || submitting}
+            disabled={!canSubmit || submitting}
             className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {submitting ? "送信中..." : "点検結果を送信する"}
           </button>
+          {!canSubmit && (
+            <p className="text-xs text-center text-red-400">点検結果・作業日・詳細内容（状況・原因・対応）は必須です</p>
+          )}
         </form>
       </main>
     </div>

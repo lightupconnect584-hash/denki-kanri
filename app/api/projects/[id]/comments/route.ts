@@ -15,10 +15,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!body.content?.trim()) return NextResponse.json({ error: "Content required" }, { status: 400 });
 
+  // 協力会社は自分の案件のみコメント可
+  if (role === "PARTNER") {
+    const proj = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true } });
+    if (proj?.assignedToId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const [comment, project] = await Promise.all([
     prisma.comment.create({
       data: { projectId: id, authorId: userId, content: body.content.trim() },
-      include: { author: { select: { name: true, companyName: true, role: true } } },
+      include: { author: { select: { name: true, companyName: true, role: true, avatarUrl: true } } },
     }),
     prisma.project.findUnique({
       where: { id },

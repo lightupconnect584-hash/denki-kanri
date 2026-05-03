@@ -10,8 +10,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const userId = (session.user as { id: string }).id;
+  const role = (session.user as { role: string }).role;
   const userName = (session.user as { name?: string }).name || "担当者";
   const body = await req.json();
+
+  // 協力会社は自分の案件のみ操作可
+  if (role === "PARTNER") {
+    const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true } });
+    if (project?.assignedToId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const inspection = await prisma.inspection.create({
     data: {

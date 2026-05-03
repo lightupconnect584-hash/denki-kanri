@@ -15,9 +15,11 @@ interface Project {
   status: string;
   dueDate: string | null;
   visitDate: string | null;
+  updatedAt: string;
   assignedTo: { name: string; companyName: string | null } | null;
   inspections: { id: string }[];
   quotes: { id: string; status: string }[];
+  comments: { createdAt: string }[];
 }
 
 const URGENCY_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
@@ -29,7 +31,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [seenMap, setSeenMap] = useState<Record<string, string>>({});
 
   // 検索・フィルター
   const [search, setSearch] = useState("");
@@ -43,12 +48,41 @@ export default function DashboardPage() {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
+  const loadSeenMap = () => {
+    try {
+      const map: Record<string, string> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith("proj-seen-")) {
+          map[key.replace("proj-seen-", "")] = localStorage.getItem(key) || "";
+        }
+      }
+      setSeenMap(map);
+    } catch {}
+  };
+
+  const fetchProjects = (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    fetch("/api/projects")
+      .then((r) => r.json())
+      .then((data) => {
+        setProjects(data);
+        setLoading(false);
+        setRefreshing(false);
+        setLastUpdated(new Date());
+        loadSeenMap();
+      });
+  };
+
   useEffect(() => {
-    if (status === "authenticated") {
-      fetch("/api/projects")
-        .then((r) => r.json())
-        .then((data) => { setProjects(data); setLoading(false); });
-    }
+    if (status === "authenticated") fetchProjects();
+  }, [status]);
+
+  // 30秒ごとに自動更新
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const timer = setInterval(() => fetchProjects(true), 30000);
+    return () => clearInterval(timer);
   }, [status]);
 
   const filtered = useMemo(() => {
@@ -87,6 +121,17 @@ export default function DashboardPage() {
     completedByMonth[key].push(p);
   });
 
+  const isUnread = (p: Project) => {
+    const seen = seenMap[p.id];
+    if (!seen) return true;
+    const latestActivity = [p.updatedAt, ...(p.comments.map((c) => c.createdAt))].reduce(
+      (a, b) => (a > b ? a : b), p.updatedAt
+    );
+    return latestActivity > seen;
+  };
+
+  const unreadCount = filtered.filter(isUnread).length;
+
   const getVisitBadge = (visitDate: string | null) => {
     if (!visitDate) return null;
     const visit = new Date(visitDate);
@@ -102,11 +147,15 @@ export default function DashboardPage() {
 
   const renderProject = (p: Project) => {
     const visitBadge = getVisitBadge(p.visitDate);
+    const unread = isUnread(p);
     return (
       <Link key={p.id} href={`/projects/${p.id}`}
-        className="block bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition">
+        className={`relative block bg-white rounded-xl border p-4 hover:border-blue-300 hover:shadow-sm transition ${unread ? "border-blue-400" : "border-gray-200"}`}>
+        {unread && (
+          <span className="absolute top-2 left-2 w-2.5 h-2.5 bg-blue-500 rounded-full" title="未確認の更新あり" />
+        )}
         <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
+          <div className={`flex-1 min-w-0 ${unread ? "pl-3" : ""}`}>
             <div className="flex items-center gap-2">
               <p className="font-medium text-gray-800 truncate">{p.title}</p>
               {p.urgency === "HIGH" && <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
@@ -140,13 +189,36 @@ export default function DashboardPage() {
       <Header />
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800">案件一覧</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800">案件一覧</h2>
+            <button
+              onClick={() => fetchProjects(true)}
+              disabled={refreshing}
+              className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40"
+              title="更新"
+            >
+              <span className={`text-base ${refreshing ? "animate-spin inline-block" : ""}`}>🔄</span>
+            </button>
+            {lastUpdated && (
+              <span className="text-xs text-gray-400">
+                {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} 更新
+              </span>
+            )}
+          </div>
           {role === "ADMIN" && (
             <Link href="/projects/new" className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition">
               ＋ 新規案件
             </Link>
           )}
         </div>
+
+        {/* 未確認通知バナー */}
+        {unreadCount > 0 && (
+          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4 text-sm text-blue-800">
+            <span className="w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0" />
+            <span className="font-medium">{unreadCount}件</span>の案件に未確認の更新があります。青い枠の案件を確認してください。
+          </div>
+        )}
 
         {/* 検索・フィルター */}
         <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4 space-y-2">

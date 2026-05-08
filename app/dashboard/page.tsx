@@ -759,7 +759,7 @@ export default function DashboardPage() {
             );
           })()}
           <Link href="/billing" className="bg-white rounded-xl border border-gray-200 px-3 py-2.5 text-center block hover:bg-gray-50 transition">
-            <p className="text-xs text-gray-400 mb-0.5">完了済み（今月）</p>
+            <p className="text-xs text-gray-400 mb-0.5">完了済み</p>
             <p className="text-lg font-bold text-gray-800">{completedProjects.length}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
           </Link>
           <div className={`rounded-xl border px-3 py-2.5 text-center ${unreadCount > 0 ? "bg-blue-50 border-blue-300" : "bg-white border-gray-200"}`}>

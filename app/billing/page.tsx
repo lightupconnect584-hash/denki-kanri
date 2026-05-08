@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -10,6 +11,7 @@ interface Project {
   id: string;
   title: string;
   location: string;
+  workType: string | null;
   status: string;
   amount: number | null;
   createdAt: string;
@@ -25,9 +27,11 @@ export default function BillingPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState<string>(thisMonth);
   const [selectedPartner, setSelectedPartner] = useState<string>("all");
-  const [onlyDone, setOnlyDone] = useState(true);
+  const onlyDone = true;
 
   const role = (session?.user as { role?: string })?.role;
   const userId = (session?.user as { id?: string })?.id;
@@ -41,7 +45,7 @@ export default function BillingPage() {
     fetch("/api/projects")
       .then((r) => r.json())
       .then((data: Project[]) => {
-        setProjects(data.filter((p) => p.amount != null));
+        setProjects(data.filter((p) => DONE_STATUSES.includes(p.status)));
         setLoading(false);
       });
   }, [status]);
@@ -112,6 +116,26 @@ export default function BillingPage() {
 
   const grandTotal = grouped.reduce((sum, [, g]) => sum + g.total, 0);
 
+  const abbrevAddr = (addr: string) => addr.replace(/[0-9].*$/, "").trim();
+
+  const exportCSV = () => {
+    const rows: string[][] = [["協力会社", "物件名", "住所", "作業日", "ステータス", "金額（税別）"]];
+    filtered.forEach((p) => {
+      const partner = p.assignedTo?.companyName || p.assignedTo?.name || "未担当";
+      const dateStr = getWorkDate(p).toLocaleDateString("ja-JP");
+      rows.push([partner, p.title, p.location, dateStr, p.status, String(p.amount || 0)]);
+    });
+    const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const bom = "﻿";
+    const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `費用集計_${selectedMonth === "all" ? "全期間" : monthLabel(selectedMonth)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (status === "loading" || loading) {
     return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">読み込み中...</p></div>;
   }
@@ -127,9 +151,15 @@ export default function BillingPage() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
-          <h2 className="text-lg font-bold text-white">
-            {role === "PARTNER" ? "請求金額一覧" : "協力会社別 費用集計"}
+          <h2 className="text-lg font-bold text-white flex-1">
+            {role === "PARTNER" ? "完了済依頼・請求金額" : "完了済依頼・費用集計"}
           </h2>
+          {filtered.length > 0 && (
+            <button onClick={exportCSV}
+              className="text-xs bg-white text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition">
+              CSV出力
+            </button>
+          )}
         </div>
 
         {/* フィルター */}
@@ -158,15 +188,6 @@ export default function BillingPage() {
               </select>
             )}
           </div>
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={onlyDone}
-              onChange={(e) => setOnlyDone(e.target.checked)}
-              className="rounded"
-            />
-            確認済み・完了のみ表示
-          </label>
         </div>
 
         {/* 合計金額バナー */}
@@ -197,22 +218,16 @@ export default function BillingPage() {
                 )}
                 <div className="divide-y divide-gray-100">
                   {group.projects.map((p) => {
-                    const dateStr = getWorkDate(p).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+                    const dateStr = getWorkDate(p).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
                     return (
-                      <div key={p.id} className="px-4 py-3 flex items-start gap-3">
+                      <Link key={p.id} href={`/projects/${p.id}`} className="px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition block">
+                        <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{p.title}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">📍 {p.location}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-xs text-gray-400">{dateStr}</p>
-                            <StatusBadge status={p.status} />
-                          </div>
+                          <p className="text-xs font-medium text-gray-800 truncate">{p.title}</p>
+                          {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-gray-800">¥{(p.amount || 0).toLocaleString()}</p>
-                          <p className="text-xs text-gray-400">税別</p>
-                        </div>
-                      </div>
+                        <p className="text-xs font-bold text-gray-800 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
+                      </Link>
                     );
                   })}
                 </div>

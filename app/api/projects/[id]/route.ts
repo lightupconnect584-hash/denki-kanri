@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     where: role === "PARTNER" ? { id, assignedToId: userId } : { id },
     include: {
       assignedTo: { select: { id: true, name: true, companyName: true, email: true } },
-      createdBy: { select: { name: true, avatarUrl: true, phone: true } },
+      createdBy: { select: { name: true, avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true } },
       projectPhotos: true,
       inspections: {
         include: {
@@ -33,7 +33,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         orderBy: { createdAt: "desc" },
       },
       comments: {
-        include: { author: { select: { name: true, companyName: true, role: true, avatarUrl: true } } },
+        select: {
+          id: true, content: true, createdAt: true, authorId: true, readAt: true,
+          author: { select: { name: true, companyName: true, role: true, avatarUrl: true } },
+          reactions: { select: { emoji: true, userId: true } },
+        },
         orderBy: { createdAt: "asc" },
       },
       activityLogs: {
@@ -90,33 +94,38 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (role === "ADMIN" && body.assignedToId) updateData.notifyPartnerAt = new Date();
   }
 
-  // 訪問予定日は担当協力会社のみ変更可
-  if (body.visitDate !== undefined) {
+  // 訪問予定日・時間帯は担当協力会社のみ変更可
+  if (body.visitDate !== undefined || body.visitTime !== undefined) {
     const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true } });
     if (role === "PARTNER" && project?.assignedToId === userId && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
-      updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
+      if (body.visitDate !== undefined) updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
+      if (body.visitTime !== undefined) updateData.visitTime = body.visitTime || null;
     }
-    // 管理者は visitDate を変更不可（無視）
+    // 管理者は visitDate / visitTime を変更不可（無視）
   }
   // 編集フィールド（管理者が内容を変更した場合 → 協力会社に通知）
-  const contentFields = ["title", "location", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate"];
+  const contentFields = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate", "preferredContactAt", "preferredVisitAt"];
   const contentEdited = role === "ADMIN" && contentFields.some(f => body[f] !== undefined);
   if (contentEdited) updateData.notifyPartnerAt = new Date();
   if (body.title !== undefined) updateData.title = body.title;
   if (body.location !== undefined) updateData.location = body.location;
+  if (body.roomNumber !== undefined) updateData.roomNumber = body.roomNumber || null;
+  if (body.workType !== undefined) updateData.workType = body.workType || null;
   if (body.contractorName !== undefined) updateData.contractorName = body.contractorName || null;
   if (body.contractorPhone !== undefined) updateData.contractorPhone = body.contractorPhone || null;
   if (body.smsAllowed !== undefined) updateData.smsAllowed = body.smsAllowed;
   if (body.description !== undefined) updateData.description = body.description || null;
   if (body.urgency !== undefined) updateData.urgency = body.urgency;
   if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+  if (body.preferredContactAt !== undefined) updateData.preferredContactAt = body.preferredContactAt || null;
+  if (body.preferredVisitAt !== undefined) updateData.preferredVisitAt = body.preferredVisitAt || null;
 
   // 金額変更は管理者のみ・変更履歴を記録
   let oldAmount: number | null = null;
   if (body.amount !== undefined && role === "ADMIN") {
     const current = await prisma.project.findUnique({ where: { id }, select: { amount: true } });
     oldAmount = current?.amount ?? null;
-    const newAmount = body.amount ? parseInt(body.amount) : null;
+    const newAmount = body.amount !== undefined && body.amount !== "" && body.amount !== null ? parseInt(body.amount) : null;
     updateData.amount = newAmount;
   }
 
@@ -129,7 +138,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // 金額変更ログ
   if (body.amount !== undefined && role === "ADMIN") {
-    const newAmount = body.amount ? parseInt(body.amount) : null;
+    const newAmount = body.amount !== undefined && body.amount !== "" && body.amount !== null ? parseInt(body.amount) : null;
     const oldStr = oldAmount != null ? `¥${oldAmount.toLocaleString()}` : "未設定";
     const newStr = newAmount != null ? `¥${newAmount.toLocaleString()}` : "未設定";
     if (oldAmount !== newAmount) {

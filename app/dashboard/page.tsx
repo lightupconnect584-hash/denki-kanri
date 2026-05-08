@@ -747,7 +747,7 @@ export default function DashboardPage() {
         </div>
 
         {/* サマリー */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="grid grid-cols-3 gap-2 mb-4">
           {(() => {
             const isRed = maxPerCompany >= 8;
             const isYellow = !isRed && maxPerCompany >= 5;
@@ -762,6 +762,10 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-400 mb-0.5">完了済み（今月）</p>
             <p className="text-lg font-bold text-gray-800">{completedProjects.length}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
           </Link>
+          <div className={`rounded-xl border px-3 py-2.5 text-center ${unreadCount > 0 ? "bg-blue-50 border-blue-300" : "bg-white border-gray-200"}`}>
+            <p className="text-xs text-gray-400 mb-0.5">未読</p>
+            <p className={`text-lg font-bold ${unreadCount > 0 ? "text-blue-600" : "text-gray-800"}`}>{unreadCount}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
+          </div>
         </div>
 
         {/* 検索・フィルター */}

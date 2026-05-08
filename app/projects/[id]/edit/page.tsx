@@ -151,7 +151,7 @@ export default function EditProjectPage() {
               )}
             </div>
             {showWorkTypeList && workTypeMasters.length > 0 && (
-              <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
                 {workTypeMasters.map((w) => (
                   <button key={w.id} type="button"
                     onMouseDown={() => {

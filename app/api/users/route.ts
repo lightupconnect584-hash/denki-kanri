@@ -19,7 +19,7 @@ export async function GET() {
   if (error) return NextResponse.json({ error }, { status });
 
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, companyName: true, role: true, avatarUrl: true },
+    select: { id: true, name: true, email: true, companyName: true, role: true, avatarUrl: true, color: true },
     orderBy: { role: "asc" },
   });
   return NextResponse.json(users);
@@ -52,7 +52,16 @@ export async function PATCH(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id が必要です" }, { status: 400 });
 
-  const { password } = await req.json();
+  const body = await req.json();
+
+  // カラー変更
+  if (body.color !== undefined) {
+    await prisma.user.update({ where: { id }, data: { color: body.color || null } });
+    return NextResponse.json({ ok: true });
+  }
+
+  // パスワード変更
+  const { password } = body;
   if (!password || password.length < 4)
     return NextResponse.json({ error: "パスワードは4文字以上必要です" }, { status: 400 });
 

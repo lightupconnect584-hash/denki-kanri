@@ -14,8 +14,12 @@ model User {
   password    String
   role        String    @default("PARTNER")
   companyName String?
-  avatarUrl   String?
-  phone       String?
+  avatarUrl        String?
+  phone            String?
+  color            String?
+  thankYouEnabled  Boolean @default(true)
+  thankYouImageUrl String?
+  thankYouMessage  String?
   createdAt   DateTime  @default(now())
 
   assignedProjects Project[]   @relation("AssignedTo")
@@ -23,6 +27,7 @@ model User {
   inspections      Inspection[]
   quotes           Quote[]
   comments         Comment[]
+  reactions        Reaction[]
   activityLogs     ActivityLog[]
 }
 
@@ -34,9 +39,14 @@ model Project {
   contractorPhone  String?
   smsAllowed       Boolean   @default(false)
   description      String?
+  workType         String?
+  roomNumber       String?
+  preferredContactAt String?
+  preferredVisitAt   String?
   urgency          String    @default("LOW")
   amount           Int?
   visitDate        DateTime?
+  visitTime        String?
   status           String    @default("PENDING")
   dueDate          DateTime?
   createdAt        DateTime  @default(now())
@@ -88,6 +98,7 @@ model Photo {
   id           String     @id @default(cuid())
   filename     String
   originalName String
+  category     String     @default("before")
   createdAt    DateTime   @default(now())
 
   inspection   Inspection @relation(fields: [inspectionId], references: [id])
@@ -108,15 +119,64 @@ model ActivityLog {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   content   String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
 
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project    @relation(fields: [projectId], references: [id])
   projectId String
 
-  author    User   @relation(fields: [authorId], references: [id])
+  author    User       @relation(fields: [authorId], references: [id])
   authorId  String
+
+  reactions Reaction[]
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  createdAt DateTime @default(now())
+
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String
+
+  user      User   @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@unique([commentId, userId, emoji])
+}
+
+model SeasonalMessage {
+  id             String   @id @default(cuid())
+  name           String
+  startMD        Int
+  endMD          Int
+  message        String
+  imageUrl       String?
+  animation      String   @default("none")
+  enabled        Boolean  @default(true)
+  order          Int      @default(0)
+  targetType     String   @default("all")
+  targetUserIds  String[] @default([])
+  createdAt      DateTime @default(now())
+}
+
+model SeasonalImageStock {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  label        String?
+  createdAt    DateTime @default(now())
+}
+
+model WorkTypeMaster {
+  id             String   @id @default(cuid())
+  name           String
+  defaultAmount  Int?
+  defaultUrgency String?
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
 }
 
 model Quote {

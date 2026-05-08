@@ -1,0 +1,2 @@
+ALTER TABLE "WorkTypeMaster" ADD COLUMN IF NOT EXISTS "defaultAmount" INTEGER;
+ALTER TABLE "WorkTypeMaster" ADD COLUMN IF NOT EXISTS "defaultUrgency" TEXT;

@@ -62,3 +62,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   return NextResponse.json(comment);
 }
+
+// 既読：自分宛て（相手が送った）コメントをまとめて既読にする
+export async function PATCH(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const userId = (session.user as { id: string }).id;
+
+  // 自分以外が送った、まだ未読のコメントを既読にする
+  await prisma.comment.updateMany({
+    where: { projectId: id, authorId: { not: userId }, readAt: null },
+    data: { readAt: new Date() },
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const userId = (session.user as { id: string }).id;
+  const { searchParams } = req.nextUrl;
+  const commentId = searchParams.get("commentId");
+  if (!commentId) return NextResponse.json({ error: "commentId required" }, { status: 400 });
+
+  const comment = await prisma.comment.findUnique({ where: { id: commentId }, select: { authorId: true } });
+  if (!comment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (comment.authorId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  await prisma.comment.delete({ where: { id: commentId } });
+  return NextResponse.json({ ok: true });
+}

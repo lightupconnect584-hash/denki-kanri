@@ -1,0 +1,1 @@
+ALTER TABLE "Comment" ADD COLUMN "readAt" TIMESTAMP(3);

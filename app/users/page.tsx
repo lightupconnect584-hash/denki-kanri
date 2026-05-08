@@ -12,7 +12,14 @@ interface User {
   companyName: string | null;
   role: string;
   avatarUrl: string | null;
+  color: string | null;
 }
+
+const PRESET_COLORS = [
+  "#ef4444", "#f97316", "#f59e0b", "#22c55e",
+  "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899",
+  "#84cc16", "#6b7280",
+];
 
 export default function UsersPage() {
   const { data: session, status } = useSession();
@@ -28,10 +35,12 @@ export default function UsersPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState("");
 
-  // 削除確認をインライン表示
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<Record<string, string>>({});
+
+  const [colorPickerId, setColorPickerId] = useState<string | null>(null);
+  const [savingColor, setSavingColor] = useState(false);
 
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
@@ -100,6 +109,18 @@ export default function UsersPage() {
     setDeleteLoading(false);
   };
 
+  const handleColorSelect = async (userId: string, color: string | null) => {
+    setSavingColor(true);
+    await fetch(`/api/users?id=${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ color }),
+    });
+    await fetchUsers();
+    setSavingColor(false);
+    setColorPickerId(null);
+  };
+
   const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   const admins = users.filter((u) => u.role === "ADMIN");
@@ -109,7 +130,13 @@ export default function UsersPage() {
     <div key={u.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          {/* アバター */}
+          {/* カラードット（協力会社のみ） */}
+          {u.role === "PARTNER" && (
+            <div
+              className="w-3 h-3 rounded-full shrink-0 mt-0.5"
+              style={{ backgroundColor: u.color || "#d1d5db" }}
+            />
+          )}
           {u.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -118,7 +145,10 @@ export default function UsersPage() {
               className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600 border border-gray-200 shrink-0">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white border border-gray-200 shrink-0"
+              style={{ backgroundColor: u.role === "PARTNER" ? (u.color || "#9ca3af") : "#2563eb" }}
+            >
               {(u.companyName || u.name)[0]?.toUpperCase()}
             </div>
           )}
@@ -133,7 +163,16 @@ export default function UsersPage() {
             <p className="text-xs text-gray-400 mt-0.5">{u.email}</p>
           </div>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+          {u.role === "PARTNER" && (
+            <button
+              onClick={() => setColorPickerId(colorPickerId === u.id ? null : u.id)}
+              className="text-xs text-gray-500 border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 transition flex items-center gap-1"
+            >
+              <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: u.color || "#d1d5db" }} />
+              カラー
+            </button>
+          )}
           <button
             onClick={() => {
               setResetUserId(resetUserId === u.id ? null : u.id);
@@ -144,7 +183,7 @@ export default function UsersPage() {
           >
             PW変更
           </button>
-          {u.id !== myId && (
+          {u.id !== myId && u.role !== "ADMIN" && (
             <button
               onClick={() => setConfirmDeleteId(confirmDeleteId === u.id ? null : u.id)}
               className="text-xs text-red-400 border border-red-300 rounded px-2 py-1 hover:bg-red-50 transition"
@@ -155,7 +194,39 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* 削除確認（インライン） */}
+      {/* カラーピッカー */}
+      {colorPickerId === u.id && (
+        <div className="border border-gray-200 bg-gray-50 rounded-xl p-3 space-y-2">
+          <p className="text-xs font-medium text-gray-600">カレンダー表示カラーを選択</p>
+          <div className="flex gap-2 flex-wrap">
+            {PRESET_COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => handleColorSelect(u.id, c)}
+                disabled={savingColor}
+                className="w-8 h-8 rounded-full border-2 transition hover:scale-110 disabled:opacity-50"
+                style={{
+                  backgroundColor: c,
+                  borderColor: u.color === c ? "#1e40af" : "transparent",
+                  outline: u.color === c ? "2px solid #93c5fd" : "none",
+                }}
+              />
+            ))}
+            {u.color && (
+              <button
+                onClick={() => handleColorSelect(u.id, null)}
+                disabled={savingColor}
+                className="w-8 h-8 rounded-full border-2 border-gray-300 bg-white text-gray-400 text-xs hover:bg-gray-100 transition disabled:opacity-50"
+                title="カラーをリセット"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 削除確認 */}
       {confirmDeleteId === u.id && (
         <div className="border border-red-200 bg-red-50 rounded-lg px-3 py-3 space-y-2">
           <p className="text-xs font-medium text-red-700">「{u.companyName || u.name}」を削除しますか？</p>

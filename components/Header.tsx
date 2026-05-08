@@ -2,9 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { Caveat } from "next/font/google";
-
-const caveat = Caveat({ subsets: ["latin"], weight: ["600"] });
+import Image from "next/image";
 
 export default function Header() {
   const { data: session } = useSession();
@@ -14,48 +12,49 @@ export default function Header() {
 
   return (
     <header className="bg-gray-900 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
-      <Link href="/dashboard" className="flex items-center gap-2">
-        <span className="text-xl">⚡</span>
-        <span className={`${caveat.className} text-white text-xl tracking-wide`}>After-Service Management System</span>
+      <Link href="/dashboard" className="flex items-center shrink-0">
+        <Image src="/logo.png" alt="logo" width={300} height={150} className="h-[60px] w-auto" />
       </Link>
-      <div className="flex items-center gap-3">
-        {role === "ADMIN" && (
-          <Link
-            href="/users"
-            className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1"
-          >
-            ユーザー管理
-          </Link>
-        )}
+      <div className="flex items-center gap-2">
         <Link
           href="/billing"
-          className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1"
+          className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1 whitespace-nowrap"
         >
-          💰 費用
+          完了済依頼
         </Link>
-        <Link href="/settings" className="flex items-center gap-2 hover:opacity-80 transition">
+        <Link
+          href="/help"
+          className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1 whitespace-nowrap"
+        >
+          使い方
+        </Link>
+        {/* アバター＋設定 */}
+        <Link href="/settings" className="flex items-center gap-1.5 hover:opacity-80 transition ml-1">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarUrl.startsWith("http") ? avatarUrl : `/uploads/${avatarUrl}`}
               alt="avatar"
-              className="w-7 h-7 rounded-full object-cover border border-gray-600"
+              className="w-7 h-7 rounded-full object-cover border border-gray-600 shrink-0"
             />
           ) : (
-            <div className="w-7 h-7 rounded-full bg-blue-700 flex items-center justify-center text-xs font-bold text-white border border-gray-600">
+            <div className="w-7 h-7 rounded-full bg-blue-700 flex items-center justify-center text-xs font-bold text-white border border-gray-600 shrink-0">
               {session?.user?.name?.[0]?.toUpperCase() || "?"}
             </div>
           )}
-          <span className="text-xs text-gray-300 hidden sm:block">
+          <span className="text-xs text-gray-300 sm:hidden">設定</span>
+          <span className="text-xs text-gray-300 hidden sm:block max-w-[80px] truncate">
             {session?.user?.name}
-            {role === "ADMIN" && <span className="ml-1 text-blue-400">(管理者)</span>}
           </span>
         </Link>
+        {/* ログアウト：アイコンのみ（モバイル）/ テキストあり（デスクトップ） */}
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="text-xs text-gray-400 hover:text-red-400"
+          className="text-gray-400 hover:text-red-400 transition pl-1"
+          title="ログアウト"
         >
-          ログアウト
+          <span className="hidden sm:inline text-xs">ログアウト</span>
+          <span className="sm:hidden text-base leading-none">⏻</span>
         </button>
       </div>
     </header>

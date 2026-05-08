@@ -19,9 +19,13 @@ export default function EditProjectPage() {
   const id = params.id as string;
 
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultUrgency: string | null }[]>([]);
+  const [showWorkTypeList, setShowWorkTypeList] = useState(false);
   const [form, setForm] = useState({
     title: "",
     location: "",
+    roomNumber: "",
+    workType: "",
     contractorName: "",
     contractorPhone: "",
     smsAllowed: false,
@@ -30,6 +34,8 @@ export default function EditProjectPage() {
     amount: "",
     dueDate: "",
     assignedToId: "",
+    preferredContactAt: "",
+    preferredVisitAt: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,12 +50,15 @@ export default function EditProjectPage() {
   useEffect(() => {
     if (status === "authenticated") {
       fetch("/api/users").then((r) => r.json()).then((data) => setPartners(data.filter((u: Partner) => u.role === "PARTNER")));
+      fetch("/api/work-types").then((r) => r.json()).then(setWorkTypeMasters);
       fetch(`/api/projects/${id}`)
         .then((r) => r.json())
         .then((data) => {
           setForm({
             title: data.title || "",
             location: data.location || "",
+            roomNumber: data.roomNumber || "",
+            workType: data.workType || "",
             contractorName: data.contractorName || "",
             contractorPhone: data.contractorPhone || "",
             smsAllowed: data.smsAllowed ?? false,
@@ -58,6 +67,8 @@ export default function EditProjectPage() {
             amount: data.amount != null ? String(data.amount) : "",
             dueDate: data.dueDate ? data.dueDate.slice(0, 10) : "",
             assignedToId: data.assignedTo?.id || "",
+            preferredContactAt: data.preferredContactAt || "",
+            preferredVisitAt: data.preferredVisitAt || "",
           });
           setLoading(false);
         });
@@ -97,7 +108,7 @@ export default function EditProjectPage() {
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
-          <h2 className="text-lg font-bold text-white">案件を編集</h2>
+          <h2 className="text-lg font-bold text-white">依頼を編集</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
@@ -114,6 +125,50 @@ export default function EditProjectPage() {
             <input type="text" required value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
               className={inputClass} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">号室 <span className="text-gray-400 font-normal">（任意）</span></label>
+            <input type="text" value={form.roomNumber}
+              onChange={(e) => setForm({ ...form, roomNumber: e.target.value })}
+              className={inputClass} placeholder="例: 101号室" />
+          </div>
+
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">依頼名 *</label>
+            <div className="flex">
+              <input type="text" required value={form.workType}
+                onChange={(e) => setForm({ ...form, workType: e.target.value })}
+                onFocus={() => setShowWorkTypeList(false)}
+                className="flex-1 border border-gray-300 rounded-l-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="例: 電気設備点検・漏電調査・エアコン修理" />
+              {workTypeMasters.length > 0 && (
+                <button type="button"
+                  onClick={() => setShowWorkTypeList((v) => !v)}
+                  className="border border-l-0 border-gray-300 rounded-r-lg px-2.5 bg-gray-50 hover:bg-gray-100 text-gray-500 transition">
+                  ▼
+                </button>
+              )}
+            </div>
+            {showWorkTypeList && workTypeMasters.length > 0 && (
+              <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                {workTypeMasters.map((w) => (
+                  <button key={w.id} type="button"
+                    onMouseDown={() => {
+                      setForm({
+                        ...form,
+                        workType: w.name,
+                        ...(w.defaultAmount != null ? { amount: String(w.defaultAmount) } : {}),
+                        ...(w.defaultUrgency ? { urgency: w.defaultUrgency } : {}),
+                      });
+                      setShowWorkTypeList(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition border-b border-gray-50 last:border-0">
+                    {w.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -150,11 +205,46 @@ export default function EditProjectPage() {
             </div>
           </div>
 
+          {/* 入居者への連絡・訪問希望 */}
+          <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+            <p className="text-sm font-medium text-gray-700">入居者への連絡・訪問希望 <span className="text-gray-400 font-normal text-xs">（任意）</span></p>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">連絡希望日時</label>
+              <input type="text" value={form.preferredContactAt}
+                onChange={(e) => setForm({ ...form, preferredContactAt: e.target.value })}
+                className={inputClass} placeholder="例: 5/10 午前中" maxLength={15} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">訪問希望日時</label>
+              <input type="text" value={form.preferredVisitAt}
+                onChange={(e) => setForm({ ...form, preferredVisitAt: e.target.value })}
+                className={inputClass} placeholder="例: 5/12 14時以降" maxLength={15} />
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">依頼内容</label>
             <textarea value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={3} className={inputClass} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">金額【税別】</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">¥</span>
+              <input type="text" inputMode="numeric" value={form.amount}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+                  setForm({ ...form, amount: v });
+                }}
+                onBlur={(e) => {
+                  const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+                  setForm({ ...form, amount: v });
+                }}
+                className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0" />
+            </div>
           </div>
 
           <div>
@@ -171,17 +261,6 @@ export default function EditProjectPage() {
                     form.urgency === value ? active : `bg-white text-gray-600 border-gray-300 ${hover}`
                   }`}>{label}</button>
               ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">金額【税別】</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">¥</span>
-              <input type="text" inputMode="numeric" value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0" />
             </div>
           </div>
 

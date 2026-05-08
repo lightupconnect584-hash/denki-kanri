@@ -1,0 +1,2 @@
+ALTER TABLE "SeasonalMessage" ADD COLUMN IF NOT EXISTS "targetType" TEXT NOT NULL DEFAULT 'all';
+ALTER TABLE "SeasonalMessage" ADD COLUMN IF NOT EXISTS "targetUserIds" TEXT[] NOT NULL DEFAULT '{}';

@@ -1,0 +1,2 @@
+ALTER TABLE "User" ADD COLUMN "thankYouEnabled" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "User" ADD COLUMN "thankYouImageUrl" TEXT;

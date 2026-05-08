@@ -9,6 +9,7 @@ interface UploadedPhoto {
   filename: string;
   originalName: string;
   preview: string;
+  category: "before" | "during" | "after" | "other";
 }
 
 export default function InspectPage() {
@@ -33,7 +34,7 @@ export default function InspectPage() {
   const [other, setOther] = useState("");
 
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<"before" | "during" | "after" | "other" | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
@@ -42,11 +43,11 @@ export default function InspectPage() {
     return null;
   }
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: "before" | "during" | "after" | "other") => {
     const files = e.target.files;
     if (!files) return;
 
-    setUploading(true);
+    setUploading(category);
     setUploadError("");
     const uploaded: UploadedPhoto[] = [];
 
@@ -86,6 +87,7 @@ export default function InspectPage() {
             filename: data.filename,
             originalName: data.originalName,
             preview: URL.createObjectURL(compressedFile),
+            category,
           });
         } else {
           setUploadError(`アップロード失敗 (${file.name}, status:${res.status})`);
@@ -96,7 +98,8 @@ export default function InspectPage() {
     }
 
     setPhotos((prev) => [...prev, ...uploaded]);
-    setUploading(false);
+    setUploading(null);
+    e.target.value = "";
   };
 
   const removePhoto = (filename: string) => {
@@ -122,7 +125,7 @@ export default function InspectPage() {
         workDate: finalWorkDate,
         workDates: workDates.filter(Boolean).sort(),
         notes: buildNotes(),
-        photos: photos.map((p) => ({ filename: p.filename, originalName: p.originalName })),
+        photos: photos.map((p) => ({ filename: p.filename, originalName: p.originalName, category: p.category })),
       }),
     });
 
@@ -272,48 +275,48 @@ export default function InspectPage() {
             </div>
           </div>
 
-          {/* 写真 */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">作業写真</label>
-            <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-300 rounded-xl py-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
-              <span className="text-2xl">📷</span>
-              <span className="text-sm text-gray-600">
-                {uploading ? "アップロード中..." : "写真を選択（複数可）"}
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handlePhotoUpload}
-                disabled={uploading}
-              />
-            </label>
-
-            {uploadError && (
-              <p className="text-xs text-red-500 mt-2 break-all">{uploadError}</p>
-            )}
-            {photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mt-3">
-                {photos.map((photo) => (
-                  <div key={photo.filename} className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.preview}
-                      alt={photo.originalName}
-                      className="w-full h-24 object-cover rounded-lg"
+          {/* 写真（3セクション） */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+            <p className="text-sm font-bold text-gray-700">作業写真</p>
+            {(["before", "during", "after", "other"] as const).map((cat) => {
+              const labels = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
+              const catPhotos = photos.filter((p) => p.category === cat);
+              return (
+                <div key={cat}>
+                  <p className="text-xs font-semibold text-gray-600 mb-2">{labels[cat]}</p>
+                  <label className={`flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl py-3 cursor-pointer transition ${uploading === cat ? "border-blue-400 bg-blue-50" : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"}`}>
+                    <span className="text-xl">📷</span>
+                    <span className="text-sm text-gray-600">
+                      {uploading === cat ? "アップロード中..." : "写真を選択（複数可）"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handlePhotoUpload(e, cat)}
+                      disabled={uploading !== null}
                     />
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(photo.filename)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  </label>
+                  {catPhotos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {catPhotos.map((photo) => (
+                        <div key={photo.filename} className="relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photo.preview} alt={photo.originalName} className="w-full h-24 object-cover rounded-lg" />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(photo.filename)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
+                          >×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {uploadError && <p className="text-xs text-red-500 break-all">{uploadError}</p>}
           </div>
 
           <button

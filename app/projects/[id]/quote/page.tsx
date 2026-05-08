@@ -77,11 +77,18 @@ export default function QuotePage() {
                 見積金額（円）<span className="text-red-500 ml-1">*</span>
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 required
-                min={1}
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+                  setAmount(v);
+                }}
+                onBlur={(e) => {
+                  const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+                  setAmount(v);
+                }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="例: 150000"
               />

@@ -29,9 +29,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       workDates: (body.workDates || [body.workDate]).filter(Boolean),
       notes: body.notes,
       photos: {
-        create: (body.photos || []).map((p: { filename: string; originalName: string }) => ({
+        create: (body.photos || []).map((p: { filename: string; originalName: string; category?: string }) => ({
           filename: p.filename,
           originalName: p.originalName,
+          category: p.category || "before",
         })),
       },
     },

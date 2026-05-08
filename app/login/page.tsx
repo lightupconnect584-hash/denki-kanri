@@ -35,7 +35,7 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-sm p-8">
         <div className="text-center mb-8">
           <div className="text-3xl mb-2">⚡</div>
-          <h1 className="text-xl font-bold text-gray-800">電気工事 案件管理</h1>
+          <h1 className="text-xl font-bold text-gray-800">電気工事 依頼管理</h1>
           <p className="text-sm text-gray-500 mt-1">ログイン</p>
         </div>
 

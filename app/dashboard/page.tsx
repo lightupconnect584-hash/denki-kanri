@@ -38,8 +38,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [unreadCountState, setUnreadCountState] = useState(0);
   const [seenMap, setSeenMap] = useState<Record<string, string>>(() => {
     if (typeof window === "undefined") return {};
     try {
@@ -127,50 +125,6 @@ export default function DashboardPage() {
         setLoading(false);
         setRefreshing(false);
         setLastUpdated(new Date());
-
-        // seenMap を最新に読み込んでカウントを計算
-        const freshMap: Record<string, string> = {};
-        try {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key?.startsWith("proj-seen-")) {
-              freshMap[key.replace("proj-seen-", "")] = localStorage.getItem(key) || "";
-            }
-          }
-        } catch {}
-        setSeenMap(freshMap);
-
-        // 完了済みカウント（今月）
-        const now = new Date();
-        const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-        const completed = data.filter((p) => {
-          if (!DONE_STATUSES.includes(p.status)) return false;
-          let d: Date;
-          if (p.inspections.length > 0) {
-            const latest = p.inspections.reduce((a, b) =>
-              new Date(a.workDate) > new Date(b.workDate) ? a : b
-            );
-            d = new Date(latest.workDate);
-          } else {
-            d = new Date(p.updatedAt);
-          }
-          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` === monthKey;
-        }).length;
-        setCompletedCount(completed);
-
-        // 未読カウント
-        const currentUserId = (session?.user as { id?: string })?.id;
-        const currentRole = (session?.user as { role?: string })?.role;
-        const unread = data.filter((p) => {
-          if (DONE_STATUSES.includes(p.status) || p.status === "REJECTED") return false;
-          const notifyAt = currentRole === "ADMIN" ? p.notifyAdminAt : p.notifyPartnerAt;
-          if (!notifyAt) return false;
-          const seen = freshMap[p.id];
-          if (!seen) return true;
-          return notifyAt > seen;
-        }).length;
-        setUnreadCountState(unread);
-
         loadSeenMap();
         // 各種通知（協力会社・初回ロードのみ）
         if (!isRefresh && role === "PARTNER") {
@@ -806,15 +760,15 @@ export default function DashboardPage() {
           })()}
           <div className="bg-white rounded-xl border border-gray-200 px-3 py-2.5 text-center">
             <p className="text-xs text-gray-400 mb-0.5">完了済み</p>
-            <p className="text-lg font-bold text-gray-800">{completedCount}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
+            <p className="text-lg font-bold text-gray-800">{completedProjects.length}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
           </div>
           <button
-            onClick={() => { if (unreadCountState > 0) markAllRead(); }}
-            className={`rounded-xl border px-3 py-2.5 text-center w-full ${unreadCountState > 0 ? "bg-blue-50 border-blue-300 active:bg-blue-100" : "bg-white border-gray-200"}`}
+            onClick={() => { if (unreadCount > 0) markAllRead(); }}
+            className={`rounded-xl border px-3 py-2.5 text-center w-full ${unreadCount > 0 ? "bg-blue-50 border-blue-300 active:bg-blue-100" : "bg-white border-gray-200"}`}
           >
             <p className="text-xs text-gray-400 mb-0.5">未読</p>
-            <p className={`text-lg font-bold ${unreadCountState > 0 ? "text-blue-600" : "text-gray-800"}`}>{unreadCountState}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
-            {unreadCountState > 0 && <p className="text-xs text-blue-400 mt-0.5">タップで既読</p>}
+            <p className={`text-lg font-bold ${unreadCount > 0 ? "text-blue-600" : "text-gray-800"}`}>{unreadCount}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
+            {unreadCount > 0 && <p className="text-xs text-blue-400 mt-0.5">タップで既読</p>}
           </button>
         </div>
 

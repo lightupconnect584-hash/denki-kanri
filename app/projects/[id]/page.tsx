@@ -11,6 +11,7 @@ interface Photo {
   id: string;
   filename: string;
   originalName: string;
+  category: string;
 }
 
 interface Inspection {
@@ -44,7 +45,10 @@ interface Comment {
   id: string;
   content: string;
   createdAt: string;
+  authorId: string;
+  readAt: string | null;
   author: { name: string; companyName: string | null; role: string; avatarUrl: string | null };
+  reactions: { emoji: string; userId: string }[];
 }
 
 interface ActivityLog {
@@ -59,17 +63,22 @@ interface Project {
   id: string;
   title: string;
   location: string;
+  roomNumber: string | null;
+  workType: string | null;
   contractorName: string | null;
   contractorPhone: string | null;
   smsAllowed: boolean;
   description: string | null;
+  preferredContactAt: string | null;
+  preferredVisitAt: string | null;
   urgency: string;
   amount: number | null;
   visitDate: string | null;
+  visitTime: string | null;
   status: string;
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
-  createdBy: { name: string; avatarUrl: string | null; phone: string | null };
+  createdBy: { name: string; avatarUrl: string | null; phone: string | null; thankYouEnabled: boolean; thankYouImageUrl: string | null };
   projectPhotos: ProjectPhoto[];
   inspections: Inspection[];
   quotes: Quote[];
@@ -89,9 +98,14 @@ export default function ProjectDetailPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [updating, setUpdating] = useState(false);
   const [visitInput, setVisitInput] = useState("");
+  const [visitTimeFrom, setVisitTimeFrom] = useState("");
+  const [visitTimeTo, setVisitTimeTo] = useState("");
   const [savingVisit, setSavingVisit] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [reactionPickerId, setReactionPickerId] = useState<string | null>(null);
+  const REACTION_EMOJIS = ["👍", "✅", "😄", "🙏", "💪"];
   const [showLog, setShowLog] = useState(false);
 
   const role = (session?.user as { role?: string })?.role;
@@ -115,11 +129,20 @@ export default function ProjectDetailPage() {
         } else {
           setVisitInput("");
         }
+        if (data.visitTime) {
+          const m = data.visitTime.match(/^(\d+)時〜(\d+)時$/);
+          if (m) { setVisitTimeFrom(m[1]); setVisitTimeTo(m[2]); }
+          else { const m2 = data.visitTime.match(/^(\d+)/); if (m2) { setVisitTimeFrom(m2[1]); setVisitTimeTo(""); } }
+        } else {
+          setVisitTimeFrom(""); setVisitTimeTo("");
+        }
         setLoading(false);
         setRefreshing(false);
         setLastUpdated(new Date());
         // 既読としてlocalStorageに記録（閲覧した時刻を保存）
         try { localStorage.setItem(`proj-seen-${id}`, new Date().toISOString()); } catch {}
+        // 相手のコメントを既読にする
+        fetch(`/api/projects/${id}/comments`, { method: "PATCH" }).catch(() => {});
       });
   };
 
@@ -146,10 +169,10 @@ export default function ProjectDetailPage() {
   };
 
   const deleteProject = async () => {
-    if (!confirm("この案件を削除しますか？この操作は取り消せません。")) return;
+    if (!confirm("この依頼を削除しますか？この操作は取り消せません。")) return;
     setUpdating(true);
     await fetch(`/api/projects/${id}`, { method: "DELETE" });
-    router.push("/dashboard");
+    window.location.href = "/dashboard";
   };
 
   const changeStatus = async (newStatus: string) => {
@@ -170,6 +193,7 @@ export default function ProjectDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
+    router.refresh();
     fetchProject();
     setUpdating(false);
   };
@@ -198,14 +222,47 @@ export default function ProjectDetailPage() {
     setSendingComment(false);
   };
 
+  const deleteComment = async (commentId: string) => {
+    setDeletingCommentId(commentId);
+    await fetch(`/api/projects/${id}/comments?commentId=${commentId}`, { method: "DELETE" });
+    fetchProject();
+    setDeletingCommentId(null);
+  };
+
+  const toggleReaction = async (commentId: string, emoji: string) => {
+    if (!userId) return;
+    setReactionPickerId(null);
+    setProject((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        comments: prev.comments.map((c) => {
+          if (c.id !== commentId) return c;
+          const exists = c.reactions.some((r) => r.emoji === emoji && r.userId === userId);
+          const reactions = exists
+            ? c.reactions.filter((r) => !(r.emoji === emoji && r.userId === userId))
+            : [...c.reactions, { emoji, userId }];
+          return { ...c, reactions };
+        }),
+      };
+    });
+    await fetch(`/api/projects/${id}/reactions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commentId, emoji }),
+    });
+  };
+
   const saveVisitDate = async () => {
     setSavingVisit(true);
-    // 日付のみ入力 → 09:00 JST として保存
     const dateToSave = visitInput ? new Date(`${visitInput}T09:00:00`).toISOString() : null;
+    const visitTime = visitTimeFrom && visitTimeTo
+      ? `${visitTimeFrom}時〜${visitTimeTo}時`
+      : visitTimeFrom ? `${visitTimeFrom}時〜` : null;
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitDate: dateToSave }),
+      body: JSON.stringify({ visitDate: dateToSave, visitTime }),
     });
     fetchProject();
     setSavingVisit(false);
@@ -280,8 +337,20 @@ export default function ProjectDetailPage() {
           </div>
           <div>
             <p className="text-xs text-gray-500">住所</p>
-            <p className="text-sm font-medium text-gray-800">📍 {project.location}</p>
+            <p className="text-sm font-medium text-gray-800">📍 {project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</p>
           </div>
+          {project.preferredContactAt && (
+            <div>
+              <p className="text-xs text-gray-500">連絡希望日時</p>
+              <p className="text-sm text-gray-700">{project.preferredContactAt}</p>
+            </div>
+          )}
+          {project.preferredVisitAt && (
+            <div>
+              <p className="text-xs text-gray-500">訪問希望日時</p>
+              <p className="text-sm text-gray-700">{project.preferredVisitAt}</p>
+            </div>
+          )}
           {project.contractorName && (
             <div>
               <p className="text-xs text-gray-500">契約者名</p>
@@ -306,6 +375,12 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           )}
+          {project.workType && (
+            <div>
+              <p className="text-xs text-gray-500">依頼名</p>
+              <p className="text-sm text-gray-700 font-medium">{project.workType}</p>
+            </div>
+          )}
           {project.description && (
             <div>
               <p className="text-xs text-gray-500">依頼内容</p>
@@ -328,17 +403,21 @@ export default function ProjectDetailPage() {
             <div>
               <p className="text-xs text-gray-500">金額【税別】</p>
               {(() => {
-                const lastChange = project.activityLogs.find((l) => l.action === "AMOUNT_CHANGED");
-                const originalAmountStr = lastChange?.detail?.split(" → ")[0];
+                const changes = project.activityLogs.filter((l) => l.action === "AMOUNT_CHANGED");
+                const prevAmounts = changes
+                  .map((l) => l.detail?.split(" → ")[0])
+                  .filter((s): s is string => !!s && s !== "未設定")
+                  .filter((s, i, arr) => arr.indexOf(s) === i);
+                const hasChange = changes.length > 0;
                 return (
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    {originalAmountStr && originalAmountStr !== "未設定" && originalAmountStr !== `¥${project.amount.toLocaleString()}` && (
-                      <span className="text-sm text-gray-400 line-through">{originalAmountStr}</span>
-                    )}
-                    <span className={`text-sm font-medium ${lastChange && originalAmountStr !== `¥${project.amount.toLocaleString()}` ? "text-orange-700" : "text-gray-800"}`}>
+                    {prevAmounts.map((s) => (
+                      <span key={s} className="text-sm text-gray-400 line-through">{s}</span>
+                    ))}
+                    <span className={`text-sm font-medium ${hasChange ? "text-orange-700" : "text-gray-800"}`}>
                       ¥{project.amount.toLocaleString()}
                     </span>
-                    {lastChange && originalAmountStr !== `¥${project.amount.toLocaleString()}` && (
+                    {hasChange && (
                       <span className="text-xs text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">変更済</span>
                     )}
                   </div>
@@ -377,38 +456,35 @@ export default function ProjectDetailPage() {
               )}
               <p className="text-sm text-gray-700">{project.createdBy.name}</p>
             </div>
-            {role === "PARTNER" && project.createdBy.phone && (
-              <a
-                href={`tel:${project.createdBy.phone.replace(/[^0-9+]/g, "")}`}
-                className="inline-flex items-center gap-1.5 mt-2 bg-green-50 border border-green-300 text-green-700 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-green-100 transition"
-              >
-                📞 管理者に電話する ({project.createdBy.phone})
-              </a>
-            )}
           </div>
         </div>
 
         {/* 訪問予定日 */}
         {!(role === "PARTNER" && ["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status)) && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-          <h3 className="text-sm font-bold text-gray-800 mb-3">📅 訪問予定日</h3>
+        <div className={`rounded-xl border p-5 mb-4 ${!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? "bg-amber-50 border-amber-300" : "bg-white border-gray-200"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-sm font-bold text-gray-800">📅 訪問予定日</h3>
+            {!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
+              <span className="text-xs bg-amber-100 text-amber-700 border border-amber-300 px-2 py-0.5 rounded-full font-medium">未設定</span>
+            )}
+          </div>
+          {!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
+            <p className="text-xs text-amber-700 mb-3">作業日が決まったら設定してください。管理者が日程を把握するために使います。</p>
+          )}
           {project.visitDate && visitLabel && (
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <p className="text-sm font-medium text-gray-800">
-                {new Date(project.visitDate).toLocaleString("ja-JP", {
-                  year: "numeric", month: "long", day: "numeric",
-                  weekday: "short",
-                  ...(role !== "ADMIN" && (new Date(project.visitDate).getMinutes() !== 0 || new Date(project.visitDate).getHours() !== 0) && {
-                    hour: "2-digit", minute: "2-digit",
-                  }),
-                })}
+                {new Date(project.visitDate).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" })}
               </p>
+              {project.visitTime && (
+                <span className="text-sm font-medium text-blue-700">{project.visitTime}</span>
+              )}
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${visitLabel.color}`}>
                 {visitLabel.text}
               </span>
             </div>
           )}
-          {!project.visitDate && (
+          {!project.visitDate && !(role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status)) && (
             <p className="text-sm text-gray-400 mb-3">未設定</p>
           )}
           {/* 担当協力会社のみ・PENDING or ACCEPTED中は編集可 */}
@@ -430,12 +506,41 @@ export default function ProjectDetailPage() {
                 </button>
                 {project.visitDate && (
                   <button
-                    onClick={() => { setVisitInput(""); }}
+                    onClick={() => { setVisitInput(""); setVisitTimeFrom(""); setVisitTimeTo(""); }}
                     className="text-gray-400 hover:text-red-500 text-sm px-2"
                     title="クリア"
                   >
                     ✕
                   </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-gray-500 shrink-0">時間帯</span>
+                <select
+                  value={visitTimeFrom}
+                  onChange={(e) => setVisitTimeFrom(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">--</option>
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={String(i)}>{i}時</option>
+                  ))}
+                </select>
+                <span className="text-gray-400">〜</span>
+                <select
+                  value={visitTimeTo}
+                  onChange={(e) => setVisitTimeTo(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">--</option>
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={String(i)}>{i}時</option>
+                  ))}
+                </select>
+                {(visitTimeFrom || visitTimeTo) && (
+                  <span className="text-xs text-blue-700 font-medium">
+                    {visitTimeFrom && visitTimeTo ? `${visitTimeFrom}時〜${visitTimeTo}時` : visitTimeFrom ? `${visitTimeFrom}時〜` : ""}
+                  </span>
                 )}
               </div>
             </>
@@ -585,7 +690,7 @@ export default function ProjectDetailPage() {
                     disabled={updating}
                     className="bg-gray-100 text-gray-600 border border-gray-300 rounded-xl py-3 text-sm font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-300 disabled:opacity-50 transition"
                   >
-                    ✕ 差し戻す
+                    ✕ 辞退する
                   </button>
                   <button
                     onClick={() => changeStatus("ACCEPTED")}
@@ -662,34 +767,34 @@ export default function ProjectDetailPage() {
                   </p>
                 )}
                 {insp.photos.length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-500 mb-2">作業写真 ({insp.photos.length}枚)</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {insp.photos.map((photo) => {
-                        const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
-                        return (
-                          <div key={photo.id} className="relative group">
-                            <a href={url} target="_blank" rel="noopener noreferrer">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={url}
-                                alt={photo.originalName}
-                                className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
-                              />
-                            </a>
-                            {role === "ADMIN" && (
-                              <a
-                                href={url}
-                                download={photo.originalName}
-                                className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition"
-                              >
-                                ↓
-                              </a>
-                            )}
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-500">作業写真 ({insp.photos.length}枚)</p>
+                    {(["before", "during", "after", "other"] as const).map((cat) => {
+                      const labels: Record<string, string> = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
+                      const catPhotos = insp.photos.filter((p) => (p.category || "before") === cat);
+                      if (catPhotos.length === 0) return null;
+                      return (
+                        <div key={cat}>
+                          <p className="text-xs font-semibold text-gray-500 mb-1">{labels[cat]}</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {catPhotos.map((photo) => {
+                              const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
+                              return (
+                                <div key={photo.id} className="relative group">
+                                  <a href={url} target="_blank" rel="noopener noreferrer">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={url} alt={photo.originalName} className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition" />
+                                  </a>
+                                  {role === "ADMIN" && (
+                                    <a href={url} download={photo.originalName} className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition">↓</a>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                     {role === "ADMIN" && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {insp.photos.map((photo) => {
@@ -764,6 +869,22 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
+        {/* 急ぎの電話（チャット上） */}
+        {role === "PARTNER" && project.createdBy.phone && (
+          <div className="mt-4 flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
+            <div>
+              <p className="text-xs text-gray-400">通常の連絡はチャットをご利用ください</p>
+              <p className="text-xs text-gray-500 mt-0.5">緊急の場合のみ電話でご連絡ください</p>
+            </div>
+            <a
+              href={`tel:${project.createdBy.phone.replace(/[^0-9+]/g, "")}`}
+              className="shrink-0 ml-3 inline-flex items-center gap-1.5 bg-gray-700 border border-gray-600 text-gray-300 text-xs font-medium px-3 py-2 rounded-lg hover:bg-gray-600 transition"
+            >
+              📞 急ぎの確認
+            </a>
+          </div>
+        )}
+
         {/* コメント */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mt-4">
           <div className="flex items-center justify-between mb-3">
@@ -785,24 +906,43 @@ export default function ProjectDetailPage() {
             </div>
           </div>
           {project.comments.length === 0 && (
-            <p className="text-sm text-gray-400 mb-3">まだコメントはありません</p>
+            <div className="mb-3 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 space-y-1.5">
+              <p className="text-xs font-semibold text-blue-700">💬 このチャットを活用してください</p>
+              <p className="text-xs text-blue-600">質問・確認・連絡はここに残してください。</p>
+              <ul className="text-xs text-blue-500 space-y-0.5 pl-3 list-disc">
+                {role === "PARTNER" ? (
+                  <>
+                    <li>作業日の調整や遅延の連絡</li>
+                    <li>現場で気になった点の共有</li>
+                    <li>作業前後の確認・質問</li>
+                  </>
+                ) : (
+                  <>
+                    <li>協力会社への追加指示や変更連絡</li>
+                    <li>見積・日程に関する確認</li>
+                    <li>現場状況のヒアリング</li>
+                  </>
+                )}
+              </ul>
+            </div>
           )}
           {project.comments.length > 0 && (
             <div className="space-y-3 mb-4">
               {project.comments.map((c) => {
                 const isAdmin = c.author.role === "ADMIN";
+                const isMine = c.authorId === userId;
                 const displayName = c.author.companyName || c.author.name;
                 const avatarSrc = c.author.avatarUrl
                   ? (c.author.avatarUrl.startsWith("http") ? c.author.avatarUrl : `/uploads/${c.author.avatarUrl}`)
                   : null;
                 return (
-                  <div key={c.id} className={`flex gap-2 ${isAdmin ? "flex-row" : "flex-row-reverse"}`}>
+                  <div key={c.id} className={`flex gap-2 items-end ${isAdmin ? "flex-row" : "flex-row-reverse"}`}>
                     {/* アバター */}
                     {avatarSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={avatarSrc} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-gray-200 shrink-0 self-end" />
+                      <img src={avatarSrc} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-gray-200 shrink-0" />
                     ) : (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 self-end border ${isAdmin ? "bg-blue-100 text-blue-600 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${isAdmin ? "bg-blue-100 text-blue-600 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200"}`}>
                         {displayName[0]?.toUpperCase()}
                       </div>
                     )}
@@ -814,9 +954,58 @@ export default function ProjectDetailPage() {
                       }`}>
                         <p className="whitespace-pre-wrap">{c.content}</p>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5 px-1">
-                        {displayName} · {new Date(c.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </p>
+                      {/* リアクション */}
+                      <div className={`flex flex-wrap items-center gap-1 mt-1 px-1 relative ${isAdmin ? "flex-row" : "flex-row-reverse"}`}>
+                        {Object.entries(
+                          c.reactions.reduce<Record<string, string[]>>((acc, r) => {
+                            acc[r.emoji] = acc[r.emoji] ? [...acc[r.emoji], r.userId] : [r.userId];
+                            return acc;
+                          }, {})
+                        ).map(([emoji, users]) => (
+                          <button
+                            key={emoji}
+                            onClick={() => toggleReaction(c.id, emoji)}
+                            className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full border transition ${
+                              users.includes(userId ?? "")
+                                ? "bg-blue-100 border-blue-300 text-blue-700"
+                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {emoji} <span>{users.length}</span>
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setReactionPickerId(reactionPickerId === c.id ? null : c.id)}
+                          className="text-xs text-gray-300 hover:text-gray-500 px-1 transition"
+                        >＋</button>
+                        {reactionPickerId === c.id && (
+                          <div className={`absolute bottom-7 z-10 bg-white border border-gray-200 rounded-xl shadow-lg px-2 py-1.5 flex gap-1 ${isAdmin ? "left-0" : "right-0"}`}>
+                            {REACTION_EMOJIS.map((e) => (
+                              <button key={e} onClick={() => toggleReaction(c.id, e)} className="text-xl hover:scale-125 transition-transform">
+                                {e}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className={`flex items-center gap-2 mt-0.5 px-1 ${isAdmin ? "flex-row" : "flex-row-reverse"}`}>
+                        <p className="text-xs text-gray-400">
+                          {displayName} · {new Date(c.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                        {isMine && c.readAt && (
+                          <span className="text-xs text-blue-400">既読</span>
+                        )}
+                        {isMine && (
+                          <button
+                            onClick={() => deleteComment(c.id)}
+                            disabled={deletingCommentId === c.id}
+                            className="text-xs text-gray-300 hover:text-red-400 transition disabled:opacity-40"
+                            title="送信取消"
+                          >
+                            {deletingCommentId === c.id ? "…" : "取消"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -827,9 +1016,9 @@ export default function ProjectDetailPage() {
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendComment(); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendComment(); } }}
               rows={2}
-              placeholder="コメントを入力… (Cmd+Enter で送信)"
+              placeholder="コメントを入力… (Enterで送信・Shift+Enterで改行)"
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
             <button
@@ -856,7 +1045,7 @@ export default function ProjectDetailPage() {
               <div className="mt-2 bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
                 {project.activityLogs.map((log) => {
                   const actionLabel: Record<string, string> = {
-                    CREATED: "案件作成",
+                    CREATED: "依頼作成",
                     STATUS_CHANGED: "ステータス変更",
                     INSPECTION: "完了報告",
                     QUOTE_SUBMITTED: "見積提出",

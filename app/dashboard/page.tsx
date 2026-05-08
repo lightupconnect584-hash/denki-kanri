@@ -266,7 +266,7 @@ export default function DashboardPage() {
     return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
   }, [projects, role]);
 
-  // 作業日を取得（inspectionsのworkDate最新値、なければdueDate）
+  // 作業日を取得（inspectionsのworkDate最新値、なければupdatedAt）
   const getWorkDate = (p: Project): Date | null => {
     if (p.inspections.length > 0) {
       const latest = p.inspections.reduce((a, b) =>
@@ -274,7 +274,22 @@ export default function DashboardPage() {
       );
       return new Date(latest.workDate);
     }
-    return p.dueDate ? new Date(p.dueDate) : null;
+    // 検査記録なしの場合はステータス確定日（updatedAt）を使用
+    return new Date(p.updatedAt);
+  };
+
+  const markAllRead = () => {
+    const now = new Date().toISOString();
+    const updates: Record<string, string> = {};
+    activeProjects.forEach((p) => {
+      if (isUnread(p)) {
+        try { localStorage.setItem(`proj-seen-${p.id}`, now); } catch {}
+        updates[p.id] = now;
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      setSeenMap((prev) => ({ ...prev, ...updates }));
+    }
   };
 
   const isUnread = (p: Project) => {
@@ -747,10 +762,14 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-400 mb-0.5">完了済み</p>
             <p className="text-lg font-bold text-gray-800">{completedProjects.length}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
           </div>
-          <div className={`rounded-xl border px-3 py-2.5 text-center ${unreadCount > 0 ? "bg-blue-50 border-blue-300" : "bg-white border-gray-200"}`}>
+          <button
+            onClick={() => { if (unreadCount > 0) markAllRead(); }}
+            className={`rounded-xl border px-3 py-2.5 text-center w-full ${unreadCount > 0 ? "bg-blue-50 border-blue-300 active:bg-blue-100" : "bg-white border-gray-200"}`}
+          >
             <p className="text-xs text-gray-400 mb-0.5">未読</p>
             <p className={`text-lg font-bold ${unreadCount > 0 ? "text-blue-600" : "text-gray-800"}`}>{unreadCount}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
-          </div>
+            {unreadCount > 0 && <p className="text-xs text-blue-400 mt-0.5">タップで既読</p>}
+          </button>
         </div>
 
         {/* 検索・フィルター */}

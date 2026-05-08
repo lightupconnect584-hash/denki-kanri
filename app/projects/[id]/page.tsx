@@ -118,8 +118,16 @@ export default function ProjectDetailPage() {
   const fetchProject = (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     fetch(`/api/projects/${id}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 404 || r.status === 403) {
+          window.location.href = "/dashboard";
+          return null;
+        }
+        return r.json();
+      })
       .then((data) => {
+        if (!data) return;
+        if (data.error) { window.location.href = "/dashboard"; return; }
         setProject(data);
         // visitDateを日付のみ（YYYY-MM-DD）に変換してセット
         if (data.visitDate) {

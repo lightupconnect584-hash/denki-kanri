@@ -758,6 +758,14 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* 交換機種表リンク */}
+        {role === "ADMIN" && (
+          <Link href="/replacement-models" className="bg-white rounded-xl border border-gray-200 mb-3 flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition block">
+            <span className="text-sm font-bold text-gray-800">🔌 交換機種表</span>
+            <span className="text-gray-400 text-xs">→</span>
+          </Link>
+        )}
+
         {/* 依頼名マスター */}
         {role === "ADMIN" && (
           <div className="bg-white rounded-xl border border-gray-200 mb-3">

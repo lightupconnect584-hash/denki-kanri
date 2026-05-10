@@ -147,6 +147,20 @@ model Reaction {
   @@unique([commentId, userId, emoji])
 }
 
+model ReplacementModel {
+  id               String   @id @default(cuid())
+  existingModel    String
+  replacementModel String
+  maker            String?
+  color            String?
+  price            Int?
+  replacementCost  Int?
+  relatedParts     String[] @default([])
+  notes            String?
+  updatedOn        DateTime?
+  createdAt        DateTime @default(now())
+}
+
 model SeasonalMessage {
   id             String   @id @default(cuid())
   name           String

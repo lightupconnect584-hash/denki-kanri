@@ -3,6 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const include = {
+  category: true,
+  createdBy: { select: { id: true, name: true, companyName: true, avatarUrl: true } },
+  updatedBy: { select: { id: true, name: true, companyName: true, avatarUrl: true } },
+};
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -20,10 +26,10 @@ export async function GET(req: NextRequest) {
           ],
         }
       : undefined,
+    include,
     orderBy: { createdAt: "desc" },
   });
 
-  // 関連物件検索（型番がworkTypeやdescriptionに含まれる案件）
   let relatedProjects: { id: string; title: string; location: string; workType: string | null; status: string }[] = [];
   if (q) {
     relatedProjects = await prisma.project.findMany({
@@ -45,6 +51,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = (session.user as { id?: string })?.id;
 
   const body = await req.json();
   const item = await prisma.replacementModel.create({
@@ -58,7 +65,11 @@ export async function POST(req: NextRequest) {
       relatedParts: Array.isArray(body.relatedParts) ? body.relatedParts : [],
       notes: body.notes || null,
       updatedOn: body.updatedOn ? new Date(body.updatedOn) : null,
+      categoryId: body.categoryId || null,
+      createdById: userId || null,
+      updatedById: userId || null,
     },
+    include,
   });
   return NextResponse.json(item);
 }
@@ -66,6 +77,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = (session.user as { id?: string })?.id;
 
   const body = await req.json();
   const { id, ...rest } = body;
@@ -83,7 +95,10 @@ export async function PATCH(req: NextRequest) {
       relatedParts: Array.isArray(rest.relatedParts) ? rest.relatedParts : [],
       notes: rest.notes || null,
       updatedOn: rest.updatedOn ? new Date(rest.updatedOn) : null,
+      categoryId: rest.categoryId || null,
+      updatedById: userId || null,
     },
+    include,
   });
   return NextResponse.json(item);
 }

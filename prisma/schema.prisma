@@ -29,6 +29,8 @@ model User {
   comments         Comment[]
   reactions        Reaction[]
   activityLogs     ActivityLog[]
+  modelsCreated    ReplacementModel[] @relation("ModelCreatedBy")
+  modelsUpdated    ReplacementModel[] @relation("ModelUpdatedBy")
 }
 
 model Project {
@@ -147,6 +149,14 @@ model Reaction {
   @@unique([commentId, userId, emoji])
 }
 
+model ReplacementCategory {
+  id        String             @id @default(cuid())
+  name      String
+  order     Int                @default(0)
+  createdAt DateTime           @default(now())
+  models    ReplacementModel[]
+}
+
 model ReplacementModel {
   id               String   @id @default(cuid())
   existingModel    String
@@ -159,6 +169,16 @@ model ReplacementModel {
   notes            String?
   updatedOn        DateTime?
   createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  category   ReplacementCategory? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+
+  createdBy   User?   @relation("ModelCreatedBy", fields: [createdById], references: [id])
+  createdById String?
+
+  updatedBy   User?   @relation("ModelUpdatedBy", fields: [updatedById], references: [id])
+  updatedById String?
 }
 
 model SeasonalMessage {

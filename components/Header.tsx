@@ -23,6 +23,12 @@ export default function Header() {
           完了済依頼
         </Link>
         <Link
+          href="/replacement-models"
+          className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1 whitespace-nowrap"
+        >
+          交換機種表
+        </Link>
+        <Link
           href="/help"
           className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1 whitespace-nowrap"
         >

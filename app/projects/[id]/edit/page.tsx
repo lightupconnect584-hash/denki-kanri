@@ -111,7 +111,7 @@ export default function EditProjectPage() {
           <h2 className="text-lg font-bold text-white">依頼を編集</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">物件名 *</label>

@@ -145,7 +145,7 @@ export default function InspectPage() {
           <h2 className="text-lg font-bold text-white">完了報告</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
           {/* 点検結果 */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <label className="block text-sm font-bold text-gray-700 mb-3">作業結果 *</label>

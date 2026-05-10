@@ -69,7 +69,7 @@ export default function QuotePage() {
           <h2 className="text-lg font-bold text-gray-800">見積もりを提出</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             {/* 金額（必須） */}
             <div>

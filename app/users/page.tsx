@@ -298,7 +298,7 @@ export default function UsersPage() {
         </div>
 
         {showForm && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6 space-y-3">
+          <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6 space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
             <h3 className="text-sm font-bold text-gray-700">新しいユーザーを追加</h3>
             <div className="flex gap-2">
               {(["PARTNER", "ADMIN"] as const).map((r) => (

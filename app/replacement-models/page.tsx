@@ -390,7 +390,7 @@ export default function ReplacementModelsPage() {
                 <h3 className="font-bold text-gray-800">{editingId ? "機種を編集" : "機種を追加"}</h3>
                 <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
               </div>
-              <form onSubmit={handleSave} className="space-y-3">
+              <form onSubmit={handleSave} className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">大枠（カテゴリ）</label>
                   <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
@@ -458,7 +458,7 @@ export default function ReplacementModelsPage() {
                   <div className="flex gap-2 mb-2">
                     <input value={form.relatedPartsInput}
                       onChange={(e) => setForm({ ...form, relatedPartsInput: e.target.value })}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addPart(); } }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); addPart(); } }}
                       className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="型番を入力してEnter" />
                     <button type="button" onClick={addPart}
@@ -501,7 +501,7 @@ export default function ReplacementModelsPage() {
               </div>
               <div className="flex gap-2 mb-4">
                 <input value={newCatName} onChange={(e) => setNewCatName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCategory(); } }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); addCategory(); } }}
                   placeholder="大枠名を入力"
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 <button onClick={addCategory} disabled={savingCat || !newCatName.trim()}

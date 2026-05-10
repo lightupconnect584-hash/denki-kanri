@@ -152,7 +152,7 @@ export default function NewProjectPage() {
           <h2 className="text-lg font-bold text-white">新規依頼登録</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
 
           {/* 物件情報 */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

@@ -777,7 +777,7 @@ export default function SettingsPage() {
                   <div className="flex gap-2">
                     <input type="text" value={newWorkType}
                       onChange={(e) => setNewWorkType(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addWorkType(); } }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); addWorkType(); } }}
                       placeholder="依頼名を入力"
                       className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <button type="button" onClick={addWorkType} disabled={savingWorkType || !newWorkType.trim()} className="shrink-0 bg-blue-600 text-white text-sm px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">追加</button>
@@ -1214,7 +1214,7 @@ export default function SettingsPage() {
           </button>
           {isOpen("password") && (
             <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-              <form onSubmit={handlePasswordSubmit} className="space-y-2">
+              <form onSubmit={handlePasswordSubmit} className="space-y-2" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
                 {message && (
                   <div className={`text-xs px-3 py-2 rounded-lg ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                     {message.text}

@@ -306,7 +306,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">
             ←
@@ -340,7 +340,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* 基本情報 */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3 space-y-3">
           <div>
             <h2 className="text-base font-bold text-gray-800 leading-snug">{project.title}</h2>
           </div>
@@ -563,7 +563,7 @@ export default function ProjectDetailPage() {
 
         {/* 現場写真・PDF */}
         {project.projectPhotos && project.projectPhotos.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
             <h3 className="text-sm font-bold text-gray-800 mb-3">現場写真・PDF</h3>
             {(() => {
               const images = project.projectPhotos.filter((f) => !f.originalName.toLowerCase().endsWith(".pdf"));
@@ -745,7 +745,7 @@ export default function ProjectDetailPage() {
 
         {/* 完了報告 */}
         {project.inspections.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
             <h3 className="text-sm font-bold text-gray-800 mb-3">完了報告</h3>
             {project.inspections.map((insp) => (
               <div key={insp.id} className="space-y-3">

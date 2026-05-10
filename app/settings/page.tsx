@@ -705,7 +705,7 @@ export default function SettingsPage() {
         </div>
       )}
       <Header />
-      <main className="flex-1 max-w-md mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-md mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">設定</h2>

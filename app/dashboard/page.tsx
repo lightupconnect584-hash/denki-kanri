@@ -716,8 +716,8 @@ export default function DashboardPage() {
           <button onClick={() => setStorageWarning(null)} className="ml-4 text-yellow-800 hover:text-yellow-900">✕</button>
         </div>
       )}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 sm:py-6">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-white">依頼一覧</h2>
             <button
@@ -729,18 +729,18 @@ export default function DashboardPage() {
               <span className={`text-base ${refreshing ? "animate-spin inline-block" : ""}`}>🔄</span>
             </button>
             {lastUpdated && (
-              <span className="text-xs text-gray-400">
-                {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              <span className="hidden sm:inline text-xs text-gray-400">
+                {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/calendar" className="text-sm text-gray-300 border border-gray-600 rounded-lg px-3 py-2 hover:bg-gray-800 transition">
-              📅 カレンダー
+          <div className="flex items-center gap-1.5">
+            <Link href="/calendar" className="text-gray-300 border border-gray-600 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-gray-800 transition">
+              <span className="text-sm">📅</span><span className="hidden sm:inline text-sm ml-1">カレンダー</span>
             </Link>
             {role === "ADMIN" && (
-              <Link href="/projects/new" className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                ＋ 新規依頼
+              <Link href="/projects/new" className="bg-blue-600 text-white text-sm px-3 sm:px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
+                <span>＋</span><span className="hidden sm:inline ml-1">新規依頼</span>
               </Link>
             )}
           </div>
@@ -769,7 +769,7 @@ export default function DashboardPage() {
         </div>
 
         {/* 検索・フィルター */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4 space-y-2">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3 space-y-2">
           <div className="flex gap-2">
             <input
               type="text" value={search} onChange={(e) => setSearch(e.target.value)}
@@ -778,52 +778,55 @@ export default function DashboardPage() {
             />
             <button
               onClick={() => setShowFilters((v) => !v)}
-              className={`text-xs px-3 py-2 rounded-lg border transition ${showFilters || filterStatus || filterUrgency || filterRegion || filterPartner ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}
+              className={`text-xs px-3 py-2 rounded-lg border transition shrink-0 ${showFilters || filterStatus || filterUrgency || filterRegion || filterPartner ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}
             >
               絞り込み
             </button>
           </div>
           {showFilters && (
-            <div className="flex gap-2 flex-wrap pt-1">
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-                className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">全ステータス</option>
-                <option value="PENDING">依頼中</option>
-                <option value="REWORK">再報告待ち</option>
-                <option value="ACCEPTED">受注済</option>
-                <option value="INSPECTED">完了報告済</option>
-                <option value="CONFIRMED">確認済</option>
-                <option value="QUOTE_REQUESTED">見積依頼中</option>
-                <option value="QUOTE_REVIEWING">見積り中</option>
-                <option value="COMPLETED">完了</option>
-                <option value="REJECTED">差し戻し</option>
-              </select>
-              <select value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value)}
-                className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">全緊急度</option>
-                <option value="HIGH">高</option>
-                <option value="MEDIUM">中</option>
-                <option value="LOW">低</option>
-              </select>
-              <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)}
-                className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">全地域</option>
-                <option value="栃木県">栃木県</option>
-                <option value="茨城県">茨城県</option>
-                <option value="群馬県">群馬県</option>
-                <option value="埼玉県">埼玉県</option>
-                <option value="東京都">東京都</option>
-              </select>
-              {role === "ADMIN" && (
-                <select value={filterPartner} onChange={(e) => setFilterPartner(e.target.value)}
-                  className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">全協力会社</option>
-                  {partners.map(([id, name]) => (
-                    <option key={id} value={id}>{name}</option>
-                  ))}
+            <div className="space-y-2 pt-1">
+              <div className="flex gap-2 flex-wrap">
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+                  className="flex-1 min-w-[120px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">全ステータス</option>
+                  <option value="PENDING">依頼中</option>
+                  <option value="REWORK">再報告待ち</option>
+                  <option value="ACCEPTED">受注済</option>
+                  <option value="INSPECTED">完了報告済</option>
+                  <option value="CONFIRMED">確認済</option>
+                  <option value="QUOTE_REQUESTED">見積依頼中</option>
+                  <option value="QUOTE_REVIEWING">見積り中</option>
+                  <option value="COMPLETED">完了</option>
+                  <option value="REJECTED">差し戻し</option>
                 </select>
-              )}
-              <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+                <select value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value)}
+                  className="flex-1 min-w-[80px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">全緊急度</option>
+                  <option value="HIGH">高</option>
+                  <option value="MEDIUM">中</option>
+                  <option value="LOW">低</option>
+                </select>
+                <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)}
+                  className="flex-1 min-w-[80px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">全地域</option>
+                  <option value="栃木県">栃木県</option>
+                  <option value="茨城県">茨城県</option>
+                  <option value="群馬県">群馬県</option>
+                  <option value="埼玉県">埼玉県</option>
+                  <option value="東京都">東京都</option>
+                </select>
+                {role === "ADMIN" && (
+                  <select value={filterPartner} onChange={(e) => setFilterPartner(e.target.value)}
+                    className="flex-1 min-w-[100px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">全協力会社</option>
+                    {partners.map(([id, name]) => (
+                      <option key={id} value={id}>{name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              {/* 並び替え：常に独立した行・全幅 */}
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs w-full">
                 {[
                   { key: "visit", label: "訪問順" },
                   { key: "urgency", label: "緊急順" },
@@ -831,7 +834,7 @@ export default function DashboardPage() {
                   { key: "region", label: "地域順" },
                 ].map(({ key, label }) => (
                   <button key={key} onClick={() => setSortMode(key as typeof sortMode)}
-                    className={`px-2 py-1.5 transition ${sortMode === key ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+                    className={`flex-1 py-1.5 transition ${sortMode === key ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
                     {label}
                   </button>
                 ))}

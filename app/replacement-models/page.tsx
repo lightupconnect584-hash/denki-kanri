@@ -294,6 +294,12 @@ export default function ReplacementModelsPage() {
           </div>
         </div>
 
+        {/* 注意書き */}
+        <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2.5 mb-4 text-xs text-yellow-800">
+          <span className="shrink-0 mt-0.5">⚠️</span>
+          <p>掲載情報は参考値です。型番の誤りや生産終了の可能性がありますので、必ず最新情報をご確認ください。</p>
+        </div>
+
         {/* 検索 */}
         <form onSubmit={handleSearch} className="flex gap-2 mb-5">
           <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}

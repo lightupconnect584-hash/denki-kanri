@@ -262,6 +262,10 @@ export default function ReplacementModelsPage() {
       if (!map.has(key)) map.set(key, { cat: item.category, items: [] });
       map.get(key)!.items.push(item);
     });
+    // 各カテゴリ内を五十音順にソート
+    map.forEach(v => {
+      v.items.sort((a, b) => a.existingModel.localeCompare(b.existingModel, "ja"));
+    });
     // カテゴリなしが空なら除外
     const result = Array.from(map.entries()).filter(([k, v]) => k !== "__none__" || v.items.length > 0);
     return result;

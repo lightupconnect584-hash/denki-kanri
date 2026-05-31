@@ -60,6 +60,7 @@ export default function SettingsPage() {
 
   // 基本情報（パートナー用）
   const [basicInfo, setBasicInfo] = useState({
+    companyName: "",
     address: "", birthDate: "", bloodType: "",
     emergencyName: "", emergencyPhone: "",
     licenseType: "", licenseNumber: "", licenseExpiry: "",
@@ -162,15 +163,16 @@ export default function SettingsPage() {
         if (data.color !== undefined) setMyColor(data.color);
         if (data.usedColors) setUsedColors(data.usedColors);
         setBasicInfo({
-          address:        data.address       || "",
-          birthDate:      data.birthDate     ? data.birthDate.slice(0, 10) : "",
-          bloodType:      data.bloodType     || "",
-          emergencyName:  data.emergencyName || "",
-          emergencyPhone: data.emergencyPhone|| "",
-          licenseType:    data.licenseType   || "",
-          licenseNumber:  data.licenseNumber || "",
-          licenseExpiry:  data.licenseExpiry ? data.licenseExpiry.slice(0, 10) : "",
-          vehicleNumber:  data.vehicleNumber || "",
+          companyName:    (session?.user as { companyName?: string })?.companyName || "",
+          address:        data.address        || "",
+          birthDate:      data.birthDate      ? data.birthDate.slice(0, 10) : "",
+          bloodType:      data.bloodType      || "",
+          emergencyName:  data.emergencyName  || "",
+          emergencyPhone: data.emergencyPhone || "",
+          licenseType:    data.licenseType    || "",
+          licenseNumber:  data.licenseNumber  || "",
+          licenseExpiry:  data.licenseExpiry  ? data.licenseExpiry.slice(0, 10) : "",
+          vehicleNumber:  data.vehicleNumber  || "",
         });
       }).catch(() => {});
     }
@@ -278,8 +280,8 @@ export default function SettingsPage() {
   const completeSetup = async () => {
     if (completingSetup) return;
     // バリデーション
-    if (!basicInfo.address || !basicInfo.birthDate || !basicInfo.bloodType || !basicInfo.emergencyName || !basicInfo.emergencyPhone) {
-      setBasicMessage({ type: "error", text: "必須項目（住所・生年月日・血液型・緊急連絡先）をすべて入力してください" });
+    if (!basicInfo.companyName || !basicInfo.address || !basicInfo.birthDate || !basicInfo.bloodType || !basicInfo.emergencyName || !basicInfo.emergencyPhone) {
+      setBasicMessage({ type: "error", text: "必須項目をすべて入力してください" });
       return;
     }
     if (!myColor && !pendingColor) {
@@ -750,139 +752,183 @@ export default function SettingsPage() {
   if (isSetupMode && role === "PARTNER") {
     const blockedColors = getBlockedColors(usedColors);
     const availableColors = ALL_COLORS.filter(c => !blockedColors.has(c));
-    const basicComplete = !!(basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
+    const basicComplete = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
     const colorSelected = !!(myColor || pendingColor);
     const allDone = basicComplete && colorSelected;
+    const ic = "w-full border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500";
 
     return (
-      <div className="min-h-screen flex flex-col bg-gray-950">
+      <div className="min-h-screen bg-gray-950 flex flex-col">
         {/* セットアップ専用ヘッダー（ナビなし） */}
-        <div className="bg-gray-900 border-b border-gray-700 px-4 py-3">
+        <div className="bg-gray-900 border-b border-gray-700 px-4 py-3 shrink-0">
           <p className="text-sm font-bold text-white text-center">初回設定</p>
         </div>
 
-        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-4">
-          {/* 説明バナー */}
-          <div className="bg-blue-950/60 border border-blue-700 rounded-xl px-4 py-3">
-            <p className="text-sm font-bold text-blue-300 mb-1">ご利用開始前に情報を登録してください</p>
-            <p className="text-xs text-blue-400">以下の必須項目をすべて入力し、自社カラーを選択するとアプリを利用できます。</p>
-          </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-lg mx-auto w-full px-4 pt-5 pb-10 space-y-4">
 
-          {/* 進捗インジケーター */}
-          <div className="flex gap-2">
-            <div className={`flex-1 h-1.5 rounded-full transition ${basicComplete ? "bg-blue-500" : "bg-gray-700"}`} />
-            <div className={`flex-1 h-1.5 rounded-full transition ${colorSelected ? "bg-blue-500" : "bg-gray-700"}`} />
-          </div>
+            {/* 説明バナー */}
+            <div className="bg-blue-950/60 border border-blue-700 rounded-xl px-4 py-3">
+              <p className="text-sm font-bold text-blue-300 mb-1">ご利用開始前に情報を登録してください</p>
+              <p className="text-xs text-blue-400">必須項目をすべて入力し、自社カラーを選択するとアプリを利用できます。</p>
+            </div>
 
-          {/* 基本情報 */}
-          <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${basicComplete ? "bg-blue-500 text-white" : "bg-gray-600 text-gray-300"}`}>
-                {basicComplete ? "✓" : "1"}
-              </span>
-              <span className="text-sm font-bold text-gray-100">基本情報</span>
+            {/* 進捗バー */}
+            <div className="flex gap-2">
+              <div className={`flex-1 h-1.5 rounded-full transition-all ${basicComplete ? "bg-blue-500" : "bg-gray-700"}`} />
+              <div className={`flex-1 h-1.5 rounded-full transition-all ${colorSelected ? "bg-blue-500" : "bg-gray-700"}`} />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-300 mb-1">住所 <span className="text-red-400">*</span></label>
-              <input type="text" value={basicInfo.address}
-                onChange={(e) => setBasicInfo(p => ({ ...p, address: e.target.value }))}
-                placeholder="例：栃木県宇都宮市〇〇町1-2-3"
-                className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500" />
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">生年月日 <span className="text-red-400">*</span></label>
-                <input type="date" value={basicInfo.birthDate}
-                  onChange={(e) => setBasicInfo(p => ({ ...p, birthDate: e.target.value }))}
-                  className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+            {/* 基本情報カード */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${basicComplete ? "bg-blue-500 text-white" : "bg-gray-600 text-gray-300"}`}>
+                  {basicComplete ? "✓" : "1"}
+                </span>
+                <span className="text-sm font-bold text-gray-100">基本情報</span>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">血液型 <span className="text-red-400">*</span></label>
-                <select value={basicInfo.bloodType}
-                  onChange={(e) => setBasicInfo(p => ({ ...p, bloodType: e.target.value }))}
-                  className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">選択</option>
-                  <option value="A">A型</option>
-                  <option value="B">B型</option>
-                  <option value="O">O型</option>
-                  <option value="AB">AB型</option>
-                  <option value="不明">不明</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-300 mb-1">緊急連絡先 氏名 <span className="text-red-400">*</span></label>
-              <input type="text" value={basicInfo.emergencyName}
-                onChange={(e) => setBasicInfo(p => ({ ...p, emergencyName: e.target.value }))}
-                placeholder="例：山田 花子（妻）"
-                className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-300 mb-1">緊急連絡先 電話番号 <span className="text-red-400">*</span></label>
-              <input type="tel" value={basicInfo.emergencyPhone}
-                onChange={(e) => setBasicInfo(p => ({ ...p, emergencyPhone: e.target.value }))}
-                placeholder="例：090-1234-5678"
-                className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500" />
-            </div>
-            <p className="text-xs text-gray-500">任意：電気工事士免許・車両ナンバーは後から設定できます</p>
-          </div>
 
-          {/* 自社カラー */}
-          <div className="bg-gray-800 rounded-xl border border-gray-700 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${colorSelected ? "bg-blue-500 text-white" : "bg-gray-600 text-gray-300"}`}>
-                {colorSelected ? "✓" : "2"}
-              </span>
-              <span className="text-sm font-bold text-gray-100">自社カラー <span className="text-red-400 text-xs">*</span></span>
-            </div>
-            {myColor ? (
-              <div className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-full border-2 border-gray-500" style={{ backgroundColor: myColor }} />
+              <div className="space-y-4">
+                {/* 会社名 */}
                 <div>
-                  <p className="text-sm text-gray-200 font-medium">設定済み</p>
-                  <p className="text-xs text-gray-500">カラーは変更できません</p>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                    会社名 <span className="text-red-400">*</span>
+                  </label>
+                  <input type="text" value={basicInfo.companyName}
+                    onChange={(e) => setBasicInfo(p => ({ ...p, companyName: e.target.value }))}
+                    placeholder="例：株式会社〇〇電設"
+                    className={ic} />
                 </div>
+
+                {/* 住所 */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                    住所 <span className="text-red-400">*</span>
+                  </label>
+                  <input type="text" value={basicInfo.address}
+                    onChange={(e) => setBasicInfo(p => ({ ...p, address: e.target.value }))}
+                    placeholder="例：栃木県宇都宮市〇〇町1-2-3"
+                    className={ic} />
+                </div>
+
+                {/* 生年月日 */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                    生年月日 <span className="text-red-400">*</span>
+                  </label>
+                  <input type="date" value={basicInfo.birthDate}
+                    onChange={(e) => setBasicInfo(p => ({ ...p, birthDate: e.target.value }))}
+                    className={ic} />
+                </div>
+
+                {/* 血液型 */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                    血液型 <span className="text-red-400">*</span>
+                  </label>
+                  <select value={basicInfo.bloodType}
+                    onChange={(e) => setBasicInfo(p => ({ ...p, bloodType: e.target.value }))}
+                    className={ic}>
+                    <option value="">選択してください</option>
+                    <option value="A">A型</option>
+                    <option value="B">B型</option>
+                    <option value="O">O型</option>
+                    <option value="AB">AB型</option>
+                    <option value="不明">不明</option>
+                  </select>
+                </div>
+
+                {/* 緊急連絡先 */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                    緊急連絡先 氏名 <span className="text-red-400">*</span>
+                  </label>
+                  <input type="text" value={basicInfo.emergencyName}
+                    onChange={(e) => setBasicInfo(p => ({ ...p, emergencyName: e.target.value }))}
+                    placeholder="例：山田 花子（妻）"
+                    className={ic} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                    緊急連絡先 電話番号 <span className="text-red-400">*</span>
+                  </label>
+                  <input type="tel" value={basicInfo.emergencyPhone}
+                    onChange={(e) => setBasicInfo(p => ({ ...p, emergencyPhone: e.target.value }))}
+                    placeholder="例：090-1234-5678"
+                    className={ic} />
+                </div>
+
+                <p className="text-xs text-gray-500 pt-1">※ 電気工事士免許・車両ナンバーは設定後に登録できます</p>
               </div>
-            ) : (
-              <>
-                <p className="text-xs text-gray-400 mb-3">カレンダーや依頼一覧で表示される色です。他社が使用中の色は表示されません。一度選んだら変更できません。</p>
-                {availableColors.length === 0 ? (
-                  <p className="text-xs text-red-400">現在選択できる色がありません。管理者にお問い合わせください。</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {availableColors.map((c) => (
-                      <button key={c} type="button"
-                        onClick={() => setPendingColor(pendingColor === c ? null : c)}
-                        className="w-10 h-10 rounded-full border-2 transition hover:scale-110 active:scale-95"
-                        style={{
-                          backgroundColor: c,
-                          borderColor: pendingColor === c ? "#fff" : "transparent",
-                          outline: pendingColor === c ? "3px solid #60a5fa" : "none",
-                          outlineOffset: "2px",
-                        }}
-                      />
-                    ))}
+            </div>
+
+            {/* 自社カラーカード */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${colorSelected ? "bg-blue-500 text-white" : "bg-gray-600 text-gray-300"}`}>
+                  {colorSelected ? "✓" : "2"}
+                </span>
+                <span className="text-sm font-bold text-gray-100">自社カラー <span className="text-red-400 text-xs font-normal">*</span></span>
+              </div>
+
+              {myColor ? (
+                <div className="flex items-center gap-3">
+                  <span className="w-9 h-9 rounded-full border-2 border-gray-500 shrink-0" style={{ backgroundColor: myColor }} />
+                  <div>
+                    <p className="text-sm text-gray-200 font-medium">設定済み</p>
+                    <p className="text-xs text-gray-500">カラーは変更できません</p>
                   </div>
-                )}
-              </>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-400 mb-3">
+                    カレンダーや依頼一覧で表示される色です。<br />
+                    他社が使用中の同系色は表示されません。一度選んだら変更できません。
+                  </p>
+                  {availableColors.length === 0 ? (
+                    <p className="text-xs text-red-400">現在選択できる色がありません。管理者にお問い合わせください。</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-3">
+                      {availableColors.map((c) => (
+                        <button key={c} type="button"
+                          onClick={() => setPendingColor(pendingColor === c ? null : c)}
+                          className="w-11 h-11 rounded-full transition-transform hover:scale-110 active:scale-95"
+                          style={{
+                            backgroundColor: c,
+                            boxShadow: pendingColor === c ? `0 0 0 3px #fff, 0 0 0 5px ${c}` : "none",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {pendingColor && (
+                    <div className="flex items-center gap-2 mt-3 p-2.5 bg-gray-700/50 rounded-lg">
+                      <span className="w-5 h-5 rounded-full shrink-0" style={{ backgroundColor: pendingColor }} />
+                      <p className="text-xs text-gray-300 flex-1">この色を選択中</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* エラーメッセージ */}
+            {basicMessage && (
+              <div className={`text-xs text-center py-2.5 px-4 rounded-xl ${basicMessage.type === "success" ? "text-green-400 bg-green-900/20 border border-green-800" : "text-red-400 bg-red-900/20 border border-red-800"}`}>
+                {basicMessage.text}
+              </div>
             )}
+
+            {/* 完了ボタン */}
+            <button
+              onClick={completeSetup}
+              disabled={!allDone || completingSetup}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold py-4 rounded-xl transition text-sm"
+            >
+              {completingSetup ? "設定中..." : allDone ? "設定を完了してアプリを始める →" : "必須項目をすべて入力してください"}
+            </button>
+
           </div>
-
-          {basicMessage && (
-            <p className={`text-xs text-center py-2 rounded-lg ${basicMessage.type === "success" ? "text-green-400 bg-green-900/20" : "text-red-400 bg-red-900/20"}`}>
-              {basicMessage.text}
-            </p>
-          )}
-
-          {/* 完了ボタン */}
-          <button
-            onClick={completeSetup}
-            disabled={!allDone || completingSetup}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition text-sm"
-          >
-            {completingSetup ? "設定中..." : allDone ? "設定を完了してアプリを始める →" : "必須項目をすべて入力してください"}
-          </button>
-        </main>
+        </div>
       </div>
     );
   }

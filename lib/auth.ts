@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 
 function isProfileComplete(user: {
   role: string;
+  companyName?: string | null;
   address?: string | null;
   birthDate?: Date | null;
   bloodType?: string | null;
@@ -13,7 +14,7 @@ function isProfileComplete(user: {
   color?: string | null;
 }): boolean {
   if (user.role !== "PARTNER") return true;
-  return !!(user.address && user.birthDate && user.bloodType && user.emergencyName && user.emergencyPhone && user.color);
+  return !!(user.companyName && user.address && user.birthDate && user.bloodType && user.emergencyName && user.emergencyPhone && user.color);
 }
 
 export const authOptions: NextAuthOptions = {

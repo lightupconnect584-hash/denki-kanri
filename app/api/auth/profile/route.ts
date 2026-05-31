@@ -63,15 +63,16 @@ export async function PATCH(req: NextRequest) {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        address:       d.address?.trim()       || null,
-        birthDate:     d.birthDate             ? new Date(d.birthDate) : null,
-        bloodType:     d.bloodType             || null,
-        emergencyName: d.emergencyName?.trim() || null,
-        emergencyPhone:d.emergencyPhone?.trim()|| null,
-        licenseType:   d.licenseType           || null,
-        licenseNumber: d.licenseNumber?.trim() || null,
-        licenseExpiry: d.licenseExpiry         ? new Date(d.licenseExpiry) : null,
-        vehicleNumber: d.vehicleNumber?.trim() || null,
+        ...(d.companyName !== undefined ? { companyName: d.companyName?.trim() || null } : {}),
+        address:        d.address?.trim()        || null,
+        birthDate:      d.birthDate              ? new Date(d.birthDate) : null,
+        bloodType:      d.bloodType              || null,
+        emergencyName:  d.emergencyName?.trim()  || null,
+        emergencyPhone: d.emergencyPhone?.trim() || null,
+        licenseType:    d.licenseType            || null,
+        licenseNumber:  d.licenseNumber?.trim()  || null,
+        licenseExpiry:  d.licenseExpiry          ? new Date(d.licenseExpiry) : null,
+        vehicleNumber:  d.vehicleNumber?.trim()  || null,
       },
     });
     return NextResponse.json({ ok: true });

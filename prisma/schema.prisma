@@ -20,6 +20,16 @@ model User {
   thankYouEnabled  Boolean @default(true)
   thankYouImageUrl String?
   thankYouMessage  String?
+  // 基本情報（協力会社向け）
+  address          String?
+  birthDate        DateTime?
+  bloodType        String?
+  emergencyName    String?
+  emergencyPhone   String?
+  licenseType      String?
+  licenseNumber    String?
+  licenseExpiry    DateTime?
+  vehicleNumber    String?
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 

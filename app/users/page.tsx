@@ -15,6 +15,16 @@ interface User {
   color: string | null;
   lastLoginAt: string | null;
   loginLogs: { createdAt: string }[];
+  // 基本情報
+  address: string | null;
+  birthDate: string | null;
+  bloodType: string | null;
+  emergencyName: string | null;
+  emergencyPhone: string | null;
+  licenseType: string | null;
+  licenseNumber: string | null;
+  licenseExpiry: string | null;
+  vehicleNumber: string | null;
 }
 
 const PRESET_COLORS = [
@@ -44,6 +54,7 @@ export default function UsersPage() {
   const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [savingColor, setSavingColor] = useState(false);
   const [loginLogId, setLoginLogId] = useState<string | null>(null);
+  const [profileExpandId, setProfileExpandId] = useState<string | null>(null);
 
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
@@ -220,6 +231,70 @@ export default function UsersPage() {
             </p>
           ))}
         </div>
+      )}
+
+      {/* 基本情報（協力会社のみ） */}
+      {u.role === "PARTNER" && (
+        <>
+          <button
+            onClick={() => setProfileExpandId(profileExpandId === u.id ? null : u.id)}
+            className="w-full text-left"
+          >
+            <div className="flex items-center justify-between text-xs text-gray-500 hover:text-gray-700 transition">
+              <span className="flex items-center gap-1">
+                📋 基本情報
+                {(!u.address || !u.birthDate || !u.bloodType || !u.emergencyName || !u.emergencyPhone) && (
+                  <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-[10px] font-medium">未入力あり</span>
+                )}
+              </span>
+              <span>{profileExpandId === u.id ? "▲" : "▼"}</span>
+            </div>
+          </button>
+          {profileExpandId === u.id && (
+            <div className="border border-gray-200 bg-gray-50 rounded-xl p-3 space-y-2 text-xs">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <div>
+                  <span className="text-gray-400">住所</span>
+                  <p className="text-gray-800 font-medium mt-0.5">{u.address || <span className="text-red-400">未入力</span>}</p>
+                </div>
+                <div>
+                  <span className="text-gray-400">生年月日</span>
+                  <p className="text-gray-800 font-medium mt-0.5">
+                    {u.birthDate ? new Date(u.birthDate).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" }) : <span className="text-red-400">未入力</span>}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-400">血液型</span>
+                  <p className="text-gray-800 font-medium mt-0.5">{u.bloodType ? `${u.bloodType}型` : <span className="text-red-400">未入力</span>}</p>
+                </div>
+                <div>
+                  <span className="text-gray-400">緊急連絡先</span>
+                  <p className="text-gray-800 font-medium mt-0.5">
+                    {u.emergencyName && u.emergencyPhone
+                      ? <>{u.emergencyName}<br />{u.emergencyPhone}</>
+                      : <span className="text-red-400">未入力</span>}
+                  </p>
+                </div>
+                {(u.licenseType || u.licenseNumber) && (
+                  <div>
+                    <span className="text-gray-400">電気工事士免許</span>
+                    <p className="text-gray-800 font-medium mt-0.5">
+                      {u.licenseType && <span>{u.licenseType} </span>}
+                      {u.licenseNumber && <span>{u.licenseNumber}</span>}
+                      {u.licenseExpiry && <span className="text-gray-500"> （{new Date(u.licenseExpiry).toLocaleDateString("ja-JP", { year: "numeric", month: "numeric", day: "numeric" })}まで）</span>}
+                    </p>
+                  </div>
+                )}
+                {u.vehicleNumber && (
+                  <div>
+                    <span className="text-gray-400">車両ナンバー</span>
+                    <p className="text-gray-800 font-medium mt-0.5">{u.vehicleNumber}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* カラーピッカー */}

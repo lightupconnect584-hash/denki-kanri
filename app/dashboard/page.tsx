@@ -73,10 +73,20 @@ export default function DashboardPage() {
   const role = (session?.user as { role?: string })?.role;
 
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
+
+  // パートナーの基本情報未入力チェック
+  useEffect(() => {
+    if (role !== "PARTNER") return;
+    fetch("/api/auth/profile").then(r => r.json()).then(data => {
+      const incomplete = !data.address || !data.birthDate || !data.bloodType || !data.emergencyName || !data.emergencyPhone;
+      setProfileIncomplete(incomplete);
+    }).catch(() => {});
+  }, [role]);
 
   useEffect(() => {
     if (role !== "ADMIN") return;
@@ -765,6 +775,19 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* 基本情報未入力バナー（パートナー用） */}
+        {role === "PARTNER" && profileIncomplete && (
+          <Link href="/settings"
+            className="flex items-center gap-3 bg-red-950/60 border border-red-700 rounded-xl px-4 py-3 mb-4 hover:bg-red-900/40 transition">
+            <span className="text-xl shrink-0">⚠️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-red-300">基本情報の入力をお願いします</p>
+              <p className="text-xs text-red-400 mt-0.5">住所・生年月日・血液型・緊急連絡先が未入力です。設定画面から入力してください。</p>
+            </div>
+            <span className="text-red-400 shrink-0 text-sm">→</span>
+          </Link>
+        )}
 
         {/* PC: 2カラム / モバイル: 1カラム */}
         <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-6 lg:items-start">

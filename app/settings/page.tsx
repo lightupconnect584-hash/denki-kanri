@@ -22,6 +22,16 @@ export default function SettingsPage() {
   const [pendingColor, setPendingColor] = useState<string | null>(null);
   const [savingColor, setSavingColor] = useState(false);
 
+  // 基本情報（パートナー用）
+  const [basicInfo, setBasicInfo] = useState({
+    address: "", birthDate: "", bloodType: "",
+    emergencyName: "", emergencyPhone: "",
+    licenseType: "", licenseNumber: "", licenseExpiry: "",
+    vehicleNumber: "",
+  });
+  const [savingBasic, setSavingBasic] = useState(false);
+  const [basicMessage, setBasicMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   // アバター
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
@@ -113,6 +123,17 @@ export default function SettingsPage() {
     if (role === "PARTNER") {
       fetch("/api/auth/profile", { method: "GET" }).then((r) => r.json()).then((data) => {
         if (data.color !== undefined) setMyColor(data.color);
+        setBasicInfo({
+          address:       data.address       || "",
+          birthDate:     data.birthDate     ? data.birthDate.slice(0, 10) : "",
+          bloodType:     data.bloodType     || "",
+          emergencyName: data.emergencyName || "",
+          emergencyPhone:data.emergencyPhone|| "",
+          licenseType:   data.licenseType   || "",
+          licenseNumber: data.licenseNumber || "",
+          licenseExpiry: data.licenseExpiry ? data.licenseExpiry.slice(0, 10) : "",
+          vehicleNumber: data.vehicleNumber || "",
+        });
       }).catch(() => {});
     }
   }, [role]);
@@ -191,6 +212,28 @@ export default function SettingsPage() {
       body: JSON.stringify({ id }),
     });
     setWorkTypes((prev) => prev.filter((w) => w.id !== id));
+  };
+
+  const saveBasicInfo = async () => {
+    setSavingBasic(true);
+    setBasicMessage(null);
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ basicInfo }),
+      });
+      if (res.ok) {
+        setBasicMessage({ type: "success", text: "保存しました" });
+        setTimeout(() => setBasicMessage(null), 3000);
+      } else {
+        setBasicMessage({ type: "error", text: "保存に失敗しました" });
+      }
+    } catch {
+      setBasicMessage({ type: "error", text: "通信エラーが発生しました" });
+    } finally {
+      setSavingBasic(false);
+    }
   };
 
   const saveThankYouSettings = async (enabled?: boolean, imageFile?: File | null) => {
@@ -1143,6 +1186,161 @@ export default function SettingsPage() {
             <span>👥 ユーザー管理</span>
             <span className="text-gray-400">→</span>
           </Link>
+        )}
+
+        {/* 基本情報（パートナーのみ） */}
+        {role === "PARTNER" && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
+            <div className="px-4 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-gray-100">📋 基本情報</span>
+                {/* 必須項目の未入力インジケーター */}
+                {(!basicInfo.address || !basicInfo.birthDate || !basicInfo.bloodType || !basicInfo.emergencyName || !basicInfo.emergencyPhone) && (
+                  <span className="text-xs bg-red-900/50 text-red-300 border border-red-700 rounded px-1.5 py-0.5">未入力あり</span>
+                )}
+              </div>
+            </div>
+            <div className="px-4 pb-4 border-t border-gray-700 pt-3 space-y-4">
+              {/* 必須フィールド */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">必須項目</p>
+                <div className="space-y-2.5">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                      住所 <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={basicInfo.address}
+                      onChange={(e) => setBasicInfo(p => ({ ...p, address: e.target.value }))}
+                      placeholder="例：栃木県宇都宮市〇〇町1-2-3"
+                      className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">
+                        生年月日 <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={basicInfo.birthDate}
+                        onChange={(e) => setBasicInfo(p => ({ ...p, birthDate: e.target.value }))}
+                        className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">
+                        血液型 <span className="text-red-400">*</span>
+                      </label>
+                      <select
+                        value={basicInfo.bloodType}
+                        onChange={(e) => setBasicInfo(p => ({ ...p, bloodType: e.target.value }))}
+                        className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">選択</option>
+                        <option value="A">A型</option>
+                        <option value="B">B型</option>
+                        <option value="O">O型</option>
+                        <option value="AB">AB型</option>
+                        <option value="不明">不明</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                      緊急連絡先 氏名 <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={basicInfo.emergencyName}
+                      onChange={(e) => setBasicInfo(p => ({ ...p, emergencyName: e.target.value }))}
+                      placeholder="例：山田 花子（続柄：妻）"
+                      className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                      緊急連絡先 電話番号 <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={basicInfo.emergencyPhone}
+                      onChange={(e) => setBasicInfo(p => ({ ...p, emergencyPhone: e.target.value }))}
+                      placeholder="例：090-1234-5678"
+                      className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 任意フィールド */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">資格・車両（任意）</p>
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">電気工事士 種別</label>
+                      <select
+                        value={basicInfo.licenseType}
+                        onChange={(e) => setBasicInfo(p => ({ ...p, licenseType: e.target.value }))}
+                        className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">なし</option>
+                        <option value="第一種">第一種</option>
+                        <option value="第二種">第二種</option>
+                        <option value="その他">その他</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">免許番号</label>
+                      <input
+                        type="text"
+                        value={basicInfo.licenseNumber}
+                        onChange={(e) => setBasicInfo(p => ({ ...p, licenseNumber: e.target.value }))}
+                        placeholder="例：東京第12345号"
+                        className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">免許有効期限</label>
+                      <input
+                        type="date"
+                        value={basicInfo.licenseExpiry}
+                        onChange={(e) => setBasicInfo(p => ({ ...p, licenseExpiry: e.target.value }))}
+                        className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">車両ナンバー</label>
+                      <input
+                        type="text"
+                        value={basicInfo.vehicleNumber}
+                        onChange={(e) => setBasicInfo(p => ({ ...p, vehicleNumber: e.target.value }))}
+                        placeholder="例：宇都宮 300 あ 1234"
+                        className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {basicMessage && (
+                <p className={`text-xs text-center py-1 rounded ${basicMessage.type === "success" ? "text-green-400" : "text-red-400"}`}>
+                  {basicMessage.text}
+                </p>
+              )}
+              <button
+                onClick={saveBasicInfo}
+                disabled={savingBasic}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-lg transition"
+              >
+                {savingBasic ? "保存中..." : "基本情報を保存"}
+              </button>
+            </div>
+          </div>
         )}
 
         {/* 自社カラー（パートナーのみ） */}

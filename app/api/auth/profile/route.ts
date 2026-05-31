@@ -3,14 +3,30 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const profileSelect = {
+  avatarUrl: true,
+  phone: true,
+  thankYouEnabled: true,
+  thankYouImageUrl: true,
+  thankYouMessage: true,
+  color: true,
+  // 基本情報
+  address: true,
+  birthDate: true,
+  bloodType: true,
+  emergencyName: true,
+  emergencyPhone: true,
+  licenseType: true,
+  licenseNumber: true,
+  licenseExpiry: true,
+  vehicleNumber: true,
+};
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as { id: string }).id;
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true, color: true },
-  });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: profileSelect });
   return NextResponse.json(user);
 }
 
@@ -31,7 +47,33 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const updateData: { avatarUrl?: string | null; phone?: string | null; thankYouEnabled?: boolean; thankYouImageUrl?: string | null; thankYouMessage?: string | null } = {};
+  // 基本情報の更新
+  if ("basicInfo" in body) {
+    const d = body.basicInfo;
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        address:       d.address?.trim()       || null,
+        birthDate:     d.birthDate             ? new Date(d.birthDate) : null,
+        bloodType:     d.bloodType             || null,
+        emergencyName: d.emergencyName?.trim() || null,
+        emergencyPhone:d.emergencyPhone?.trim()|| null,
+        licenseType:   d.licenseType           || null,
+        licenseNumber: d.licenseNumber?.trim() || null,
+        licenseExpiry: d.licenseExpiry         ? new Date(d.licenseExpiry) : null,
+        vehicleNumber: d.vehicleNumber?.trim() || null,
+      },
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  const updateData: {
+    avatarUrl?: string | null;
+    phone?: string | null;
+    thankYouEnabled?: boolean;
+    thankYouImageUrl?: string | null;
+    thankYouMessage?: string | null;
+  } = {};
   if ("avatarUrl" in body) updateData.avatarUrl = body.avatarUrl || null;
   if ("phone" in body) updateData.phone = body.phone?.trim() || null;
   if ("thankYouEnabled" in body) updateData.thankYouEnabled = Boolean(body.thankYouEnabled);
@@ -41,7 +83,7 @@ export async function PATCH(req: NextRequest) {
   const user = await prisma.user.update({
     where: { id: userId },
     data: updateData,
-    select: { avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true, color: true },
+    select: profileSelect,
   });
 
   return NextResponse.json(user);

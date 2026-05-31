@@ -812,20 +812,102 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 検索・フィルター */}
-            <div className="bg-gray-800 rounded-xl border border-gray-700 p-3 space-y-2">
+            {/* 検索・フィルター：PC は常時展開、モバイルはアイコンボタン1つ */}
+            {/* モバイル用トグルボタン */}
+            <div className="lg:hidden">
+              <button
+                onClick={() => setShowFilters((v) => !v)}
+                className={`relative w-full flex items-center justify-center gap-2 text-sm px-3 py-2 rounded-xl border transition ${showFilters || search || filterStatus || filterUrgency || filterRegion || filterPartner ? "bg-blue-600/20 text-blue-300 border-blue-600" : "bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500"}`}
+              >
+                <span>🔍</span>
+                <span className="text-xs">検索・絞込</span>
+                {(search || filterStatus || filterUrgency || filterRegion || filterPartner) && (
+                  <span className="absolute top-1.5 right-2 w-2 h-2 bg-blue-400 rounded-full" />
+                )}
+                <span className="text-xs text-gray-500 ml-auto">{showFilters ? "▲" : "▼"}</span>
+              </button>
+              {showFilters && (
+                <div className="mt-2 bg-gray-800 rounded-xl border border-gray-700 p-3 space-y-2">
+                  <input
+                    autoFocus
+                    type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                    placeholder="物件名・住所・依頼名"
+                    className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">全ステータス</option>
+                    <option value="PENDING">依頼中</option>
+                    <option value="REWORK">再報告待ち</option>
+                    <option value="ACCEPTED">受注済</option>
+                    <option value="INSPECTED">完了報告済</option>
+                    <option value="QUOTE_REQUESTED">見積依頼中</option>
+                    <option value="QUOTE_REVIEWING">見積り中</option>
+                    <option value="REJECTED">差し戻し</option>
+                  </select>
+                  <div className="flex gap-2">
+                    <select value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value)}
+                      className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">全緊急度</option>
+                      <option value="HIGH">高</option>
+                      <option value="MEDIUM">中</option>
+                      <option value="LOW">低</option>
+                    </select>
+                    <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)}
+                      className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">全地域</option>
+                      <option value="栃木県">栃木県</option>
+                      <option value="茨城県">茨城県</option>
+                      <option value="群馬県">群馬県</option>
+                      <option value="埼玉県">埼玉県</option>
+                      <option value="東京都">東京都</option>
+                    </select>
+                  </div>
+                  {role === "ADMIN" && (
+                    <select value={filterPartner} onChange={(e) => setFilterPartner(e.target.value)}
+                      className="w-full border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">全協力会社</option>
+                      {partners.map(([id, name]) => (
+                        <option key={id} value={id}>{name}</option>
+                      ))}
+                    </select>
+                  )}
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1.5">並び替え</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[
+                        { key: "visit", label: "訪問日順" },
+                        { key: "urgency", label: "緊急度順" },
+                        { key: "status", label: "状態順" },
+                        { key: "region", label: "地域順" },
+                      ].map(({ key, label }) => (
+                        <button key={key} onClick={() => setSortMode(key as typeof sortMode)}
+                          className={`py-1.5 text-xs rounded-lg border transition font-medium ${sortMode === key ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {(search || filterStatus || filterUrgency || filterRegion || filterPartner) && (
+                    <button
+                      onClick={() => { setSearch(""); setFilterStatus(""); setFilterUrgency(""); setFilterRegion(""); setFilterPartner(""); }}
+                      className="w-full text-xs text-gray-500 hover:text-red-400 transition py-1"
+                    >
+                      ✕ フィルターをリセット
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* PC用（常時展開） */}
+            <div className="hidden lg:block bg-gray-800 rounded-xl border border-gray-700 p-3 space-y-2">
               <input
                 type="text" value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="🔍 物件名・住所・依頼名"
                 className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button
-                onClick={() => setShowFilters((v) => !v)}
-                className={`lg:hidden w-full text-xs px-3 py-2 rounded-lg border transition ${showFilters || filterStatus || filterUrgency || filterRegion || filterPartner ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-gray-500"}`}
-              >
-                {showFilters ? "▲ 絞り込みを閉じる" : "▼ 絞り込み・並び替え"}
-              </button>
-              <div className={`space-y-2 ${showFilters ? "block" : "hidden"} lg:block`}>
+              <div className="space-y-2">
                 <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
                   className="w-full border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">全ステータス</option>

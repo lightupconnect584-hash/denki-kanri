@@ -195,15 +195,6 @@ export default function Header() {
               <span>🔔</span><span>通知をONにする</span>
             </button>
           )}
-          <Link href="/messages" className="flex items-center gap-2 text-sm text-gray-200 hover:text-white py-2 border-b border-gray-700">
-            <span>💬</span>
-            <span>メッセージ</span>
-            {dmUnread > 0 && (
-              <span className="ml-auto min-w-[20px] h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
-                {dmUnread > 9 ? "9+" : dmUnread}
-              </span>
-            )}
-          </Link>
           {role === "ADMIN" && (
             <Link href="/estimate" className="flex items-center gap-2 text-sm text-gray-200 hover:text-white py-2 border-b border-gray-700">
               <span>📋</span><span>見積り</span>

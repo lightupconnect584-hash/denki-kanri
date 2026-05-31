@@ -108,6 +108,9 @@ export default function ProjectDetailPage() {
   const [reactionPickerId, setReactionPickerId] = useState<string | null>(null);
   const REACTION_EMOJIS = ["👍", "✅", "😄", "🙏", "💪"];
   const [showLog, setShowLog] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [photoUploadError, setPhotoUploadError] = useState("");
 
   const role = (session?.user as { role?: string })?.role;
   const userId = (session?.user as { id?: string })?.id;
@@ -219,16 +222,26 @@ export default function ProjectDetailPage() {
   };
 
   const sendComment = async () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || sendingComment) return;
     setSendingComment(true);
-    await fetch(`/api/projects/${id}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: commentText.trim() }),
-    });
-    setCommentText("");
-    fetchProject();
-    setSendingComment(false);
+    try {
+      const res = await fetch(`/api/projects/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: commentText.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || `送信に失敗しました (${res.status})`);
+        return;
+      }
+      setCommentText("");
+      fetchProject();
+    } catch {
+      alert("送信に失敗しました。再度お試しください。");
+    } finally {
+      setSendingComment(false);
+    }
   };
 
   const deleteComment = async (commentId: string) => {
@@ -236,6 +249,63 @@ export default function ProjectDetailPage() {
     await fetch(`/api/projects/${id}/comments?commentId=${commentId}`, { method: "DELETE" });
     fetchProject();
     setDeletingCommentId(null);
+  };
+
+  const handleProjectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    setUploadingPhoto(true);
+    setPhotoUploadError("");
+    for (const file of Array.from(files)) {
+      try {
+        let uploadFile = file;
+        // 画像の場合は圧縮
+        if (file.type.startsWith("image/")) {
+          uploadFile = await new Promise<File>((resolve) => {
+            const img = new window.Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+              const MAX = 1920;
+              let w = img.width, h = img.height;
+              if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+              const canvas = document.createElement("canvas");
+              canvas.width = w; canvas.height = h;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) { resolve(file); return; }
+              ctx.drawImage(img, 0, 0, w, h);
+              canvas.toBlob((blob) => {
+                URL.revokeObjectURL(url);
+                if (!blob) { resolve(file); return; }
+                resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+              }, "image/jpeg", 0.82);
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+            img.src = url;
+          });
+        }
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        const res = await fetch(`/api/projects/${id}/photos`, { method: "POST", body: formData });
+        if (!res.ok) setPhotoUploadError(`アップロード失敗 (${file.name})`);
+      } catch {
+        setPhotoUploadError(`エラーが発生しました (${file.name})`);
+      }
+    }
+    fetchProject();
+    setUploadingPhoto(false);
+    e.target.value = "";
+  };
+
+  const handleDeleteProjectPhoto = async (photoId: string) => {
+    if (!confirm("この写真/ファイルを削除しますか？")) return;
+    setDeletingPhotoId(photoId);
+    await fetch(`/api/projects/${id}/photos`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoId }),
+    });
+    fetchProject();
+    setDeletingPhotoId(null);
   };
 
   const toggleReaction = async (commentId: string, emoji: string) => {
@@ -562,10 +632,24 @@ export default function ProjectDetailPage() {
         )}
 
         {/* 現場写真・PDF */}
-        {project.projectPhotos && project.projectPhotos.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-            <h3 className="text-sm font-bold text-gray-800 mb-3">現場写真・PDF</h3>
-            {(() => {
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-800">現場写真・PDF</h3>
+            <label className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition ${uploadingPhoto ? "bg-gray-100 text-gray-400 border-gray-200" : "bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100"}`}>
+              <span>{uploadingPhoto ? "アップロード中..." : "＋ 追加"}</span>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                multiple
+                className="hidden"
+                disabled={uploadingPhoto}
+                onChange={handleProjectPhotoUpload}
+              />
+            </label>
+          </div>
+          {photoUploadError && <p className="text-xs text-red-500 mb-2">{photoUploadError}</p>}
+          {project.projectPhotos && project.projectPhotos.length > 0 ? (
+            (() => {
               const images = project.projectPhotos.filter((f) => !f.originalName.toLowerCase().endsWith(".pdf"));
               const pdfs = project.projectPhotos.filter((f) => f.originalName.toLowerCase().endsWith(".pdf"));
               return (
@@ -585,13 +669,18 @@ export default function ProjectDetailPage() {
                               />
                             </a>
                             {role === "ADMIN" && (
-                              <a
-                                href={url}
-                                download={photo.originalName}
-                                className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition"
-                              >
-                                ↓
-                              </a>
+                              <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                                <a
+                                  href={url}
+                                  download={photo.originalName}
+                                  className="bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 hover:bg-blue-700"
+                                >↓</a>
+                                <button
+                                  onClick={() => handleDeleteProjectPhoto(photo.id)}
+                                  disabled={deletingPhotoId === photo.id}
+                                  className="bg-red-500 text-white text-xs rounded px-1.5 py-0.5 hover:bg-red-600 disabled:opacity-50"
+                                >×</button>
+                              </div>
                             )}
                           </div>
                         );
@@ -605,14 +694,22 @@ export default function ProjectDetailPage() {
                         return (
                           <div key={pdf.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                             <a href={url} target="_blank" rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <span>📄</span>{pdf.originalName}
+                              className="text-sm text-blue-600 hover:underline flex items-center gap-2 min-w-0">
+                              <span className="shrink-0">📄</span>
+                              <span className="truncate">{pdf.originalName}</span>
                             </a>
                             {role === "ADMIN" && (
-                              <a href={url} download={pdf.originalName}
-                                className="text-xs text-green-600 border border-green-300 rounded px-2 py-0.5 hover:bg-green-50 transition">
-                                ↓ DL
-                              </a>
+                              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                <a href={url} download={pdf.originalName}
+                                  className="text-xs text-green-600 border border-green-300 rounded px-2 py-0.5 hover:bg-green-50 transition">
+                                  ↓ DL
+                                </a>
+                                <button
+                                  onClick={() => handleDeleteProjectPhoto(pdf.id)}
+                                  disabled={deletingPhotoId === pdf.id}
+                                  className="text-xs text-red-400 border border-red-300 rounded px-2 py-0.5 hover:bg-red-50 transition disabled:opacity-50"
+                                >削除</button>
+                              </div>
                             )}
                           </div>
                         );
@@ -634,9 +731,11 @@ export default function ProjectDetailPage() {
                   )}
                 </>
               );
-            })()}
-          </div>
-        )}
+            })()
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-3">写真・PDFはありません</p>
+          )}
+        </div>
 
         {/* 管理者向けステータス操作 */}
         {role === "ADMIN" && (

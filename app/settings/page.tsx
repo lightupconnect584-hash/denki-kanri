@@ -17,6 +17,11 @@ export default function SettingsPage() {
   const currentPhone = (session?.user as { phone?: string })?.phone || "";
   const role = (session?.user as { role?: string })?.role;
 
+  // 自社カラー（パートナー用）
+  const [myColor, setMyColor] = useState<string | null>(null);
+  const [pendingColor, setPendingColor] = useState<string | null>(null);
+  const [savingColor, setSavingColor] = useState(false);
+
   // アバター
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
@@ -103,6 +108,11 @@ export default function SettingsPage() {
         if (data.thankYouEnabled !== undefined) setThankYouEnabled(data.thankYouEnabled);
         if (data.thankYouImageUrl !== undefined) setThankYouImageUrl(data.thankYouImageUrl);
         if (data.thankYouMessage) setThankYouMsgInput(data.thankYouMessage);
+      }).catch(() => {});
+    }
+    if (role === "PARTNER") {
+      fetch("/api/auth/profile", { method: "GET" }).then((r) => r.json()).then((data) => {
+        if (data.color !== undefined) setMyColor(data.color);
       }).catch(() => {});
     }
   }, [role]);
@@ -427,7 +437,7 @@ export default function SettingsPage() {
     setLoading(false);
   };
 
-  const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const inputClass = "w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   // 表示するアバター（未確定のプレビュー > 保存済み）
   const displayAvatar = pendingPreview
@@ -614,7 +624,7 @@ export default function SettingsPage() {
   const previewAdminName = session?.user?.name || "";
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-950">
       {/* メッセージプレビューモーダル */}
       {showMsgPreview && (
         <div
@@ -622,7 +632,7 @@ export default function SettingsPage() {
           onClick={() => setShowMsgPreview(false)}
         >
           <div
-            className="bg-white rounded-3xl p-8 flex flex-col items-center max-w-xs w-full shadow-2xl"
+            className="bg-gray-800 rounded-3xl p-8 flex flex-col items-center max-w-xs w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4" style={{ animation: "bow 1.2s ease-in-out infinite" }}>
@@ -635,7 +645,7 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-            <p className="text-sm text-gray-700 mb-6 text-center whitespace-pre-line">
+            <p className="text-sm text-gray-200 mb-6 text-center whitespace-pre-line">
               {thankYouMsgInput || "今月はお疲れ様でした！\nまた来月もよろしくお願いします。"}
             </p>
             <button
@@ -657,8 +667,8 @@ export default function SettingsPage() {
       {/* 画像ストックピッカー */}
       {showStockPicker && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setShowStockPicker(false)}>
-          <div className="bg-white rounded-t-2xl p-5 w-full max-w-sm max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-gray-800 mb-3">画像を選ぶ</h3>
+          <div className="bg-gray-800 rounded-t-2xl p-5 w-full max-w-sm max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-gray-100 mb-3">画像を選ぶ</h3>
             {stockImages.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-6">ストックに画像がありません</p>
             ) : (
@@ -682,7 +692,7 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
-            <button onClick={() => setShowStockPicker(false)} className="w-full py-2 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">キャンセル</button>
+            <button onClick={() => setShowStockPicker(false)} className="w-full py-2 text-sm text-gray-400 border border-gray-700 rounded-xl hover:bg-gray-700">キャンセル</button>
           </div>
         </div>
       )}
@@ -691,14 +701,14 @@ export default function SettingsPage() {
       {previewingSeason && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6 overflow-hidden" onClick={() => setPreviewingSeason(false)}>
           {renderAnimS(seasonForm.animation)}
-          <div className="bg-white rounded-3xl p-8 flex flex-col items-center max-w-xs w-full shadow-2xl relative z-10" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-3xl p-8 flex flex-col items-center max-w-xs w-full shadow-2xl relative z-10" onClick={(e) => e.stopPropagation()}>
             {(seasonImgPreview || seasonForm.imageUrl) && (
               <div className="mb-4" style={{ animation: "bow 1.2s ease-in-out infinite" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={seasonImgPreview || (seasonForm.imageUrl?.startsWith("http") ? seasonForm.imageUrl! : `/uploads/${seasonForm.imageUrl}`)} alt="プレビュー" className="w-24 h-24 rounded-full object-cover border-4 border-blue-100" />
               </div>
             )}
-            <p className="text-sm text-gray-700 mb-6 text-center whitespace-pre-line">{seasonForm.message || "メッセージを入力してください"}</p>
+            <p className="text-sm text-gray-200 mb-6 text-center whitespace-pre-line">{seasonForm.message || "メッセージを入力してください"}</p>
             <button onClick={() => setPreviewingSeason(false)} className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-blue-700 transition">閉じる</button>
             <p className="text-xs text-gray-400 mt-3">※ これはプレビューです</p>
           </div>
@@ -713,9 +723,9 @@ export default function SettingsPage() {
 
         {/* ストレージ残量 */}
         {role === "ADMIN" && (
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 mb-3">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 px-4 py-3 mb-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-gray-700">💾 ストレージ残量</span>
+              <span className="text-xs font-bold text-gray-200">💾 ストレージ残量</span>
               <button
                 onClick={async () => {
                   setLoadingStorage(true);
@@ -741,11 +751,11 @@ export default function SettingsPage() {
                   const color = pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-yellow-400" : "bg-blue-500";
                   return (
                     <div key={label}>
-                      <div className="flex justify-between text-xs text-gray-500 mb-0.5">
+                      <div className="flex justify-between text-xs text-gray-400 mb-0.5">
                         <span>{label}</span>
                         <span>{mb} MB / {limitMb} MB（{pct}%）</span>
                       </div>
-                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
@@ -759,27 +769,27 @@ export default function SettingsPage() {
         )}
 
         {/* 交換機種表リンク */}
-        <Link href="/replacement-models" className="bg-white rounded-xl border border-gray-200 mb-3 flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition block">
-          <span className="text-sm font-bold text-gray-800">🔌 交換機種表</span>
+        <Link href="/replacement-models" className="bg-gray-800 rounded-xl border border-gray-700 mb-3 flex items-center justify-between px-4 py-3.5 hover:bg-gray-700 transition block">
+          <span className="text-sm font-bold text-gray-100">🔌 交換機種表</span>
           <span className="text-gray-400 text-xs">→</span>
         </Link>
 
         {/* 依頼名マスター */}
         {role === "ADMIN" && (
-          <div className="bg-white rounded-xl border border-gray-200 mb-3">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
             <button onClick={() => toggleSection("worktypes")} className="w-full flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm font-bold text-gray-800">📋 依頼名の管理</span>
+              <span className="text-sm font-bold text-gray-100">📋 依頼名の管理</span>
               <span className="text-gray-400 text-xs">{isOpen("worktypes") ? "▲" : "▼"}</span>
             </button>
             {isOpen("worktypes") && (
-              <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+              <div className="px-4 pb-4 border-t border-gray-700 pt-3">
                 <div className="space-y-1.5 mb-3">
                   <div className="flex gap-2">
                     <input type="text" value={newWorkType}
                       onChange={(e) => setNewWorkType(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); addWorkType(); } }}
                       placeholder="依頼名を入力"
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="flex-1 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <button type="button" onClick={addWorkType} disabled={savingWorkType || !newWorkType.trim()} className="shrink-0 bg-blue-600 text-white text-sm px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">追加</button>
                   </div>
                   <div className="flex gap-2">
@@ -787,8 +797,8 @@ export default function SettingsPage() {
                       onChange={(e) => setNewWorkTypeAmount(e.target.value)}
                       onBlur={(e) => setNewWorkTypeAmount(e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, ""))}
                       placeholder="デフォルト金額（任意）"
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <select value={newWorkTypeUrgency} onChange={(e) => setNewWorkTypeUrgency(e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      className="flex-1 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <select value={newWorkTypeUrgency} onChange={(e) => setNewWorkTypeUrgency(e.target.value)} className="flex-1 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">緊急度（任意）</option>
                       <option value="HIGH">高</option>
                       <option value="MEDIUM">中</option>
@@ -801,10 +811,10 @@ export default function SettingsPage() {
                 ) : (
                   <div className="space-y-1">
                     {workTypes.map((w) => (
-                      <div key={w.id} className="bg-gray-50 rounded-lg overflow-hidden">
+                      <div key={w.id} className="bg-gray-700/50 rounded-lg overflow-hidden">
                         <div className="flex items-center gap-2 px-3 py-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-700 font-medium truncate">{w.name}</p>
+                            <p className="text-sm text-gray-200 font-medium truncate">{w.name}</p>
                             <p className="text-xs text-gray-400">
                               {w.defaultAmount ? `¥${w.defaultAmount.toLocaleString()}` : "―"}
                               {" · "}
@@ -815,14 +825,14 @@ export default function SettingsPage() {
                           <button type="button" onClick={() => deleteWorkType(w.id)} className="text-red-400 text-xs shrink-0">削除</button>
                         </div>
                         {expandedWorkTypeId === w.id && (
-                          <div className="px-3 pb-2.5 pt-1.5 space-y-1.5 border-t border-gray-200">
+                          <div className="px-3 pb-2.5 pt-1.5 space-y-1.5 border-t border-gray-600">
                             <div className="flex gap-2">
                               <input type="text" inputMode="numeric" value={editAmounts[w.id] || ""}
                                 onChange={(e) => setEditAmounts((p) => ({ ...p, [w.id]: e.target.value }))}
                                 onBlur={(e) => setEditAmounts((p) => ({ ...p, [w.id]: e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "") }))}
                                 placeholder="金額（税別）"
-                                className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                              <select value={editUrgencies[w.id] || ""} onChange={(e) => setEditUrgencies((p) => ({ ...p, [w.id]: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              <select value={editUrgencies[w.id] || ""} onChange={(e) => setEditUrgencies((p) => ({ ...p, [w.id]: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">緊急度なし</option>
                                 <option value="HIGH">高</option>
                                 <option value="MEDIUM">中</option>
@@ -843,17 +853,17 @@ export default function SettingsPage() {
 
         {/* メッセージ管理（季節 + 月末 統合） */}
         {role === "ADMIN" && (
-          <div className="bg-white rounded-xl border border-gray-200 mb-3">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
             <button onClick={() => toggleSection("messages")} className="w-full flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm font-bold text-gray-800">💬 メッセージ管理</span>
+              <span className="text-sm font-bold text-gray-100">💬 メッセージ管理</span>
               <span className="text-gray-400 text-xs">{isOpen("messages") ? "▲" : "▼"}</span>
             </button>
             {isOpen("messages") && (
-              <div className="border-t border-gray-100">
+              <div className="border-t border-gray-700">
                 {/* タブ */}
-                <div className="flex border-b border-gray-100">
-                  <button onClick={() => setMsgTab("seasonal")} className={`flex-1 py-2.5 text-xs font-medium transition ${msgTab === "seasonal" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-400"}`}>🌸 季節のメッセージ</button>
-                  <button onClick={() => setMsgTab("thankyou")} className={`flex-1 py-2.5 text-xs font-medium transition ${msgTab === "thankyou" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-400"}`}>🙏 月末メッセージ</button>
+                <div className="flex border-b border-gray-700">
+                  <button onClick={() => setMsgTab("seasonal")} className={`flex-1 py-2.5 text-xs font-medium transition ${msgTab === "seasonal" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400"}`}>🌸 季節のメッセージ</button>
+                  <button onClick={() => setMsgTab("thankyou")} className={`flex-1 py-2.5 text-xs font-medium transition ${msgTab === "thankyou" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400"}`}>🙏 月末メッセージ</button>
                 </div>
 
                 {/* 季節タブ */}
@@ -863,48 +873,48 @@ export default function SettingsPage() {
                       <button onClick={openNewSeason} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">＋ 追加</button>
                     </div>
                     {editingSeasonId === "new" && (
-                      <div className="border border-blue-200 rounded-xl p-4 mb-3 bg-blue-50/40 space-y-3">
-                        <p className="text-xs font-bold text-blue-700">新規追加</p>
+                      <div className="border border-blue-800 rounded-xl p-4 mb-3 bg-blue-900/20 space-y-3">
+                        <p className="text-xs font-bold text-blue-400">新規追加</p>
                         <input value={seasonForm.name} onChange={(e) => setSeasonForm((p) => ({ ...p, name: e.target.value }))} placeholder="名前（例: 夏の安全注意）" className={inputClass} />
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">開始日</p>
+                            <p className="text-xs text-gray-400 mb-1">開始日</p>
                             <div className="flex gap-1">
-                              <select value={seasonForm.startMonth} onChange={(e) => setSeasonForm((p) => ({ ...p, startMonth: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900">
+                              <select value={seasonForm.startMonth} onChange={(e) => setSeasonForm((p) => ({ ...p, startMonth: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-2 text-sm text-gray-100 bg-gray-700">
                                 {Array.from({length:12},(_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}
                               </select>
-                              <select value={seasonForm.startDay} onChange={(e) => setSeasonForm((p) => ({ ...p, startDay: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900">
+                              <select value={seasonForm.startDay} onChange={(e) => setSeasonForm((p) => ({ ...p, startDay: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-2 text-sm text-gray-100 bg-gray-700">
                                 {Array.from({length:31},(_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}
                               </select>
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">終了日</p>
+                            <p className="text-xs text-gray-400 mb-1">終了日</p>
                             <div className="flex gap-1">
-                              <select value={seasonForm.endMonth} onChange={(e) => setSeasonForm((p) => ({ ...p, endMonth: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900">
+                              <select value={seasonForm.endMonth} onChange={(e) => setSeasonForm((p) => ({ ...p, endMonth: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-2 text-sm text-gray-100 bg-gray-700">
                                 {Array.from({length:12},(_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}
                               </select>
-                              <select value={seasonForm.endDay} onChange={(e) => setSeasonForm((p) => ({ ...p, endDay: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900">
+                              <select value={seasonForm.endDay} onChange={(e) => setSeasonForm((p) => ({ ...p, endDay: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-2 text-sm text-gray-100 bg-gray-700">
                                 {Array.from({length:31},(_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}
                               </select>
                             </div>
                           </div>
                         </div>
-                        <textarea value={seasonForm.message} onChange={(e) => setSeasonForm((p) => ({ ...p, message: e.target.value }))} rows={3} placeholder="表示するメッセージ" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                        <textarea value={seasonForm.message} onChange={(e) => setSeasonForm((p) => ({ ...p, message: e.target.value }))} rows={3} placeholder="表示するメッセージ" className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">アニメーション</p>
+                          <p className="text-xs text-gray-400 mb-1">アニメーション</p>
                           <select value={seasonForm.animation} onChange={(e) => setSeasonForm((p) => ({ ...p, animation: e.target.value }))} className={inputClass}>
                             {Object.entries(ANIM_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
                           </select>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">画像（任意）</p>
+                          <p className="text-xs text-gray-400 mb-1">画像（任意）</p>
                           <div className="flex items-center gap-3">
                             {(seasonImgPreview || seasonForm.imageUrl) && (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={seasonImgPreview || (seasonForm.imageUrl?.startsWith("http") ? seasonForm.imageUrl : `/uploads/${seasonForm.imageUrl}`)} alt="" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                              <img src={seasonImgPreview || (seasonForm.imageUrl?.startsWith("http") ? seasonForm.imageUrl : `/uploads/${seasonForm.imageUrl}`)} alt="" className="w-12 h-12 rounded-full object-cover border border-gray-700" />
                             )}
-                            <button type="button" onClick={() => seasonImgRef.current?.click()} className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">アップロード</button>
+                            <button type="button" onClick={() => seasonImgRef.current?.click()} className="text-xs border border-gray-600 text-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-700 transition">アップロード</button>
                             <button type="button" onClick={() => setShowStockPicker("season")} className="text-xs border border-blue-300 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition">ストックから選ぶ</button>
                             {(seasonImgPreview || seasonForm.imageUrl) && (
                               <button type="button" onClick={() => { setSeasonImgFile(null); setSeasonImgPreview(null); setSeasonForm((p) => ({...p, imageUrl: null})); }} className="text-xs text-red-400 hover:text-red-600">削除</button>
@@ -913,28 +923,28 @@ export default function SettingsPage() {
                           <input ref={seasonImgRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setSeasonImgFile(f); setSeasonImgPreview(URL.createObjectURL(f)); }}} />
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">送信先</p>
+                          <p className="text-xs text-gray-400 mb-1">送信先</p>
                           <div className="flex gap-2 mb-1.5">
-                            <button type="button" onClick={() => setSeasonForm((p) => ({ ...p, targetType: "all", targetUserIds: [] }))} className={`flex-1 text-xs rounded-lg py-1.5 border transition ${seasonForm.targetType === "all" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>全員</button>
-                            <button type="button" onClick={() => setSeasonForm((p) => ({ ...p, targetType: "specific" }))} className={`flex-1 text-xs rounded-lg py-1.5 border transition ${seasonForm.targetType === "specific" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>個別指定</button>
+                            <button type="button" onClick={() => setSeasonForm((p) => ({ ...p, targetType: "all", targetUserIds: [] }))} className={`flex-1 text-xs rounded-lg py-1.5 border transition ${seasonForm.targetType === "all" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600"}`}>全員</button>
+                            <button type="button" onClick={() => setSeasonForm((p) => ({ ...p, targetType: "specific" }))} className={`flex-1 text-xs rounded-lg py-1.5 border transition ${seasonForm.targetType === "specific" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600"}`}>個別指定</button>
                           </div>
                           {seasonForm.targetType === "specific" && (
-                            <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                            <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-600 rounded-lg p-2">
                               {partnerUsers.length === 0 ? (
                                 <p className="text-xs text-gray-400 text-center py-1">協力会社がいません</p>
                               ) : partnerUsers.map((u) => (
                                 <label key={u.id} className="flex items-center gap-2 cursor-pointer">
                                   <input type="checkbox" checked={seasonForm.targetUserIds.includes(u.id)} onChange={(e) => { setSeasonForm((p) => ({ ...p, targetUserIds: e.target.checked ? [...p.targetUserIds, u.id] : p.targetUserIds.filter((id) => id !== u.id) })); }} className="rounded" />
-                                  <span className="text-xs text-gray-700">{u.name}{u.companyName ? `（${u.companyName}）` : ""}</span>
+                                  <span className="text-xs text-gray-200">{u.name}{u.companyName ? `（${u.companyName}）` : ""}</span>
                                 </label>
                               ))}
                             </div>
                           )}
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => setPreviewingSeason(true)} className="flex-1 border border-gray-300 text-gray-600 text-sm rounded-lg py-2 hover:bg-gray-50 transition">プレビュー</button>
+                          <button onClick={() => setPreviewingSeason(true)} className="flex-1 border border-gray-600 text-gray-300 text-sm rounded-lg py-2 hover:bg-gray-700 transition">プレビュー</button>
                           <button onClick={saveSeason} disabled={savingSeason || !seasonForm.name || !seasonForm.message} className="flex-1 bg-blue-600 text-white text-sm rounded-lg py-2 hover:bg-blue-700 disabled:opacity-50 transition">{savingSeason ? "保存中..." : "保存する"}</button>
-                          <button onClick={() => setEditingSeasonId(null)} className="px-3 border border-gray-200 text-gray-400 text-sm rounded-lg py-2 hover:bg-gray-50 transition">✕</button>
+                          <button onClick={() => setEditingSeasonId(null)} className="px-3 border border-gray-700 text-gray-400 text-sm rounded-lg py-2 hover:bg-gray-700 transition">✕</button>
                         </div>
                       </div>
                     )}
@@ -943,87 +953,87 @@ export default function SettingsPage() {
                     )}
                     <div className="space-y-2">
                       {seasonalMsgs.map((msg) => (
-                        <div key={msg.id} className="bg-gray-50 rounded-xl overflow-hidden">
+                        <div key={msg.id} className="bg-gray-700/50 rounded-xl overflow-hidden">
                           <div className="flex items-center gap-2 px-3 py-2.5">
                             {msg.imageUrl && (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={msg.imageUrl.startsWith("http") ? msg.imageUrl : `/uploads/${msg.imageUrl}`} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-700 truncate">{msg.name}</p>
+                              <p className="text-sm font-medium text-gray-200 truncate">{msg.name}</p>
                               <p className="text-xs text-gray-400">{mdLabel(msg.startMD)}〜{mdLabel(msg.endMD)}　{ANIM_LABELS[msg.animation] || "なし"}{msg.targetType === "specific" && <span className="ml-1.5 text-blue-500">個別({msg.targetUserIds.length})</span>}</p>
                             </div>
-                            <button onClick={() => toggleSeasonEnabled(msg)} className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${msg.enabled ? "bg-blue-600" : "bg-gray-300"}`}>
+                            <button onClick={() => toggleSeasonEnabled(msg)} className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${msg.enabled ? "bg-blue-600" : "bg-gray-600"}`}>
                               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${msg.enabled ? "translate-x-5" : "translate-x-0.5"}`} />
                             </button>
                             <button onClick={() => openEditSeason(msg)} className="text-blue-500 text-xs shrink-0">編集</button>
                             <button onClick={() => deleteSeason(msg.id)} className="text-red-400 text-xs shrink-0">削除</button>
                           </div>
                           {editingSeasonId === msg.id && (
-                            <div className="border-t border-gray-200 px-3 pb-3 pt-2 space-y-3">
+                            <div className="border-t border-gray-600 px-3 pb-3 pt-2 space-y-3">
                               <input value={seasonForm.name} onChange={(e) => setSeasonForm((p) => ({ ...p, name: e.target.value }))} placeholder="名前" className={inputClass} />
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <p className="text-xs text-gray-500 mb-1">開始日</p>
+                                  <p className="text-xs text-gray-400 mb-1">開始日</p>
                                   <div className="flex gap-1">
-                                    <select value={seasonForm.startMonth} onChange={(e) => setSeasonForm((p) => ({ ...p, startMonth: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900">
+                                    <select value={seasonForm.startMonth} onChange={(e) => setSeasonForm((p) => ({ ...p, startMonth: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-2 text-sm text-gray-100 bg-gray-700">
                                       {Array.from({length:12},(_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}
                                     </select>
-                                    <select value={seasonForm.startDay} onChange={(e) => setSeasonForm((p) => ({ ...p, startDay: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900">
+                                    <select value={seasonForm.startDay} onChange={(e) => setSeasonForm((p) => ({ ...p, startDay: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-2 text-sm text-gray-100 bg-gray-700">
                                       {Array.from({length:31},(_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}
                                     </select>
                                   </div>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500 mb-1">終了日</p>
+                                  <p className="text-xs text-gray-400 mb-1">終了日</p>
                                   <div className="flex gap-1">
-                                    <select value={seasonForm.endMonth} onChange={(e) => setSeasonForm((p) => ({ ...p, endMonth: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900">
+                                    <select value={seasonForm.endMonth} onChange={(e) => setSeasonForm((p) => ({ ...p, endMonth: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-2 text-sm text-gray-100 bg-gray-700">
                                       {Array.from({length:12},(_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}
                                     </select>
-                                    <select value={seasonForm.endDay} onChange={(e) => setSeasonForm((p) => ({ ...p, endDay: e.target.value }))} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900">
+                                    <select value={seasonForm.endDay} onChange={(e) => setSeasonForm((p) => ({ ...p, endDay: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-2 text-sm text-gray-100 bg-gray-700">
                                       {Array.from({length:31},(_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}
                                     </select>
                                   </div>
                                 </div>
                               </div>
-                              <textarea value={seasonForm.message} onChange={(e) => setSeasonForm((p) => ({ ...p, message: e.target.value }))} rows={3} placeholder="メッセージ" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                              <textarea value={seasonForm.message} onChange={(e) => setSeasonForm((p) => ({ ...p, message: e.target.value }))} rows={3} placeholder="メッセージ" className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
                               <select value={seasonForm.animation} onChange={(e) => setSeasonForm((p) => ({ ...p, animation: e.target.value }))} className={inputClass}>
                                 {Object.entries(ANIM_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
                               </select>
                               <div className="flex items-center gap-3">
                                 {(seasonImgPreview || seasonForm.imageUrl) && (
                                   // eslint-disable-next-line @next/next/no-img-element
-                                  <img src={seasonImgPreview || (seasonForm.imageUrl?.startsWith("http") ? seasonForm.imageUrl : `/uploads/${seasonForm.imageUrl}`)} alt="" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                                  <img src={seasonImgPreview || (seasonForm.imageUrl?.startsWith("http") ? seasonForm.imageUrl : `/uploads/${seasonForm.imageUrl}`)} alt="" className="w-12 h-12 rounded-full object-cover border border-gray-700" />
                                 )}
-                                <button type="button" onClick={() => seasonImgRef.current?.click()} className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">アップロード</button>
+                                <button type="button" onClick={() => seasonImgRef.current?.click()} className="text-xs border border-gray-600 text-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-700 transition">アップロード</button>
                                 <button type="button" onClick={() => setShowStockPicker("season")} className="text-xs border border-blue-300 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition">ストックから選ぶ</button>
                                 {(seasonImgPreview || seasonForm.imageUrl) && (
                                   <button type="button" onClick={() => { setSeasonImgFile(null); setSeasonImgPreview(null); setSeasonForm((p) => ({...p, imageUrl: null})); }} className="text-xs text-red-400">削除</button>
                                 )}
                               </div>
                               <div>
-                                <p className="text-xs text-gray-500 mb-1">送信先</p>
+                                <p className="text-xs text-gray-400 mb-1">送信先</p>
                                 <div className="flex gap-2 mb-1.5">
-                                  <button type="button" onClick={() => setSeasonForm((p) => ({ ...p, targetType: "all", targetUserIds: [] }))} className={`flex-1 text-xs rounded-lg py-1.5 border transition ${seasonForm.targetType === "all" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>全員</button>
-                                  <button type="button" onClick={() => setSeasonForm((p) => ({ ...p, targetType: "specific" }))} className={`flex-1 text-xs rounded-lg py-1.5 border transition ${seasonForm.targetType === "specific" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>個別指定</button>
+                                  <button type="button" onClick={() => setSeasonForm((p) => ({ ...p, targetType: "all", targetUserIds: [] }))} className={`flex-1 text-xs rounded-lg py-1.5 border transition ${seasonForm.targetType === "all" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600"}`}>全員</button>
+                                  <button type="button" onClick={() => setSeasonForm((p) => ({ ...p, targetType: "specific" }))} className={`flex-1 text-xs rounded-lg py-1.5 border transition ${seasonForm.targetType === "specific" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600"}`}>個別指定</button>
                                 </div>
                                 {seasonForm.targetType === "specific" && (
-                                  <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                                  <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-600 rounded-lg p-2">
                                     {partnerUsers.length === 0 ? (
                                       <p className="text-xs text-gray-400 text-center py-1">協力会社がいません</p>
                                     ) : partnerUsers.map((u) => (
                                       <label key={u.id} className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={seasonForm.targetUserIds.includes(u.id)} onChange={(e) => { setSeasonForm((p) => ({ ...p, targetUserIds: e.target.checked ? [...p.targetUserIds, u.id] : p.targetUserIds.filter((id) => id !== u.id) })); }} className="rounded" />
-                                        <span className="text-xs text-gray-700">{u.name}{u.companyName ? `（${u.companyName}）` : ""}</span>
+                                        <span className="text-xs text-gray-200">{u.name}{u.companyName ? `（${u.companyName}）` : ""}</span>
                                       </label>
                                     ))}
                                   </div>
                                 )}
                               </div>
                               <div className="flex gap-2">
-                                <button onClick={() => setPreviewingSeason(true)} className="flex-1 border border-gray-300 text-gray-600 text-sm rounded-lg py-2 hover:bg-gray-50 transition">プレビュー</button>
+                                <button onClick={() => setPreviewingSeason(true)} className="flex-1 border border-gray-600 text-gray-300 text-sm rounded-lg py-2 hover:bg-gray-700 transition">プレビュー</button>
                                 <button onClick={saveSeason} disabled={savingSeason} className="flex-1 bg-blue-600 text-white text-sm rounded-lg py-2 hover:bg-blue-700 disabled:opacity-50 transition">{savingSeason ? "保存中..." : "保存"}</button>
-                                <button onClick={() => setEditingSeasonId(null)} className="px-3 border border-gray-200 text-gray-400 text-sm rounded-lg hover:bg-gray-50 transition">✕</button>
+                                <button onClick={() => setEditingSeasonId(null)} className="px-3 border border-gray-700 text-gray-400 text-sm rounded-lg hover:bg-gray-700 transition">✕</button>
                               </div>
                             </div>
                           )}
@@ -1042,16 +1052,16 @@ export default function SettingsPage() {
                       </div>
                     )}
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm text-gray-700">メッセージを表示する</span>
-                      <button onClick={() => saveThankYouSettings(!thankYouEnabled)} disabled={savingThankYou} className={`w-12 h-6 rounded-full transition-colors relative ${thankYouEnabled ? "bg-blue-600" : "bg-gray-300"}`}>
+                      <span className="text-sm text-gray-200">メッセージを表示する</span>
+                      <button onClick={() => saveThankYouSettings(!thankYouEnabled)} disabled={savingThankYou} className={`w-12 h-6 rounded-full transition-colors relative ${thankYouEnabled ? "bg-blue-600" : "bg-gray-600"}`}>
                         <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${thankYouEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
                       </button>
                     </div>
                     {thankYouEnabled && (
                       <>
-                        <textarea value={thankYouMsgInput} onChange={(e) => setThankYouMsgInput(e.target.value)} rows={2} placeholder={"今月はお疲れ様でした！\nまた来月もよろしくお願いします。"} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2" />
+                        <textarea value={thankYouMsgInput} onChange={(e) => setThankYouMsgInput(e.target.value)} rows={2} placeholder={"今月はお疲れ様でした！\nまた来月もよろしくお願いします。"} className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2" />
                         <div className="flex gap-2 mb-3">
-                          <button type="button" onClick={() => setShowMsgPreview(true)} className="flex-1 border border-gray-300 text-gray-600 text-xs rounded-lg py-1.5 hover:bg-gray-50 transition">プレビュー</button>
+                          <button type="button" onClick={() => setShowMsgPreview(true)} className="flex-1 border border-gray-600 text-gray-300 text-xs rounded-lg py-1.5 hover:bg-gray-700 transition">プレビュー</button>
                           <button type="button" onClick={saveThankYouMsg} disabled={savingMsg} className="flex-1 bg-blue-600 text-white text-xs rounded-lg py-1.5 hover:bg-blue-700 disabled:opacity-50 transition">{savingMsg ? "保存中..." : "保存する"}</button>
                         </div>
                         <input ref={thankYouFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; setThankYouPendingFile(f); setThankYouPreview(URL.createObjectURL(f)); }} />
@@ -1060,9 +1070,9 @@ export default function SettingsPage() {
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={thankYouPreview || (thankYouImageUrl?.startsWith("http") ? thankYouImageUrl : `/uploads/${thankYouImageUrl}`)} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-blue-200 shrink-0" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-lg shrink-0">+</div>
+                            <div className="w-10 h-10 rounded-full bg-gray-700 border-2 border-dashed border-gray-600 flex items-center justify-center text-gray-400 text-lg shrink-0">+</div>
                           )}
-                          <button onClick={() => thankYouFileRef.current?.click()} className="text-xs border border-gray-300 text-gray-600 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition">アップロード</button>
+                          <button onClick={() => thankYouFileRef.current?.click()} className="text-xs border border-gray-600 text-gray-300 px-2.5 py-1.5 rounded-lg hover:bg-gray-700 transition">アップロード</button>
                           <button onClick={() => setShowStockPicker("thankYou")} className="text-xs border border-blue-300 text-blue-600 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition">ストックから選ぶ</button>
                           {(thankYouPreview || thankYouImageUrl) && (
                             <button onClick={async () => { await fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ thankYouImageUrl: null }) }); setThankYouImageUrl(null); setThankYouPreview(null); setThankYouPendingFile(null); }} className="text-xs text-red-400 hover:text-red-600">削除</button>
@@ -1083,15 +1093,15 @@ export default function SettingsPage() {
 
         {/* 画像ストック */}
         {role === "ADMIN" && (
-          <div className="bg-white rounded-xl border border-gray-200 mb-3">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
             <button onClick={() => toggleSection("stock")} className="w-full flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm font-bold text-gray-800">📸 画像ストック</span>
+              <span className="text-sm font-bold text-gray-100">📸 画像ストック</span>
               <span className="text-gray-400 text-xs">{isOpen("stock") ? "▲" : "▼"}</span>
             </button>
             {isOpen("stock") && (
-              <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+              <div className="px-4 pb-4 border-t border-gray-700 pt-3">
                 <div className="flex justify-end mb-2">
-                  <button onClick={() => stockUploadRef.current?.click()} disabled={uploadingStock} className="text-xs bg-gray-700 text-white px-2.5 py-1 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition">
+                  <button onClick={() => stockUploadRef.current?.click()} disabled={uploadingStock} className="text-xs bg-gray-700 text-white px-2.5 py-1 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition">
                     {uploadingStock ? "..." : "＋ 追加"}
                   </button>
                 </div>
@@ -1103,7 +1113,7 @@ export default function SettingsPage() {
                     {stockImages.map((img) => (
                       <div key={img.id} className="relative group">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img.filename.startsWith("http") ? img.filename : `/uploads/${img.filename}`} alt={img.label || img.originalName} className="w-full aspect-square object-cover rounded-lg border border-gray-200" />
+                        <img src={img.filename.startsWith("http") ? img.filename : `/uploads/${img.filename}`} alt={img.label || img.originalName} className="w-full aspect-square object-cover rounded-lg border border-gray-700" />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition rounded-lg flex flex-col items-center justify-center gap-1">
                           {img.label && <p className="text-white text-xs font-medium px-1 text-center truncate w-full">{img.label}</p>}
                           <button onClick={() => { setEditingLabelId(img.id); setLabelInput(img.label || ""); }} className="text-white/80 text-xs hover:text-white">✏️</button>
@@ -1111,7 +1121,7 @@ export default function SettingsPage() {
                         </div>
                         {editingLabelId === img.id && (
                           <div className="absolute inset-0 bg-black/80 rounded-lg flex flex-col items-center justify-center gap-1.5 p-1.5">
-                            <input value={labelInput} onChange={(e) => setLabelInput(e.target.value)} placeholder="ラベル" className="w-full text-xs rounded px-1.5 py-1 text-gray-900" />
+                            <input value={labelInput} onChange={(e) => setLabelInput(e.target.value)} placeholder="ラベル" className="w-full text-xs rounded px-1.5 py-1 text-gray-100 bg-gray-700" />
                             <div className="flex gap-1">
                               <button onClick={() => saveStockLabel(img.id)} className="text-white text-xs bg-blue-600 px-2 py-0.5 rounded">保存</button>
                               <button onClick={() => setEditingLabelId(null)} className="text-gray-300 text-xs">✕</button>
@@ -1129,27 +1139,115 @@ export default function SettingsPage() {
 
         {/* ユーザー管理へのリンク（管理者） */}
         {role === "ADMIN" && (
-          <Link href="/users" className="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-4 py-3 mb-3 text-sm text-gray-700 hover:bg-gray-50 transition">
+          <Link href="/users" className="flex items-center justify-between bg-gray-800 rounded-xl border border-gray-700 px-4 py-3 mb-3 text-sm text-gray-200 hover:bg-gray-700 transition">
             <span>👥 ユーザー管理</span>
             <span className="text-gray-400">→</span>
           </Link>
         )}
 
+        {/* 自社カラー（パートナーのみ） */}
+        {role === "PARTNER" && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
+            <div className="px-4 py-3.5 flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-100">🎨 自社カラー</span>
+              {myColor && <span className="w-5 h-5 rounded-full border-2 border-gray-600 shrink-0" style={{ backgroundColor: myColor }} />}
+            </div>
+            <div className="px-4 pb-4 border-t border-gray-700 pt-3">
+              {myColor ? (
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full border-2 border-gray-500 shrink-0" style={{ backgroundColor: myColor }} />
+                  <div>
+                    <p className="text-sm text-gray-200 font-medium">設定済み</p>
+                    <p className="text-xs text-gray-500">カラーは変更できません</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400">カレンダーや依頼一覧で使われる自社カラーを選択してください。<br />一度選んだら変更できません。</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      // 赤系
+                      "#ef4444","#dc2626","#b91c1c",
+                      // オレンジ系
+                      "#f97316","#ea580c","#fb923c",
+                      // 黄・アンバー
+                      "#f59e0b","#d97706","#fbbf24",
+                      // 緑系
+                      "#22c55e","#16a34a","#4ade80",
+                      // ティール・シアン
+                      "#14b8a6","#0d9488","#06b6d4",
+                      // 青系
+                      "#3b82f6","#2563eb","#1d4ed8","#60a5fa",
+                      // 紫系
+                      "#8b5cf6","#7c3aed","#a78bfa",
+                      // ピンク
+                      "#ec4899","#db2777","#f472b6",
+                      // ライムグリーン
+                      "#84cc16","#65a30d",
+                      // スレート・グレー
+                      "#64748b","#475569","#6b7280",
+                      // ブラウン・アンバー
+                      "#92400e","#b45309","#78350f",
+                      // インディゴ
+                      "#4f46e5","#6366f1",
+                    ].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setPendingColor(pendingColor === c ? null : c)}
+                        className="w-9 h-9 rounded-full border-2 transition hover:scale-110"
+                        style={{
+                          backgroundColor: c,
+                          borderColor: pendingColor === c ? "#fff" : "transparent",
+                          outline: pendingColor === c ? "2px solid #93c5fd" : "none",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  {pendingColor && (
+                    <button
+                      type="button"
+                      disabled={savingColor}
+                      onClick={async () => {
+                        setSavingColor(true);
+                        const res = await fetch("/api/auth/profile", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ color: pendingColor }),
+                        });
+                        if (res.ok) {
+                          setMyColor(pendingColor);
+                          setPendingColor(null);
+                        }
+                        setSavingColor(false);
+                      }}
+                      className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                    >
+                      <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: pendingColor }} />
+                      {savingColor ? "保存中..." : "この色に決定する"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* プロフィール画像 */}
-        <div className="bg-white rounded-xl border border-gray-200 mb-3">
+        <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
           <button onClick={() => toggleSection("avatar")} className="w-full flex items-center justify-between px-4 py-3.5">
-            <span className="text-sm font-bold text-gray-800">👤 プロフィール画像</span>
+            <span className="text-sm font-bold text-gray-100">👤 プロフィール画像</span>
             <span className="text-gray-400 text-xs">{isOpen("avatar") ? "▲" : "▼"}</span>
           </button>
           {isOpen("avatar") && (
-            <div className="px-4 pb-4 border-t border-gray-100">
+            <div className="px-4 pb-4 border-t border-gray-700">
               <div className="flex flex-col items-center gap-4 pt-4">
                 <div className="relative">
                   {displayAvatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={displayAvatar} alt="avatar" className="w-24 h-24 rounded-full object-cover border-2 border-gray-200" />
+                    <img src={displayAvatar} alt="avatar" className="w-24 h-24 rounded-full object-cover border-2 border-gray-700" />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center text-3xl font-bold text-blue-600 border-2 border-gray-200">
+                    <div className="w-24 h-24 rounded-full bg-blue-900 flex items-center justify-center text-3xl font-bold text-blue-400 border-2 border-gray-700">
                       {session?.user?.name?.[0]?.toUpperCase() || "?"}
                     </div>
                   )}
@@ -1157,19 +1255,19 @@ export default function SettingsPage() {
                     <span className="absolute -top-1 -right-1 bg-yellow-400 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">未保存</span>
                   )}
                 </div>
-                <p className="text-sm font-medium text-gray-800">{session?.user?.name}</p>
-                <p className="text-xs text-gray-500">{session?.user?.email}</p>
+                <p className="text-sm font-medium text-gray-100">{session?.user?.name}</p>
+                <p className="text-xs text-gray-400">{session?.user?.email}</p>
                 {!pendingPreview ? (
                   <div className="flex gap-2">
                     <button type="button" onClick={() => fileInputRef.current?.click()} disabled={savingAvatar} className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">画像を選択</button>
                     {currentAvatarUrl && (
-                      <button type="button" onClick={handleRemoveAvatar} disabled={savingAvatar} className="text-sm border border-gray-300 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition">削除</button>
+                      <button type="button" onClick={handleRemoveAvatar} disabled={savingAvatar} className="text-sm border border-gray-600 text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition">削除</button>
                     )}
                   </div>
                 ) : (
                   <div className="flex gap-2 w-full">
                     <button type="button" onClick={handleSaveAvatar} disabled={savingAvatar} className="flex-1 bg-blue-600 text-white text-sm py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition">{savingAvatar ? "保存中..." : "✓ 決定"}</button>
-                    <button type="button" onClick={handleCancel} disabled={savingAvatar} className="flex-1 border border-gray-300 text-gray-600 text-sm py-2.5 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition">キャンセル</button>
+                    <button type="button" onClick={handleCancel} disabled={savingAvatar} className="flex-1 border border-gray-600 text-gray-300 text-sm py-2.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition">キャンセル</button>
                   </div>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
@@ -1183,13 +1281,13 @@ export default function SettingsPage() {
 
         {/* 管理者電話番号 */}
         {role === "ADMIN" && (
-          <div className="bg-white rounded-xl border border-gray-200 mb-3">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
             <button onClick={() => toggleSection("phone")} className="w-full flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm font-bold text-gray-800">📞 電話番号</span>
+              <span className="text-sm font-bold text-gray-100">📞 電話番号</span>
               <span className="text-gray-400 text-xs">{isOpen("phone") ? "▲" : "▼"}</span>
             </button>
             {isOpen("phone") && (
-              <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+              <div className="px-4 pb-4 border-t border-gray-700 pt-3">
                 {phoneMessage && (
                   <div className={`text-sm px-3 py-2 rounded-lg mb-3 ${phoneMessage.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                     {phoneMessage.text}
@@ -1207,13 +1305,13 @@ export default function SettingsPage() {
         )}
 
         {/* パスワード変更 */}
-        <div className="bg-white rounded-xl border border-gray-200 mb-3">
+        <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
           <button onClick={() => toggleSection("password")} className="w-full flex items-center justify-between px-4 py-3.5">
-            <span className="text-sm font-bold text-gray-800">🔑 パスワード変更</span>
+            <span className="text-sm font-bold text-gray-100">🔑 パスワード変更</span>
             <span className="text-gray-400 text-xs">{isOpen("password") ? "▲" : "▼"}</span>
           </button>
           {isOpen("password") && (
-            <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+            <div className="px-4 pb-4 border-t border-gray-700 pt-3">
               <form onSubmit={handlePasswordSubmit} className="space-y-2" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
                 {message && (
                   <div className={`text-xs px-3 py-2 rounded-lg ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>

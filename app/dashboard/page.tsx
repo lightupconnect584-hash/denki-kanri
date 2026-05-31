@@ -20,7 +20,7 @@ interface Project {
   updatedAt: string;
   notifyAdminAt: string | null;
   notifyPartnerAt: string | null;
-  assignedTo: { id: string; name: string; companyName: string | null } | null;
+  assignedTo: { id: string; name: string; companyName: string | null; color: string | null } | null;
   inspections: { id: string; workDate: string }[];
   quotes: { id: string; status: string }[];
   comments: { createdAt: string }[];
@@ -311,13 +311,19 @@ export default function DashboardPage() {
   }, {});
   const maxPerCompany = Math.max(0, ...Object.values(activePerCompany));
   // 完了済みは当月分のみ表示
-  const completedProjects = filtered.filter((p) => {
-    if (!DONE_STATUSES.includes(p.status)) return false;
-    const d = getWorkDate(p);
-    if (!d) return false;
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    return key === currentMonthKey;
-  });
+  const completedProjects = filtered
+    .filter((p) => {
+      if (!DONE_STATUSES.includes(p.status)) return false;
+      const d = getWorkDate(p);
+      if (!d) return false;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return key === currentMonthKey;
+    })
+    .sort((a, b) => {
+      const aD = getWorkDate(a)?.getTime() ?? 0;
+      const bD = getWorkDate(b)?.getTime() ?? 0;
+      return aD - bD;
+    });
   const rejectedProjects = filtered.filter((p) => p.status === "REJECTED");
 
   const sortedActive = [...activeProjects].sort((a, b) => {
@@ -346,10 +352,10 @@ export default function DashboardPage() {
     const diffDays = Math.ceil((new Date(visit).setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 86400000);
     const dateStr = visit.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
     if (diffDays < 0) return null;
-    if (diffDays === 0) return { text: `今日 ${dateStr}`, color: "bg-red-100 text-red-700 border border-red-200" };
-    if (diffDays === 1) return { text: `明日 ${dateStr}`, color: "bg-orange-100 text-orange-700 border border-orange-200" };
-    if (diffDays <= 3) return { text: `📅 ${dateStr}（${diffDays}日後）`, color: "bg-yellow-50 text-yellow-700 border border-yellow-200" };
-    return { text: `📅 ${dateStr}`, color: "bg-blue-50 text-blue-600 border border-blue-100" };
+    if (diffDays === 0) return { text: `今日 ${dateStr}`, color: "bg-red-900/50 text-red-300 border border-red-700" };
+    if (diffDays === 1) return { text: `明日 ${dateStr}`, color: "bg-orange-900/40 text-orange-300 border border-orange-700" };
+    if (diffDays <= 3) return { text: dateStr, color: "bg-yellow-900/40 text-yellow-300 border border-yellow-700" };
+    return { text: dateStr, color: "bg-blue-900/30 text-blue-400 border border-blue-800" };
   };
 
   const abbrevAddr = (addr: string) => addr.replace(/[0-9].*$/, "").trim();
@@ -567,35 +573,45 @@ export default function DashboardPage() {
   const renderProject = (p: Project) => {
     const visitBadge = getVisitBadge(p.visitDate);
     const unread = isUnread(p);
+    const partnerColor = p.assignedTo?.color;
     return (
       <Link key={p.id} href={`/projects/${p.id}`}
-        className={`relative block rounded-xl border p-4 hover:shadow-sm transition overflow-hidden ${unread ? "bg-blue-50 border-blue-400 border-2" : "bg-white border-gray-200 hover:border-blue-300"}`}>
-        {unread && (
-          <span className="absolute inset-y-0 left-0 w-2 bg-blue-500" />
+        className={`relative block rounded-xl border transition overflow-hidden group
+          ${unread
+            ? "bg-gray-800 border-blue-400 border-l-4 shadow-blue-900/30 shadow-md"
+            : "bg-gray-800/60 border-gray-700 hover:border-gray-500 hover:shadow-sm"
+          }`}>
+        {/* 担当者カラーバー */}
+        {partnerColor && (
+          <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: partnerColor }} />
         )}
-        <div className="flex items-start justify-between gap-2">
-          <div className={`flex-1 min-w-0 ${unread ? "pl-3" : ""}`}>
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-gray-800 truncate">{p.title}</p>
-              {p.urgency === "HIGH" && <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
-              {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">中</span>}
+        <div className="flex items-start justify-between gap-3 p-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-gray-100 truncate">{p.title}</p>
+              {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
+              {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">中</span>}
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">📍 {p.location}</p>
-            {p.workType && (
-              <p className="text-xs text-gray-600 mt-0.5 font-medium">⚪︎ {p.workType}</p>
-            )}
-            {role === "ADMIN" && p.assignedTo && (
-              <p className="text-xs text-gray-400 mt-0.5">担当: {p.assignedTo.companyName || p.assignedTo.name}</p>
-            )}
+            <p className="text-sm text-gray-400 mt-0.5 truncate">📍 {p.location}</p>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              {p.workType && (
+                <p className="text-xs text-gray-400 font-medium">{p.workType}</p>
+              )}
+              {role === "ADMIN" && p.assignedTo && (
+                <p className="text-xs flex items-center gap-1">
+                  {partnerColor && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: partnerColor }} />}
+                  <span className="text-gray-500">{p.assignedTo.companyName || p.assignedTo.name}</span>
+                </p>
+              )}
+            </div>
             {visitBadge && (
-              <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium ${visitBadge.color}`}>
-                訪問予定: {visitBadge.text}
+              <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium ${visitBadge.color}`}>
+                {visitBadge.text}
               </span>
             )}
           </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
             <StatusBadge status={p.status} />
-            {p.dueDate && <p className="text-xs text-gray-400">期日: {new Date(p.dueDate).toLocaleDateString("ja-JP")}</p>}
           </div>
         </div>
       </Link>
@@ -607,7 +623,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-950">
       {/* 月末お礼モーダル */}
       {showMonthlyThanks && monthlyAdmin && (
         <div
@@ -716,16 +732,14 @@ export default function DashboardPage() {
           <button onClick={() => setStorageWarning(null)} className="ml-4 text-yellow-800 hover:text-yellow-900">✕</button>
         </div>
       )}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 sm:py-6">
-        <div className="flex items-center justify-between mb-3">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 sm:py-6">
+
+        {/* タイトルバー */}
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-white">依頼一覧</h2>
-            <button
-              onClick={() => fetchProjects(true)}
-              disabled={refreshing}
-              className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40"
-              title="更新"
-            >
+            <h2 className="text-lg font-bold text-white lg:text-xl">依頼一覧</h2>
+            <button onClick={() => fetchProjects(true)} disabled={refreshing}
+              className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40" title="更新">
               <span className={`text-base ${refreshing ? "animate-spin inline-block" : ""}`}>🔄</span>
             </button>
             {lastUpdated && (
@@ -735,6 +749,12 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="flex items-center gap-1.5">
+            {unreadCount > 0 && (
+              <button onClick={markAllRead}
+                className="text-xs text-blue-400 border border-blue-700 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-blue-900/40 transition">
+                全て既読
+              </button>
+            )}
             <Link href="/calendar" className="text-gray-300 border border-gray-600 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-gray-800 transition">
               <span className="text-sm">📅</span><span className="hidden sm:inline text-sm ml-1">カレンダー</span>
             </Link>
@@ -746,125 +766,152 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* サマリー */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {(() => {
-            const isRed = maxPerCompany >= 8;
-            const isYellow = !isRed && maxPerCompany >= 5;
-            return (
-              <div className={`rounded-xl border px-3 py-2.5 text-center ${isRed ? "bg-red-50 border-red-300" : isYellow ? "bg-yellow-50 border-yellow-300" : "bg-white border-gray-200"}`}>
-                <p className="text-xs text-gray-400 mb-0.5">進行中</p>
-                <p className={`text-lg font-bold ${isRed ? "text-red-600" : isYellow ? "text-yellow-600" : "text-gray-800"}`}>{activeProjects.length}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
-              </div>
-            );
-          })()}
-          <Link href="/billing" className="bg-white rounded-xl border border-gray-200 px-3 py-2.5 text-center block hover:bg-gray-50 transition">
-            <p className="text-xs text-gray-400 mb-0.5">完了済み</p>
-            <p className="text-lg font-bold text-gray-800">{completedProjects.length}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
-          </Link>
-          <div className={`rounded-xl border px-3 py-2.5 text-center ${unreadCount > 0 ? "bg-blue-50 border-blue-300" : "bg-white border-gray-200"}`}>
-            <p className="text-xs text-gray-400 mb-0.5">未読</p>
-            <p className={`text-lg font-bold ${unreadCount > 0 ? "text-blue-600" : "text-gray-800"}`}>{unreadCount}<span className="text-xs font-normal text-gray-400 ml-0.5">件</span></p>
-          </div>
-        </div>
+        {/* PC: 2カラム / モバイル: 1カラム */}
+        <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-6 lg:items-start">
 
-        {/* 検索・フィルター */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3 space-y-2">
-          <div className="flex gap-2">
-            <input
-              type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="🔍 物件名・住所・依頼名で検索"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={() => setShowFilters((v) => !v)}
-              className={`text-xs px-3 py-2 rounded-lg border transition shrink-0 ${showFilters || filterStatus || filterUrgency || filterRegion || filterPartner ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}
-            >
-              絞り込み
-            </button>
-          </div>
-          {showFilters && (
-            <div className="space-y-2 pt-1">
-              <div className="flex gap-2 flex-wrap">
+          {/* ===== 左サイドバー ===== */}
+          <div className="lg:sticky lg:top-4 space-y-3">
+
+            {/* サマリー（PC：縦並び / モバイル：横並び） */}
+            <div className="hidden lg:flex flex-col gap-2">
+              {(() => {
+                const isRed = maxPerCompany >= 8;
+                const isYellow = !isRed && maxPerCompany >= 5;
+                return (
+                  <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${isRed ? "bg-red-900/40 border border-red-700" : isYellow ? "bg-yellow-900/40 border border-yellow-700" : "bg-gray-800 border border-gray-700"}`}>
+                    <span className="text-sm text-gray-300">進行中</span>
+                    <span className={`text-2xl font-bold ${isRed ? "text-red-400" : isYellow ? "text-yellow-400" : "text-white"}`}>{activeProjects.length}<span className="text-sm font-normal text-gray-400 ml-1">件</span></span>
+                  </div>
+                );
+              })()}
+              <Link href="/billing" className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 flex items-center justify-between hover:border-blue-500 transition group">
+                <span className="text-sm text-gray-300 group-hover:text-white transition">今月の完了</span>
+                <span className="text-2xl font-bold text-white">{completedProjects.length}<span className="text-sm font-normal text-gray-400 ml-1">件</span></span>
+              </Link>
+              <div className={`rounded-xl px-4 py-3 flex items-center justify-between border ${unreadCount > 0 ? "bg-blue-900/40 border-blue-600" : "bg-gray-800 border-gray-700"}`}>
+                <span className="text-sm text-gray-300">未読</span>
+                <span className={`text-2xl font-bold ${unreadCount > 0 ? "text-blue-400" : "text-white"}`}>{unreadCount}<span className="text-sm font-normal text-gray-400 ml-1">件</span></span>
+              </div>
+            </div>
+
+            {/* サマリー（モバイル：横2列） */}
+            <div className="grid grid-cols-2 gap-2 lg:hidden">
+              {(() => {
+                const isRed = maxPerCompany >= 8;
+                const isYellow = !isRed && maxPerCompany >= 5;
+                return (
+                  <div className={`rounded-xl border px-3 py-3 text-center ${isRed ? "bg-red-900/40 border-red-700" : isYellow ? "bg-yellow-900/40 border-yellow-700" : "bg-gray-800 border-gray-700"}`}>
+                    <p className="text-xs text-gray-400 mb-0.5">進行中</p>
+                    <p className={`text-xl font-bold ${isRed ? "text-red-400" : isYellow ? "text-yellow-400" : "text-white"}`}>{activeProjects.length}<span className="text-xs font-normal text-gray-500 ml-0.5">件</span></p>
+                  </div>
+                );
+              })()}
+              <div className={`rounded-xl border px-3 py-3 text-center ${unreadCount > 0 ? "bg-blue-900/40 border-blue-600" : "bg-gray-800 border-gray-700"}`}>
+                <p className="text-xs text-gray-400 mb-0.5">未読</p>
+                <p className={`text-xl font-bold ${unreadCount > 0 ? "text-blue-400" : "text-white"}`}>{unreadCount}<span className="text-xs font-normal text-gray-500 ml-0.5">件</span></p>
+              </div>
+            </div>
+
+            {/* 検索・フィルター */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 p-3 space-y-2">
+              <input
+                type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="🔍 物件名・住所・依頼名"
+                className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={() => setShowFilters((v) => !v)}
+                className={`lg:hidden w-full text-xs px-3 py-2 rounded-lg border transition ${showFilters || filterStatus || filterUrgency || filterRegion || filterPartner ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-gray-500"}`}
+              >
+                {showFilters ? "▲ 絞り込みを閉じる" : "▼ 絞り込み・並び替え"}
+              </button>
+              <div className={`space-y-2 ${showFilters ? "block" : "hidden"} lg:block`}>
                 <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-                  className="flex-1 min-w-[120px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  className="w-full border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">全ステータス</option>
                   <option value="PENDING">依頼中</option>
                   <option value="REWORK">再報告待ち</option>
                   <option value="ACCEPTED">受注済</option>
                   <option value="INSPECTED">完了報告済</option>
-                  <option value="CONFIRMED">確認済</option>
                   <option value="QUOTE_REQUESTED">見積依頼中</option>
                   <option value="QUOTE_REVIEWING">見積り中</option>
-                  <option value="COMPLETED">完了</option>
                   <option value="REJECTED">差し戻し</option>
                 </select>
-                <select value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value)}
-                  className="flex-1 min-w-[80px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">全緊急度</option>
-                  <option value="HIGH">高</option>
-                  <option value="MEDIUM">中</option>
-                  <option value="LOW">低</option>
-                </select>
-                <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)}
-                  className="flex-1 min-w-[80px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">全地域</option>
-                  <option value="栃木県">栃木県</option>
-                  <option value="茨城県">茨城県</option>
-                  <option value="群馬県">群馬県</option>
-                  <option value="埼玉県">埼玉県</option>
-                  <option value="東京都">東京都</option>
-                </select>
+                <div className="flex gap-2">
+                  <select value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value)}
+                    className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">全緊急度</option>
+                    <option value="HIGH">高</option>
+                    <option value="MEDIUM">中</option>
+                    <option value="LOW">低</option>
+                  </select>
+                  <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)}
+                    className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">全地域</option>
+                    <option value="栃木県">栃木県</option>
+                    <option value="茨城県">茨城県</option>
+                    <option value="群馬県">群馬県</option>
+                    <option value="埼玉県">埼玉県</option>
+                    <option value="東京都">東京都</option>
+                  </select>
+                </div>
                 {role === "ADMIN" && (
                   <select value={filterPartner} onChange={(e) => setFilterPartner(e.target.value)}
-                    className="flex-1 min-w-[100px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    className="w-full border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">全協力会社</option>
                     {partners.map(([id, name]) => (
                       <option key={id} value={id}>{name}</option>
                     ))}
                   </select>
                 )}
-              </div>
-              {/* 並び替え：常に独立した行・全幅 */}
-              <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs w-full">
-                {[
-                  { key: "visit", label: "訪問順" },
-                  { key: "urgency", label: "緊急順" },
-                  { key: "status", label: "状態順" },
-                  { key: "region", label: "地域順" },
-                ].map(({ key, label }) => (
-                  <button key={key} onClick={() => setSortMode(key as typeof sortMode)}
-                    className={`flex-1 py-1.5 transition ${sortMode === key ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
-                    {label}
-                  </button>
-                ))}
+                <div>
+                  <p className="text-xs text-gray-500 mb-1.5">並び替え</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { key: "visit", label: "訪問日順" },
+                      { key: "urgency", label: "緊急度順" },
+                      { key: "status", label: "状態順" },
+                      { key: "region", label: "地域順" },
+                    ].map(({ key, label }) => (
+                      <button key={key} onClick={() => setSortMode(key as typeof sortMode)}
+                        className={`py-1.5 text-xs rounded-lg border transition font-medium ${sortMode === key ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+
+
+          </div>
+
+          {/* ===== 右メインエリア ===== */}
+          <div className="mt-3 lg:mt-0">
+            {sortedActive.length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <p className="text-4xl mb-3">📋</p>
+                <p>{search || filterStatus || filterUrgency || filterRegion ? "条件に一致する依頼がありません" : "進行中の依頼がありません"}</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">{sortedActive.map(renderProject)}</div>
+            )}
+
+            {/* 差し戻しゾーン */}
+            {role === "ADMIN" && rejectedProjects.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center gap-2 px-4 py-3 bg-red-950 border border-red-800 rounded-xl text-sm text-red-300 mb-3">
+                  <span className="text-base">↩</span>
+                  <span className="font-medium">差し戻しゾーン</span>
+                  <span className="ml-1 text-red-500">（{rejectedProjects.length}件）</span>
+                </div>
+                <div className="space-y-2.5">{rejectedProjects.map(renderProject)}</div>
+              </div>
+            )}
+
+          </div>
+
         </div>
-
-        {sortedActive.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-4xl mb-3">📋</p>
-            <p>{search || filterStatus || filterUrgency || filterRegion ? "条件に一致する依頼がありません" : "進行中の依頼がありません"}</p>
-          </div>
-        ) : (
-          <div className="space-y-3">{sortedActive.map(renderProject)}</div>
-        )}
-
-        {/* 差し戻しゾーン（管理者のみ） */}
-        {role === "ADMIN" && rejectedProjects.length > 0 && (
-          <div className="mt-6">
-            <div className="flex items-center gap-2 px-4 py-3 bg-red-950 border border-red-800 rounded-xl text-sm text-red-300 mb-3">
-              <span className="text-base">↩</span>
-              <span className="font-medium">差し戻しゾーン</span>
-              <span className="ml-1 text-red-500">（{rejectedProjects.length}件）</span>
-              <span className="text-xs text-red-500 ml-1">— 協力会社が受けられなかった依頼</span>
-            </div>
-            <div className="space-y-3">{rejectedProjects.map(renderProject)}</div>
-          </div>
-        )}
-
       </main>
     </div>
   );

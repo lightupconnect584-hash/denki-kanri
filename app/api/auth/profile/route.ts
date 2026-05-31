@@ -9,7 +9,7 @@ export async function GET() {
   const userId = (session.user as { id: string }).id;
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true },
+    select: { avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true, color: true },
   });
   return NextResponse.json(user);
 }
@@ -21,6 +21,16 @@ export async function PATCH(req: NextRequest) {
   const userId = (session.user as { id: string }).id;
   const body = await req.json();
 
+  // カラー選択（パートナーのみ・未設定の場合のみ）
+  if ("color" in body) {
+    const current = await prisma.user.findUnique({ where: { id: userId }, select: { color: true } });
+    if (current?.color) {
+      return NextResponse.json({ error: "カラーは一度設定すると変更できません" }, { status: 403 });
+    }
+    await prisma.user.update({ where: { id: userId }, data: { color: body.color || null } });
+    return NextResponse.json({ ok: true });
+  }
+
   const updateData: { avatarUrl?: string | null; phone?: string | null; thankYouEnabled?: boolean; thankYouImageUrl?: string | null; thankYouMessage?: string | null } = {};
   if ("avatarUrl" in body) updateData.avatarUrl = body.avatarUrl || null;
   if ("phone" in body) updateData.phone = body.phone?.trim() || null;
@@ -31,7 +41,7 @@ export async function PATCH(req: NextRequest) {
   const user = await prisma.user.update({
     where: { id: userId },
     data: updateData,
-    select: { avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true },
+    select: { avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true, color: true },
   });
 
   return NextResponse.json(user);

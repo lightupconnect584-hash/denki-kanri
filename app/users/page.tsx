@@ -13,6 +13,8 @@ interface User {
   role: string;
   avatarUrl: string | null;
   color: string | null;
+  lastLoginAt: string | null;
+  loginLogs: { createdAt: string }[];
 }
 
 const PRESET_COLORS = [
@@ -41,6 +43,7 @@ export default function UsersPage() {
 
   const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [savingColor, setSavingColor] = useState(false);
+  const [loginLogId, setLoginLogId] = useState<string | null>(null);
 
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
@@ -161,16 +164,27 @@ export default function UsersPage() {
             </div>
             {u.companyName && <p className="text-xs text-gray-500">{u.name}</p>}
             <p className="text-xs text-gray-400 mt-0.5">{u.email}</p>
+            {u.role === "PARTNER" && (
+              <button
+                onClick={() => setLoginLogId(loginLogId === u.id ? null : u.id)}
+                className="text-xs text-gray-400 mt-0.5 hover:text-blue-500 transition text-left"
+              >
+                最終アクセス：{u.lastLoginAt
+                  ? new Date(u.lastLoginAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) +
+                    " " + new Date(u.lastLoginAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
+                  : "未ログイン"} {u.loginLogs?.length > 0 ? "▾" : ""}
+              </button>
+            )}
           </div>
         </div>
         <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-          {u.role === "PARTNER" && (
+          {u.role === "PARTNER" && !u.color && (
             <button
               onClick={() => setColorPickerId(colorPickerId === u.id ? null : u.id)}
               className="text-xs text-gray-500 border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 transition flex items-center gap-1"
             >
-              <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: u.color || "#d1d5db" }} />
-              カラー
+              <span className="w-3 h-3 rounded-full inline-block bg-gray-300" />
+              カラー未設定
             </button>
           )}
           <button
@@ -193,6 +207,20 @@ export default function UsersPage() {
           )}
         </div>
       </div>
+
+      {/* ログイン履歴 */}
+      {loginLogId === u.id && u.loginLogs?.length > 0 && (
+        <div className="border border-gray-200 bg-gray-50 rounded-xl p-3 space-y-1">
+          <p className="text-xs font-medium text-gray-600 mb-2">ログイン履歴（直近 {u.loginLogs.length}件）</p>
+          {u.loginLogs.map((log, i) => (
+            <p key={i} className="text-xs text-gray-500">
+              {new Date(log.createdAt).toLocaleDateString("ja-JP", { year: "numeric", month: "numeric", day: "numeric" })}
+              {" "}
+              {new Date(log.createdAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
+            </p>
+          ))}
+        </div>
+      )}
 
       {/* カラーピッカー */}
       {colorPickerId === u.id && (

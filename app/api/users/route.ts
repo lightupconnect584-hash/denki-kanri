@@ -14,15 +14,22 @@ async function requireAdmin() {
 }
 
 // 一覧取得
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { error, status } = await requireAdmin();
   if (error) return NextResponse.json({ error }, { status });
 
+  const roleFilter = req.nextUrl.searchParams.get("role");
+
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, companyName: true, role: true, avatarUrl: true, color: true },
+    where: roleFilter ? { role: roleFilter } : undefined,
+    select: {
+      id: true, name: true, email: true, companyName: true, role: true,
+      avatarUrl: true, color: true, lastLoginAt: true,
+      loginLogs: roleFilter ? undefined : { orderBy: { createdAt: "desc" }, take: 10, select: { createdAt: true } },
+    },
     orderBy: { role: "asc" },
   });
-  return NextResponse.json(users);
+  return NextResponse.json(roleFilter ? { users } : users);
 }
 
 // 新規作成
@@ -54,8 +61,12 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json();
 
-  // カラー変更
+  // カラー変更（一度設定済みの場合は変更不可）
   if (body.color !== undefined) {
+    const existing = await prisma.user.findUnique({ where: { id }, select: { color: true } });
+    if (existing?.color) {
+      return NextResponse.json({ error: "カラーは一度設定すると変更できません" }, { status: 403 });
+    }
     await prisma.user.update({ where: { id }, data: { color: body.color || null } });
     return NextResponse.json({ ok: true });
   }

@@ -26,7 +26,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon.png" />
         <link rel="icon" href="/icon.png" />
       </head>
-      <body className="min-h-full bg-gray-50">
+      <body className="min-h-full bg-gray-950">
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

@@ -16,11 +16,11 @@ const CHANGELOG = [
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-      <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-        <p className="text-sm font-bold text-gray-700">{title}</p>
+    <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-4">
+      <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700">
+        <p className="text-sm font-bold text-gray-200">{title}</p>
       </div>
-      <div className="px-4 py-4 space-y-2 text-sm text-gray-700">{children}</div>
+      <div className="px-4 py-4 space-y-2 text-sm text-gray-200">{children}</div>
     </div>
   );
 }
@@ -29,7 +29,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <div className="flex gap-3">
       <span className="shrink-0 text-gray-400 w-28 text-xs pt-0.5">{label}</span>
-      <span className="flex-1 text-gray-800 text-xs leading-relaxed">{children}</span>
+      <span className="flex-1 text-gray-100 text-xs leading-relaxed">{children}</span>
     </div>
   );
 }
@@ -52,18 +52,18 @@ export default function HelpPage() {
   }, [status, router]);
 
   if (status === "loading") {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">読み込み中...</p></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>;
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-950">
       <Header />
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-white">使い方ガイド</h2>
-            <p className="text-xs text-gray-500 mt-0.5">最終更新: {VERSION}</p>
+            <p className="text-xs text-gray-400 mt-0.5">最終更新: {VERSION}</p>
           </div>
         </div>
 

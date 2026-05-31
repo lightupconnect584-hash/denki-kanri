@@ -3,64 +3,94 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyNewComment } from "@/lib/email";
+import { sendPushToUsers, getAdminIds } from "@/lib/push";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await params;
-  const userId = (session.user as { id: string }).id;
-  const role = (session.user as { role: string }).role;
-  const body = await req.json();
+    const { id } = await params;
+    const userId = (session.user as { id?: string }).id;
+    const role = (session.user as { role?: string }).role;
 
-  if (!body.content?.trim()) return NextResponse.json({ error: "Content required" }, { status: 400 });
+    // セッションにユーザーIDが含まれていない場合は再ログインを促す
+    if (!userId) return NextResponse.json({ error: "セッションが無効です。一度ログアウトして再ログインしてください。" }, { status: 401 });
 
-  // 協力会社は自分の案件のみコメント可
-  if (role === "PARTNER") {
-    const proj = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true } });
-    if (proj?.assignedToId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    const body = await req.json();
+    if (!body.content?.trim()) return NextResponse.json({ error: "Content required" }, { status: 400 });
 
-  const [comment, project] = await Promise.all([
-    prisma.comment.create({
-      data: { projectId: id, authorId: userId, content: body.content.trim() },
-      include: { author: { select: { name: true, companyName: true, role: true, avatarUrl: true } } },
-    }),
-    prisma.project.update({
-      where: { id },
-      data: {
-        updatedAt: new Date(),
-        // 管理者コメント → 協力会社に通知、協力会社コメント → 管理者に通知
-        ...(role === "ADMIN" ? { notifyPartnerAt: new Date() } : { notifyAdminAt: new Date() }),
-      },
-      include: {
-        assignedTo: { select: { email: true } },
-        createdBy: { select: { email: true } },
-      },
-    }),
-  ]);
+    // 協力会社は自分の案件のみコメント可
+    if (role === "PARTNER") {
+      const proj = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true } });
+      if (proj?.assignedToId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-  // ログ記録
-  await prisma.activityLog.create({
-    data: { projectId: id, userId, action: "COMMENT", detail: body.content.trim().slice(0, 100) },
-  });
+    const [comment, project] = await Promise.all([
+      prisma.comment.create({
+        data: { projectId: id, authorId: userId, content: body.content.trim() },
+        include: { author: { select: { name: true, companyName: true, role: true, avatarUrl: true } } },
+      }),
+      prisma.project.update({
+        where: { id },
+        data: {
+          updatedAt: new Date(),
+          // 管理者コメント → 協力会社に通知、協力会社コメント → 管理者に通知
+          ...(role === "ADMIN" ? { notifyPartnerAt: new Date() } : { notifyAdminAt: new Date() }),
+        },
+        include: {
+          assignedTo: { select: { id: true, email: true } },
+          createdBy: { select: { email: true } },
+        },
+      }),
+    ]);
 
-  // 通知メール：相手側へ
-  if (project) {
+    // ログ記録
+    await prisma.activityLog.create({
+      data: { projectId: id, userId, action: "COMMENT", detail: body.content.trim().slice(0, 100) },
+    }).catch(() => {}); // ログ失敗はコメント送信を止めない
+
+    // 通知メール：相手側へ
     const authorName = (session.user as { name?: string }).name || "ユーザー";
     if (role === "ADMIN") {
-      // 管理者 → 協力会社へ
       if (project.assignedTo?.email) {
-        await notifyNewComment([project.assignedTo.email], id, project.title, authorName, body.content);
+        notifyNewComment([project.assignedTo.email], id, project.title, authorName, body.content).catch(() => {});
       }
     } else {
-      // 協力会社 → 管理者へ
-      const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
-      await notifyNewComment(admins.map(a => a.email), id, project.title, authorName, body.content);
+      prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } })
+        .then((admins) => notifyNewComment(admins.map(a => a.email), id, project.title, authorName, body.content))
+        .catch(() => {});
     }
-  }
 
-  return NextResponse.json(comment);
+    // プッシュ通知：相手側へ
+    const notifBody = `${authorName}：${body.content.trim().slice(0, 60)}`;
+    const notifUrl = `/projects/${id}`;
+    if (role === "ADMIN" && project.assignedTo) {
+      sendPushToUsers([project.assignedTo.id ?? ""], {
+        title: `💬 ${project.title}`,
+        body: notifBody,
+        url: notifUrl,
+      }).catch(() => {});
+    } else if (role === "PARTNER") {
+      getAdminIds().then((adminIds) =>
+        sendPushToUsers(adminIds, {
+          title: `💬 ${project.title}`,
+          body: notifBody,
+          url: notifUrl,
+        })
+      ).catch(() => {});
+    }
+
+    return NextResponse.json(comment);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[comments POST]", msg);
+    // セッションのユーザーIDがDBに存在しない場合（再ログインで解決）
+    if (msg.includes("Foreign key constraint") && msg.includes("authorId")) {
+      return NextResponse.json({ error: "セッションが古くなっています。一度ログアウトして再ログインしてください。" }, { status: 401 });
+    }
+    return NextResponse.json({ error: "サーバーエラーが発生しました。" }, { status: 500 });
+  }
 }
 
 // 既読：自分宛て（相手が送った）コメントをまとめて既読にする

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyInspectionSubmitted } from "@/lib/email";
+import { sendPushToUsers, getAdminIds } from "@/lib/push";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -61,6 +62,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     admins.map(a => a.email), id, project.title,
     userName, body.result, workDateStr
   );
+
+  // 管理者へプッシュ通知
+  const resultLabel = body.result === "REPAIR_NEEDED" ? "🔧 修理が必要" : "✅ 問題なし";
+  getAdminIds().then((adminIds) =>
+    sendPushToUsers(adminIds, {
+      title: `完了報告が届きました`,
+      body: `${project.title} — ${resultLabel}（${userName}）`,
+      url: `/projects/${id}`,
+    })
+  ).catch(() => {});
 
   return NextResponse.json(inspection);
 }

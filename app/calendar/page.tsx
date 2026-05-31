@@ -146,21 +146,21 @@ export default function CalendarPage() {
   };
 
   if (status === "loading" || loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">読み込み中...</p></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>;
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-950">
       <Header />
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
           <h2 className="text-lg font-bold text-white flex-1">📅 カレンダー</h2>
-            {role === "ADMIN" && (
+          {role === "ADMIN" && (
             <select
               value={filterPartner}
               onChange={(e) => setFilterPartner(e.target.value)}
-              className="border border-gray-600 bg-gray-800 text-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-600 bg-gray-700 text-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">全協力会社</option>
               {partners.map(([id, name]) => (
@@ -171,20 +171,20 @@ export default function CalendarPage() {
         </div>
 
         {/* カレンダーグリッド */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <button onClick={prevMonth} className="text-gray-500 hover:text-gray-800 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition text-xl">‹</button>
-            <p className="font-bold text-gray-800">{viewYear}年{viewMonth + 1}月</p>
-            <button onClick={nextMonth} className="text-gray-500 hover:text-gray-800 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition text-xl">›</button>
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-4">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+            <button onClick={prevMonth} className="text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 transition text-xl">‹</button>
+            <p className="font-bold text-gray-100">{viewYear}年{viewMonth + 1}月</p>
+            <button onClick={nextMonth} className="text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 transition text-xl">›</button>
           </div>
-          <div className="grid grid-cols-7 border-b border-gray-100">
+          <div className="grid grid-cols-7 border-b border-gray-700">
             {WEEKDAYS.map((d, i) => (
-              <div key={d} className={`py-2 text-center text-xs font-medium ${i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-gray-500"}`}>{d}</div>
+              <div key={d} className={`py-2 text-center text-xs font-medium ${i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-gray-500"}`}>{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7">
             {calendarDays.map((day, i) => {
-              if (!day) return <div key={`e-${i}`} className="h-14 border-b border-gray-50" />;
+              if (!day) return <div key={`e-${i}`} className="h-14 border-b border-gray-700/40" />;
               const dayNum = parseInt(day.split("-")[2]);
               const weekday = i % 7;
               const isToday = day === todayKey;
@@ -195,10 +195,10 @@ export default function CalendarPage() {
                 <button
                   key={day}
                   onClick={() => setSelectedDate(isSelected ? null : day)}
-                  className={`h-14 flex flex-col items-center pt-1.5 pb-1 border-b border-gray-50 transition ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                  className={`h-14 flex flex-col items-center pt-1.5 pb-1 border-b border-gray-700/40 transition ${isSelected ? "bg-blue-900/40" : "hover:bg-gray-700/60"}`}
                 >
                   <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium
-                    ${isToday ? "bg-blue-600 text-white" : weekday === 0 ? "text-red-500" : weekday === 6 ? "text-blue-500" : "text-gray-800"}`}>
+                    ${isToday ? "bg-blue-600 text-white" : weekday === 0 ? "text-red-400" : weekday === 6 ? "text-blue-400" : "text-gray-200"}`}>
                     {dayNum}
                   </span>
                   {dayProjects.length > 0 && (
@@ -210,7 +210,7 @@ export default function CalendarPage() {
                           style={{ backgroundColor: p.assignedTo?.color || "#3b82f6" }}
                         />
                       ))}
-                      {dayProjects.length > 3 && <span className="text-xs text-gray-500 leading-none font-bold">+</span>}
+                      {dayProjects.length > 3 && <span className="text-xs text-gray-400 leading-none font-bold">+</span>}
                     </div>
                   )}
                 </button>
@@ -243,18 +243,18 @@ export default function CalendarPage() {
             ) : (
               <div className="space-y-2">
                 {selectedProjects.map((p) => (
-                  <Link key={p.id} href={`/projects/${p.id}`} className="bg-white rounded-xl border border-gray-200 overflow-hidden flex items-stretch hover:bg-gray-50 transition block">
-                    <div className="w-1 shrink-0" style={{ backgroundColor: p.assignedTo?.color || "#e5e7eb" }} />
+                  <Link key={p.id} href={`/projects/${p.id}`} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden flex items-stretch hover:bg-gray-700 transition block">
+                    <div className="w-1 shrink-0" style={{ backgroundColor: p.assignedTo?.color || "#4b5563" }} />
                     <div className="flex items-center gap-3 px-4 py-3 flex-1 min-w-0">
                       <div className="shrink-0 text-center w-14">
                         {p.visitTime ? (
-                          <p className="text-xs font-bold text-blue-700">{p.visitTime}</p>
+                          <p className="text-xs font-bold text-blue-400">{p.visitTime}</p>
                         ) : (
-                          <p className="text-xs text-gray-400">時間未定</p>
+                          <p className="text-xs text-gray-500">時間未定</p>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{p.title}</p>
+                        <p className="text-sm font-medium text-gray-100 truncate">{p.title}</p>
                         {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
                         {role === "ADMIN" && p.assignedTo && (
                           <p className="text-xs text-gray-400 truncate">担当: {p.assignedTo.companyName || p.assignedTo.name}</p>
@@ -286,19 +286,19 @@ export default function CalendarPage() {
                   const isToday = dk === todayKey;
                   const dateLabel = d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
                   return (
-                    <Link key={p.id} href={`/projects/${p.id}`} className="bg-white rounded-xl border border-gray-200 overflow-hidden flex items-stretch hover:bg-gray-50 transition block">
-                      <div className="w-1 shrink-0" style={{ backgroundColor: p.assignedTo?.color || "#e5e7eb" }} />
+                    <Link key={p.id} href={`/projects/${p.id}`} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden flex items-stretch hover:bg-gray-700 transition block">
+                      <div className="w-1 shrink-0" style={{ backgroundColor: p.assignedTo?.color || "#4b5563" }} />
                       <div className="flex items-center gap-3 px-4 py-3 flex-1 min-w-0">
                         <div className="shrink-0 text-center w-16">
-                          <p className={`text-xs font-bold ${isToday ? "text-blue-600" : "text-gray-700"}`}>{isToday ? "今日" : dateLabel}</p>
+                          <p className={`text-xs font-bold ${isToday ? "text-blue-400" : "text-gray-300"}`}>{isToday ? "今日" : dateLabel}</p>
                           {p.visitTime ? (
-                            <p className="text-xs text-blue-700 font-medium">{p.visitTime}</p>
+                            <p className="text-xs text-blue-400 font-medium">{p.visitTime}</p>
                           ) : (
-                            <p className="text-xs text-gray-400">時間未定</p>
+                            <p className="text-xs text-gray-500">時間未定</p>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{p.title}</p>
+                          <p className="text-sm font-medium text-gray-100 truncate">{p.title}</p>
                           {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
                           {role === "ADMIN" && p.assignedTo && (
                             <p className="text-xs text-gray-400 truncate">担当: {p.assignedTo.companyName || p.assignedTo.name}</p>

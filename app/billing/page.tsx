@@ -111,6 +111,10 @@ export default function BillingPage() {
       entry.projects.push(p);
       entry.total += p.amount || 0;
     });
+    // 各グループ内を完了日昇順で並べ替え
+    map.forEach((entry) => {
+      entry.projects.sort((a, b) => getWorkDate(a).getTime() - getWorkDate(b).getTime());
+    });
     return Array.from(map.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
   }, [filtered]);
 
@@ -137,7 +141,7 @@ export default function BillingPage() {
   };
 
   if (status === "loading" || loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">読み込み中...</p></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>;
   }
 
   const monthLabel = (m: string) => {
@@ -146,7 +150,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-950">
       <Header />
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-6">
@@ -156,19 +160,19 @@ export default function BillingPage() {
           </h2>
           {filtered.length > 0 && (
             <button onClick={exportCSV}
-              className="text-xs bg-white text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition">
+              className="text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded-lg px-3 py-1.5 hover:bg-gray-700 transition">
               CSV出力
             </button>
           )}
         </div>
 
         {/* フィルター */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4 space-y-2">
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-3 mb-4 space-y-2">
           <div className="flex gap-2 flex-wrap">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 min-w-0 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">全期間</option>
               {months.map((m) => (
@@ -179,7 +183,7 @@ export default function BillingPage() {
               <select
                 value={selectedPartner}
                 onChange={(e) => setSelectedPartner(e.target.value)}
-                className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 min-w-0 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">全協力会社</option>
                 {partners.map(([id, name]) => (
@@ -209,24 +213,24 @@ export default function BillingPage() {
         ) : (
           <div className="space-y-4">
             {grouped.map(([, group]) => (
-              <div key={group.name} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div key={group.name} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 {role === "ADMIN" && (
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                    <p className="font-medium text-gray-800 text-sm">{group.name}</p>
+                  <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between">
+                    <p className="font-medium text-gray-100 text-sm">{group.name}</p>
                     <p className="text-sm font-bold text-blue-700">合計 ¥{group.total.toLocaleString()}</p>
                   </div>
                 )}
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-700">
                   {group.projects.map((p) => {
                     const dateStr = getWorkDate(p).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
                     return (
-                      <Link key={p.id} href={`/projects/${p.id}`} className="px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition block">
+                      <Link key={p.id} href={`/projects/${p.id}`} className="px-3 py-2 flex items-center gap-2 hover:bg-gray-700 transition block">
                         <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-800 truncate">{p.title}</p>
+                          <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
                           {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
                         </div>
-                        <p className="text-xs font-bold text-gray-800 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
+                        <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
                       </Link>
                     );
                   })}

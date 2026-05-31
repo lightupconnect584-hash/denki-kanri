@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendPushToUsers } from "@/lib/push";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -62,6 +63,15 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+
+  // 担当者への通知
+  if (body.assignedToId) {
+    sendPushToUsers([body.assignedToId], {
+      title: "新しい依頼が届きました",
+      body: `${body.title}（${body.location}）`,
+      url: `/projects/${project.id}`,
+    }).catch(() => {});
+  }
 
   return NextResponse.json(project);
 }

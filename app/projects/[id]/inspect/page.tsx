@@ -43,15 +43,30 @@ export default function InspectPage() {
     return null;
   }
 
+  const MAX_PHOTOS_TOTAL = 8;
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: "before" | "during" | "after" | "other") => {
     const files = e.target.files;
     if (!files) return;
 
+    const currentCount = photos.length;
+    const remaining = MAX_PHOTOS_TOTAL - currentCount;
+    if (remaining <= 0) {
+      setUploadError(`写真は合計${MAX_PHOTOS_TOTAL}枚までです`);
+      e.target.value = "";
+      return;
+    }
+
     setUploading(category);
     setUploadError("");
     const uploaded: UploadedPhoto[] = [];
+    const filesToUpload = Array.from(files).slice(0, remaining);
 
-    for (const file of Array.from(files)) {
+    if (Array.from(files).length > remaining) {
+      setUploadError(`残り${remaining}枚しか追加できません`);
+    }
+
+    for (const file of filesToUpload) {
       try {
         const compressedFile = await new Promise<File>((resolve, reject) => {
           const img = new window.Image();
@@ -97,7 +112,10 @@ export default function InspectPage() {
       }
     }
 
-    setPhotos((prev) => [...prev, ...uploaded]);
+    setPhotos((prev) => {
+      const canAdd = Math.max(0, MAX_PHOTOS_TOTAL - prev.length);
+      return [...prev, ...uploaded.slice(0, canAdd)];
+    });
     setUploading(null);
     e.target.value = "";
   };
@@ -277,17 +295,24 @@ export default function InspectPage() {
 
           {/* 写真（3セクション） */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
-            <p className="text-sm font-bold text-gray-700">作業写真</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-gray-700">作業写真</p>
+              <p className="text-xs text-gray-400">合計 {photos.length} / {MAX_PHOTOS_TOTAL}枚</p>
+            </div>
             {(["before", "during", "after", "other"] as const).map((cat) => {
               const labels = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
               const catPhotos = photos.filter((p) => p.category === cat);
+              const isFull = photos.length >= MAX_PHOTOS_TOTAL;
               return (
                 <div key={cat}>
                   <p className="text-xs font-semibold text-gray-600 mb-2">{labels[cat]}</p>
-                  <label className={`flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl py-3 cursor-pointer transition ${uploading === cat ? "border-blue-400 bg-blue-50" : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"}`}>
+                  <label
+                    className={`flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl py-3 transition ${isFull ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50" : uploading === cat ? "border-blue-400 bg-blue-50 cursor-pointer" : "border-gray-300 hover:border-blue-400 hover:bg-blue-50 cursor-pointer"}`}
+                    onClick={(e) => { if (isFull || uploading !== null) e.preventDefault(); }}
+                  >
                     <span className="text-xl">📷</span>
                     <span className="text-sm text-gray-600">
-                      {uploading === cat ? "アップロード中..." : "写真を選択（複数可）"}
+                      {uploading === cat ? "アップロード中..." : isFull ? "上限に達しました（合計8枚）" : "写真を選択（複数可）"}
                     </span>
                     <input
                       type="file"
@@ -295,7 +320,7 @@ export default function InspectPage() {
                       multiple
                       className="hidden"
                       onChange={(e) => handlePhotoUpload(e, cat)}
-                      disabled={uploading !== null}
+                      disabled={uploading !== null || isFull}
                     />
                   </label>
                   {catPhotos.length > 0 && (

@@ -23,6 +23,13 @@ export const authOptions: NextAuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
+        const now = new Date();
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: now },
+        });
+        await prisma.loginLog.create({ data: { userId: user.id } });
+
         return {
           id: user.id,
           email: user.email,
@@ -47,6 +54,21 @@ export const authOptions: NextAuthOptions = {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.phone = (user as any).phone;
       }
+      // roleが欠落している場合はDBから補完（セッション作成時期の差異対策）
+      if (!token.role && token.sub) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { role: true, companyName: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            if (!token.companyName) token.companyName = dbUser.companyName;
+          }
+        } catch {
+          // DB参照失敗時はセッション自体を壊さない
+        }
+      }
       // update() 呼び出し時にトークンを更新
       if (trigger === "update") {
         if (session?.avatarUrl !== undefined) token.avatarUrl = session.avatarUrl;
@@ -70,5 +92,6 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 365 * 24 * 60 * 60, // 1年
   },
 };

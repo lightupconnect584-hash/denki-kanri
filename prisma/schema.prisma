@@ -20,7 +20,8 @@ model User {
   thankYouEnabled  Boolean @default(true)
   thankYouImageUrl String?
   thankYouMessage  String?
-  createdAt   DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
 
   assignedProjects Project[]   @relation("AssignedTo")
   createdProjects  Project[]   @relation("CreatedBy")
@@ -31,6 +32,27 @@ model User {
   activityLogs     ActivityLog[]
   modelsCreated    ReplacementModel[] @relation("ModelCreatedBy")
   modelsUpdated    ReplacementModel[] @relation("ModelUpdatedBy")
+  loginLogs         LoginLog[]
+  pushSubscriptions PushSubscription[]
+  sentDMs          DirectMessage[] @relation("SentDMs")
+  receivedDMs      DirectMessage[] @relation("ReceivedDMs")
+}
+
+model LoginLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Project {
@@ -211,6 +233,18 @@ model WorkTypeMaster {
   defaultUrgency String?
   order          Int      @default(0)
   createdAt      DateTime @default(now())
+}
+
+model DirectMessage {
+  id        String    @id @default(cuid())
+  content   String
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  from      User   @relation("SentDMs", fields: [fromId], references: [id], onDelete: Cascade)
+  fromId    String
+  to        User   @relation("ReceivedDMs", fields: [toId], references: [id], onDelete: Cascade)
+  toId      String
 }
 
 model Quote {

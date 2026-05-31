@@ -162,8 +162,9 @@ export default function SettingsPage() {
       fetch("/api/auth/profile", { method: "GET" }).then((r) => r.json()).then((data) => {
         if (data.color !== undefined) setMyColor(data.color);
         if (data.usedColors) setUsedColors(data.usedColors);
-        setBasicInfo({
-          companyName:    (session?.user as { companyName?: string })?.companyName || "",
+        const cn = (session?.user as { companyName?: string })?.companyName || "";
+        const filled = {
+          companyName:    cn,
           address:        data.address        || "",
           birthDate:      data.birthDate      ? data.birthDate.slice(0, 10) : "",
           bloodType:      data.bloodType      || "",
@@ -173,7 +174,13 @@ export default function SettingsPage() {
           licenseNumber:  data.licenseNumber  || "",
           licenseExpiry:  data.licenseExpiry  ? data.licenseExpiry.slice(0, 10) : "",
           vehicleNumber:  data.vehicleNumber  || "",
-        });
+        };
+        setBasicInfo(filled);
+        // 必須項目が未入力ならデフォルトで開く
+        const allFilled = !!(filled.companyName && filled.address && filled.birthDate && filled.bloodType && filled.emergencyName && filled.emergencyPhone);
+        if (!allFilled) {
+          setOpenSections(prev => { const s = new Set(prev); s.add("basicInfo"); return s; });
+        }
       }).catch(() => {});
     }
   }, [role]);
@@ -1458,17 +1465,22 @@ export default function SettingsPage() {
         )}
 
         {/* 基本情報（パートナーのみ） */}
-        {role === "PARTNER" && (
+        {role === "PARTNER" && (() => {
+          const basicAllFilled = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
+          return (
           <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
-            <div className="px-4 py-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-100">📋 基本情報</span>
-                {/* 必須項目の未入力インジケーター */}
-                {(!basicInfo.address || !basicInfo.birthDate || !basicInfo.bloodType || !basicInfo.emergencyName || !basicInfo.emergencyPhone) && (
-                  <span className="text-xs bg-red-900/50 text-red-300 border border-red-700 rounded px-1.5 py-0.5">未入力あり</span>
+            <button onClick={() => toggleSection("basicInfo")} className="w-full px-4 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-bold text-gray-100 shrink-0">📋 基本情報</span>
+                {!basicAllFilled ? (
+                  <span className="text-xs bg-red-900/50 text-red-300 border border-red-700 rounded px-1.5 py-0.5 shrink-0">未入力あり</span>
+                ) : (
+                  !isOpen("basicInfo") && <span className="text-xs text-gray-400 truncate">{basicInfo.companyName}</span>
                 )}
               </div>
-            </div>
+              <span className="text-gray-400 text-xs shrink-0 ml-2">{isOpen("basicInfo") ? "▲" : "▼"}</span>
+            </button>
+            {isOpen("basicInfo") && (
             <div className="px-4 pb-4 border-t border-gray-700 pt-3 space-y-4">
               {/* 必須フィールド */}
               <div>
@@ -1602,15 +1614,24 @@ export default function SettingsPage() {
                 </p>
               )}
               <button
-                onClick={saveBasicInfo}
+                onClick={async () => {
+                  await saveBasicInfo();
+                  // 保存成功後、全必須項目が揃っていれば自動で閉じる
+                  const allFilled = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
+                  if (allFilled) {
+                    setOpenSections(prev => { const s = new Set(prev); s.delete("basicInfo"); return s; });
+                  }
+                }}
                 disabled={savingBasic}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-lg transition"
               >
                 {savingBasic ? "保存中..." : "基本情報を保存"}
               </button>
             </div>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {/* 自社カラー（パートナーのみ） */}
         {role === "PARTNER" && (() => {

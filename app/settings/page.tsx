@@ -1466,7 +1466,10 @@ export default function SettingsPage() {
 
         {/* 基本情報（パートナーのみ） */}
         {role === "PARTNER" && (() => {
-          const basicAllFilled = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
+          const colorSelected = !!(myColor || pendingColor);
+          const basicAllFilled = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone && colorSelected);
+          const blockedColors = getBlockedColors(usedColors);
+          const availableColors = ALL_COLORS.filter(c => !blockedColors.has(c));
           return (
           <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
             <button onClick={() => toggleSection("basicInfo")} className="w-full px-4 py-3.5 flex items-center justify-between">
@@ -1475,7 +1478,12 @@ export default function SettingsPage() {
                 {!basicAllFilled ? (
                   <span className="text-xs bg-red-900/50 text-red-300 border border-red-700 rounded px-1.5 py-0.5 shrink-0">未入力あり</span>
                 ) : (
-                  !isOpen("basicInfo") && <span className="text-xs text-gray-400 truncate">{basicInfo.companyName}</span>
+                  !isOpen("basicInfo") && (
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {myColor && <span className="w-3.5 h-3.5 rounded-full shrink-0 border border-gray-500" style={{ backgroundColor: myColor }} />}
+                      <span className="text-xs text-gray-400 truncate">{basicInfo.companyName}</span>
+                    </div>
+                  )
                 )}
               </div>
               <span className="text-gray-400 text-xs shrink-0 ml-2">{isOpen("basicInfo") ? "▲" : "▼"}</span>
@@ -1608,69 +1616,39 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {basicMessage && (
-                <p className={`text-xs text-center py-1 rounded ${basicMessage.type === "success" ? "text-green-400" : "text-red-400"}`}>
-                  {basicMessage.text}
+              {/* 自社カラー */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  自社カラー <span className="text-red-400 font-normal normal-case">*</span>
                 </p>
-              )}
-              <button
-                onClick={async () => {
-                  await saveBasicInfo();
-                  // 保存成功後、全必須項目が揃っていれば自動で閉じる
-                  const allFilled = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
-                  if (allFilled) {
-                    setOpenSections(prev => { const s = new Set(prev); s.delete("basicInfo"); return s; });
-                  }
-                }}
-                disabled={savingBasic}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-lg transition"
-              >
-                {savingBasic ? "保存中..." : "基本情報を保存"}
-              </button>
-            </div>
-            )}
-          </div>
-          );
-        })()}
-
-        {/* 自社カラー（パートナーのみ） */}
-        {role === "PARTNER" && (() => {
-          const blocked = getBlockedColors(usedColors);
-          const available = ALL_COLORS.filter(c => !blocked.has(c));
-          return (
-            <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
-              <div className="px-4 py-3.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-gray-100">🎨 自社カラー</span>
-                  {!myColor && <span className="text-xs bg-red-900/50 text-red-300 border border-red-700 rounded px-1.5 py-0.5">未設定</span>}
-                </div>
-                {myColor && <span className="w-5 h-5 rounded-full border-2 border-gray-600 shrink-0" style={{ backgroundColor: myColor }} />}
-              </div>
-              <div className="px-4 pb-4 border-t border-gray-700 pt-3">
                 {myColor ? (
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full border-2 border-gray-500 shrink-0" style={{ backgroundColor: myColor }} />
+                  <div className="flex items-center gap-3 bg-gray-700/40 rounded-lg px-3 py-2.5">
+                    <span className="w-7 h-7 rounded-full border-2 border-gray-500 shrink-0" style={{ backgroundColor: myColor }} />
                     <div>
                       <p className="text-sm text-gray-200 font-medium">設定済み</p>
                       <p className="text-xs text-gray-500">カラーは変更できません</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <p className="text-xs text-gray-400">カレンダーや依頼一覧で使われる自社カラーを選択してください。他社が使用中の色は表示されません。一度選んだら変更できません。</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {available.map((c) => (
-                        <button key={c} type="button"
-                          onClick={() => setPendingColor(pendingColor === c ? null : c)}
-                          className="w-9 h-9 rounded-full border-2 transition hover:scale-110"
-                          style={{
-                            backgroundColor: c,
-                            borderColor: pendingColor === c ? "#fff" : "transparent",
-                            outline: pendingColor === c ? "2px solid #93c5fd" : "none",
-                          }}
-                        />
-                      ))}
-                    </div>
+                  <div className="space-y-2.5">
+                    <p className="text-xs text-gray-400">カレンダーや依頼一覧で表示される色です。他社が使用中の同系色は選べません。一度選んだら変更できません。</p>
+                    {availableColors.length === 0 ? (
+                      <p className="text-xs text-red-400">現在選択できる色がありません。管理者にお問い合わせください。</p>
+                    ) : (
+                      <div className="flex gap-2 flex-wrap">
+                        {availableColors.map((c) => (
+                          <button key={c} type="button"
+                            onClick={() => setPendingColor(pendingColor === c ? null : c)}
+                            className="w-9 h-9 rounded-full border-2 transition hover:scale-110 active:scale-95"
+                            style={{
+                              backgroundColor: c,
+                              borderColor: pendingColor === c ? "#fff" : "transparent",
+                              outline: pendingColor === c ? "2px solid #93c5fd" : "none",
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
                     {pendingColor && (
                       <button type="button" disabled={savingColor}
                         onClick={async () => {
@@ -1692,7 +1670,29 @@ export default function SettingsPage() {
                   </div>
                 )}
               </div>
+
+              {basicMessage && (
+                <p className={`text-xs text-center py-1 rounded ${basicMessage.type === "success" ? "text-green-400" : "text-red-400"}`}>
+                  {basicMessage.text}
+                </p>
+              )}
+              <button
+                onClick={async () => {
+                  await saveBasicInfo();
+                  // 保存成功後、全必須項目＋カラーが揃っていれば自動で閉じる
+                  const allFilled = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone && (myColor || pendingColor));
+                  if (allFilled) {
+                    setOpenSections(prev => { const s = new Set(prev); s.delete("basicInfo"); return s; });
+                  }
+                }}
+                disabled={savingBasic}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-lg transition"
+              >
+                {savingBasic ? "保存中..." : "基本情報を保存"}
+              </button>
             </div>
+            )}
+          </div>
           );
         })()}
 

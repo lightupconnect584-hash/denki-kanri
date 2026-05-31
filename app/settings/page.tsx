@@ -6,6 +6,33 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 
+// 色ファミリー定義（同系色グループ）
+const COLOR_FAMILIES: string[][] = [
+  ["#ef4444", "#dc2626", "#b91c1c"],            // 赤
+  ["#f97316", "#ea580c", "#fb923c"],            // オレンジ
+  ["#f59e0b", "#d97706", "#fbbf24"],            // 黄
+  ["#22c55e", "#16a34a", "#4ade80"],            // 緑
+  ["#14b8a6", "#0d9488", "#06b6d4"],            // ティール/シアン
+  ["#3b82f6", "#2563eb", "#1d4ed8", "#60a5fa"], // 青
+  ["#8b5cf6", "#7c3aed", "#a78bfa"],            // 紫
+  ["#ec4899", "#db2777", "#f472b6"],            // ピンク
+  ["#84cc16", "#65a30d"],                        // ライム
+  ["#64748b", "#475569", "#6b7280"],            // グレー
+  ["#92400e", "#b45309", "#78350f"],            // ブラウン
+  ["#4f46e5", "#6366f1"],                        // インディゴ
+];
+const ALL_COLORS = COLOR_FAMILIES.flat();
+
+function getBlockedColors(usedColors: string[]): Set<string> {
+  const blocked = new Set<string>();
+  for (const used of usedColors) {
+    const family = COLOR_FAMILIES.find(f => f.includes(used.toLowerCase()));
+    if (family) family.forEach(c => blocked.add(c));
+    else blocked.add(used.toLowerCase());
+  }
+  return blocked;
+}
+
 interface SeasonalMsgItem { id: string; name: string; startMD: number; endMD: number; message: string; imageUrl: string | null; animation: string; enabled: boolean; order: number; targetType: string; targetUserIds: string[]; }
 interface StockImage { id: string; filename: string; originalName: string; label: string | null; createdAt: string; }
 
@@ -17,10 +44,19 @@ export default function SettingsPage() {
   const currentPhone = (session?.user as { phone?: string })?.phone || "";
   const role = (session?.user as { role?: string })?.role;
 
+  // セットアップモード（?setup=1 のとき）
+  const [isSetupMode, setIsSetupMode] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsSetupMode(new URLSearchParams(window.location.search).has("setup"));
+    }
+  }, []);
+
   // 自社カラー（パートナー用）
   const [myColor, setMyColor] = useState<string | null>(null);
   const [pendingColor, setPendingColor] = useState<string | null>(null);
   const [savingColor, setSavingColor] = useState(false);
+  const [usedColors, setUsedColors] = useState<string[]>([]);
 
   // 基本情報（パートナー用）
   const [basicInfo, setBasicInfo] = useState({
@@ -31,6 +67,7 @@ export default function SettingsPage() {
   });
   const [savingBasic, setSavingBasic] = useState(false);
   const [basicMessage, setBasicMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [completingSetup, setCompletingSetup] = useState(false);
 
   // アバター
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -123,16 +160,17 @@ export default function SettingsPage() {
     if (role === "PARTNER") {
       fetch("/api/auth/profile", { method: "GET" }).then((r) => r.json()).then((data) => {
         if (data.color !== undefined) setMyColor(data.color);
+        if (data.usedColors) setUsedColors(data.usedColors);
         setBasicInfo({
-          address:       data.address       || "",
-          birthDate:     data.birthDate     ? data.birthDate.slice(0, 10) : "",
-          bloodType:     data.bloodType     || "",
-          emergencyName: data.emergencyName || "",
-          emergencyPhone:data.emergencyPhone|| "",
-          licenseType:   data.licenseType   || "",
-          licenseNumber: data.licenseNumber || "",
-          licenseExpiry: data.licenseExpiry ? data.licenseExpiry.slice(0, 10) : "",
-          vehicleNumber: data.vehicleNumber || "",
+          address:        data.address       || "",
+          birthDate:      data.birthDate     ? data.birthDate.slice(0, 10) : "",
+          bloodType:      data.bloodType     || "",
+          emergencyName:  data.emergencyName || "",
+          emergencyPhone: data.emergencyPhone|| "",
+          licenseType:    data.licenseType   || "",
+          licenseNumber:  data.licenseNumber || "",
+          licenseExpiry:  data.licenseExpiry ? data.licenseExpiry.slice(0, 10) : "",
+          vehicleNumber:  data.vehicleNumber || "",
         });
       }).catch(() => {});
     }
@@ -233,6 +271,48 @@ export default function SettingsPage() {
       setBasicMessage({ type: "error", text: "通信エラーが発生しました" });
     } finally {
       setSavingBasic(false);
+    }
+  };
+
+  // セットアップ完了（全必須 + 色が揃った時）
+  const completeSetup = async () => {
+    if (completingSetup) return;
+    // バリデーション
+    if (!basicInfo.address || !basicInfo.birthDate || !basicInfo.bloodType || !basicInfo.emergencyName || !basicInfo.emergencyPhone) {
+      setBasicMessage({ type: "error", text: "必須項目（住所・生年月日・血液型・緊急連絡先）をすべて入力してください" });
+      return;
+    }
+    if (!myColor && !pendingColor) {
+      setBasicMessage({ type: "error", text: "自社カラーを選択してください" });
+      return;
+    }
+    setCompletingSetup(true);
+    try {
+      // 基本情報保存
+      const r1 = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ basicInfo }),
+      });
+      if (!r1.ok) throw new Error("基本情報の保存に失敗しました");
+
+      // 色が未保存なら保存
+      if (!myColor && pendingColor) {
+        const r2 = await fetch("/api/auth/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ color: pendingColor }),
+        });
+        if (!r2.ok) throw new Error("カラーの保存に失敗しました");
+        setMyColor(pendingColor);
+      }
+
+      // JWT を更新して profileComplete = true にする
+      await update({ profileComplete: true });
+      router.push("/dashboard");
+    } catch (e) {
+      setBasicMessage({ type: "error", text: e instanceof Error ? e.message : "エラーが発生しました" });
+      setCompletingSetup(false);
     }
   };
 
@@ -665,6 +745,148 @@ export default function SettingsPage() {
     || (thankYouImageUrl ? (thankYouImageUrl.startsWith("http") ? thankYouImageUrl : `/uploads/${thankYouImageUrl}`) : null)
     || (currentAvatarUrl ? (currentAvatarUrl.startsWith("http") ? currentAvatarUrl : `/uploads/${currentAvatarUrl}`) : null);
   const previewAdminName = session?.user?.name || "";
+
+  // ========== セットアップモード ==========
+  if (isSetupMode && role === "PARTNER") {
+    const blockedColors = getBlockedColors(usedColors);
+    const availableColors = ALL_COLORS.filter(c => !blockedColors.has(c));
+    const basicComplete = !!(basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
+    const colorSelected = !!(myColor || pendingColor);
+    const allDone = basicComplete && colorSelected;
+
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-950">
+        {/* セットアップ専用ヘッダー（ナビなし） */}
+        <div className="bg-gray-900 border-b border-gray-700 px-4 py-3">
+          <p className="text-sm font-bold text-white text-center">初回設定</p>
+        </div>
+
+        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-4">
+          {/* 説明バナー */}
+          <div className="bg-blue-950/60 border border-blue-700 rounded-xl px-4 py-3">
+            <p className="text-sm font-bold text-blue-300 mb-1">ご利用開始前に情報を登録してください</p>
+            <p className="text-xs text-blue-400">以下の必須項目をすべて入力し、自社カラーを選択するとアプリを利用できます。</p>
+          </div>
+
+          {/* 進捗インジケーター */}
+          <div className="flex gap-2">
+            <div className={`flex-1 h-1.5 rounded-full transition ${basicComplete ? "bg-blue-500" : "bg-gray-700"}`} />
+            <div className={`flex-1 h-1.5 rounded-full transition ${colorSelected ? "bg-blue-500" : "bg-gray-700"}`} />
+          </div>
+
+          {/* 基本情報 */}
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${basicComplete ? "bg-blue-500 text-white" : "bg-gray-600 text-gray-300"}`}>
+                {basicComplete ? "✓" : "1"}
+              </span>
+              <span className="text-sm font-bold text-gray-100">基本情報</span>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">住所 <span className="text-red-400">*</span></label>
+              <input type="text" value={basicInfo.address}
+                onChange={(e) => setBasicInfo(p => ({ ...p, address: e.target.value }))}
+                placeholder="例：栃木県宇都宮市〇〇町1-2-3"
+                className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500" />
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">生年月日 <span className="text-red-400">*</span></label>
+                <input type="date" value={basicInfo.birthDate}
+                  onChange={(e) => setBasicInfo(p => ({ ...p, birthDate: e.target.value }))}
+                  className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">血液型 <span className="text-red-400">*</span></label>
+                <select value={basicInfo.bloodType}
+                  onChange={(e) => setBasicInfo(p => ({ ...p, bloodType: e.target.value }))}
+                  className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">選択</option>
+                  <option value="A">A型</option>
+                  <option value="B">B型</option>
+                  <option value="O">O型</option>
+                  <option value="AB">AB型</option>
+                  <option value="不明">不明</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">緊急連絡先 氏名 <span className="text-red-400">*</span></label>
+              <input type="text" value={basicInfo.emergencyName}
+                onChange={(e) => setBasicInfo(p => ({ ...p, emergencyName: e.target.value }))}
+                placeholder="例：山田 花子（妻）"
+                className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">緊急連絡先 電話番号 <span className="text-red-400">*</span></label>
+              <input type="tel" value={basicInfo.emergencyPhone}
+                onChange={(e) => setBasicInfo(p => ({ ...p, emergencyPhone: e.target.value }))}
+                placeholder="例：090-1234-5678"
+                className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500" />
+            </div>
+            <p className="text-xs text-gray-500">任意：電気工事士免許・車両ナンバーは後から設定できます</p>
+          </div>
+
+          {/* 自社カラー */}
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${colorSelected ? "bg-blue-500 text-white" : "bg-gray-600 text-gray-300"}`}>
+                {colorSelected ? "✓" : "2"}
+              </span>
+              <span className="text-sm font-bold text-gray-100">自社カラー <span className="text-red-400 text-xs">*</span></span>
+            </div>
+            {myColor ? (
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full border-2 border-gray-500" style={{ backgroundColor: myColor }} />
+                <div>
+                  <p className="text-sm text-gray-200 font-medium">設定済み</p>
+                  <p className="text-xs text-gray-500">カラーは変更できません</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-gray-400 mb-3">カレンダーや依頼一覧で表示される色です。他社が使用中の色は表示されません。一度選んだら変更できません。</p>
+                {availableColors.length === 0 ? (
+                  <p className="text-xs text-red-400">現在選択できる色がありません。管理者にお問い合わせください。</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {availableColors.map((c) => (
+                      <button key={c} type="button"
+                        onClick={() => setPendingColor(pendingColor === c ? null : c)}
+                        className="w-10 h-10 rounded-full border-2 transition hover:scale-110 active:scale-95"
+                        style={{
+                          backgroundColor: c,
+                          borderColor: pendingColor === c ? "#fff" : "transparent",
+                          outline: pendingColor === c ? "3px solid #60a5fa" : "none",
+                          outlineOffset: "2px",
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {basicMessage && (
+            <p className={`text-xs text-center py-2 rounded-lg ${basicMessage.type === "success" ? "text-green-400 bg-green-900/20" : "text-red-400 bg-red-900/20"}`}>
+              {basicMessage.text}
+            </p>
+          )}
+
+          {/* 完了ボタン */}
+          <button
+            onClick={completeSetup}
+            disabled={!allDone || completingSetup}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition text-sm"
+          >
+            {completingSetup ? "設定中..." : allDone ? "設定を完了してアプリを始める →" : "必須項目をすべて入力してください"}
+          </button>
+        </main>
+      </div>
+    );
+  }
+  // ========== ここまでセットアップモード ==========
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">
@@ -1344,92 +1566,67 @@ export default function SettingsPage() {
         )}
 
         {/* 自社カラー（パートナーのみ） */}
-        {role === "PARTNER" && (
-          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
-            <div className="px-4 py-3.5 flex items-center justify-between">
-              <span className="text-sm font-bold text-gray-100">🎨 自社カラー</span>
-              {myColor && <span className="w-5 h-5 rounded-full border-2 border-gray-600 shrink-0" style={{ backgroundColor: myColor }} />}
-            </div>
-            <div className="px-4 pb-4 border-t border-gray-700 pt-3">
-              {myColor ? (
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full border-2 border-gray-500 shrink-0" style={{ backgroundColor: myColor }} />
-                  <div>
-                    <p className="text-sm text-gray-200 font-medium">設定済み</p>
-                    <p className="text-xs text-gray-500">カラーは変更できません</p>
-                  </div>
+        {role === "PARTNER" && (() => {
+          const blocked = getBlockedColors(usedColors);
+          const available = ALL_COLORS.filter(c => !blocked.has(c));
+          return (
+            <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
+              <div className="px-4 py-3.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-100">🎨 自社カラー</span>
+                  {!myColor && <span className="text-xs bg-red-900/50 text-red-300 border border-red-700 rounded px-1.5 py-0.5">未設定</span>}
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-xs text-gray-400">カレンダーや依頼一覧で使われる自社カラーを選択してください。<br />一度選んだら変更できません。</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {[
-                      // 赤系
-                      "#ef4444","#dc2626","#b91c1c",
-                      // オレンジ系
-                      "#f97316","#ea580c","#fb923c",
-                      // 黄・アンバー
-                      "#f59e0b","#d97706","#fbbf24",
-                      // 緑系
-                      "#22c55e","#16a34a","#4ade80",
-                      // ティール・シアン
-                      "#14b8a6","#0d9488","#06b6d4",
-                      // 青系
-                      "#3b82f6","#2563eb","#1d4ed8","#60a5fa",
-                      // 紫系
-                      "#8b5cf6","#7c3aed","#a78bfa",
-                      // ピンク
-                      "#ec4899","#db2777","#f472b6",
-                      // ライムグリーン
-                      "#84cc16","#65a30d",
-                      // スレート・グレー
-                      "#64748b","#475569","#6b7280",
-                      // ブラウン・アンバー
-                      "#92400e","#b45309","#78350f",
-                      // インディゴ
-                      "#4f46e5","#6366f1",
-                    ].map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setPendingColor(pendingColor === c ? null : c)}
-                        className="w-9 h-9 rounded-full border-2 transition hover:scale-110"
-                        style={{
-                          backgroundColor: c,
-                          borderColor: pendingColor === c ? "#fff" : "transparent",
-                          outline: pendingColor === c ? "2px solid #93c5fd" : "none",
+                {myColor && <span className="w-5 h-5 rounded-full border-2 border-gray-600 shrink-0" style={{ backgroundColor: myColor }} />}
+              </div>
+              <div className="px-4 pb-4 border-t border-gray-700 pt-3">
+                {myColor ? (
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full border-2 border-gray-500 shrink-0" style={{ backgroundColor: myColor }} />
+                    <div>
+                      <p className="text-sm text-gray-200 font-medium">設定済み</p>
+                      <p className="text-xs text-gray-500">カラーは変更できません</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-400">カレンダーや依頼一覧で使われる自社カラーを選択してください。他社が使用中の色は表示されません。一度選んだら変更できません。</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {available.map((c) => (
+                        <button key={c} type="button"
+                          onClick={() => setPendingColor(pendingColor === c ? null : c)}
+                          className="w-9 h-9 rounded-full border-2 transition hover:scale-110"
+                          style={{
+                            backgroundColor: c,
+                            borderColor: pendingColor === c ? "#fff" : "transparent",
+                            outline: pendingColor === c ? "2px solid #93c5fd" : "none",
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {pendingColor && (
+                      <button type="button" disabled={savingColor}
+                        onClick={async () => {
+                          setSavingColor(true);
+                          const res = await fetch("/api/auth/profile", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ color: pendingColor }),
+                          });
+                          if (res.ok) { setMyColor(pendingColor); setPendingColor(null); }
+                          setSavingColor(false);
                         }}
-                      />
-                    ))}
+                        className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                      >
+                        <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: pendingColor }} />
+                        {savingColor ? "保存中..." : "この色に決定する"}
+                      </button>
+                    )}
                   </div>
-                  {pendingColor && (
-                    <button
-                      type="button"
-                      disabled={savingColor}
-                      onClick={async () => {
-                        setSavingColor(true);
-                        const res = await fetch("/api/auth/profile", {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ color: pendingColor }),
-                        });
-                        if (res.ok) {
-                          setMyColor(pendingColor);
-                          setPendingColor(null);
-                        }
-                        setSavingColor(false);
-                      }}
-                      className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
-                    >
-                      <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: pendingColor }} />
-                      {savingColor ? "保存中..." : "この色に決定する"}
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* プロフィール画像 */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">

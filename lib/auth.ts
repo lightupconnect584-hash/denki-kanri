@@ -3,6 +3,19 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 
+function isProfileComplete(user: {
+  role: string;
+  address?: string | null;
+  birthDate?: Date | null;
+  bloodType?: string | null;
+  emergencyName?: string | null;
+  emergencyPhone?: string | null;
+  color?: string | null;
+}): boolean {
+  if (user.role !== "PARTNER") return true;
+  return !!(user.address && user.birthDate && user.bloodType && user.emergencyName && user.emergencyPhone && user.color);
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -38,6 +51,7 @@ export const authOptions: NextAuthOptions = {
           companyName: user.companyName,
           avatarUrl: user.avatarUrl,
           phone: user.phone,
+          profileComplete: isProfileComplete(user),
         };
       },
     }),
@@ -53,17 +67,26 @@ export const authOptions: NextAuthOptions = {
         token.avatarUrl = (user as any).avatarUrl;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.phone = (user as any).phone;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        token.profileComplete = (user as any).profileComplete;
       }
       // roleが欠落している場合はDBから補完（セッション作成時期の差異対策）
       if (!token.role && token.sub) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.sub },
-            select: { role: true, companyName: true },
+            select: {
+              role: true, companyName: true,
+              address: true, birthDate: true, bloodType: true,
+              emergencyName: true, emergencyPhone: true, color: true,
+            },
           });
           if (dbUser) {
             token.role = dbUser.role;
             if (!token.companyName) token.companyName = dbUser.companyName;
+            if (token.profileComplete === undefined) {
+              token.profileComplete = isProfileComplete(dbUser);
+            }
           }
         } catch {
           // DB参照失敗時はセッション自体を壊さない
@@ -73,16 +96,18 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update") {
         if (session?.avatarUrl !== undefined) token.avatarUrl = session.avatarUrl;
         if (session?.phone !== undefined) token.phone = session.phone;
+        if (session?.profileComplete !== undefined) token.profileComplete = session.profileComplete;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id: string; role: string; companyName?: string; avatarUrl?: string; phone?: string }).id = token.sub!;
+        (session.user as { id: string; role: string; companyName?: string; avatarUrl?: string; phone?: string; profileComplete?: boolean }).id = token.sub!;
         (session.user as { role: string }).role = token.role as string;
         (session.user as { companyName?: string }).companyName = token.companyName as string;
         (session.user as { avatarUrl?: string }).avatarUrl = token.avatarUrl as string;
         (session.user as { phone?: string }).phone = token.phone as string;
+        (session.user as { profileComplete?: boolean }).profileComplete = token.profileComplete as boolean;
       }
       return session;
     },

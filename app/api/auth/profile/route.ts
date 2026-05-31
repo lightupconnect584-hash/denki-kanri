@@ -27,7 +27,17 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as { id: string }).id;
   const user = await prisma.user.findUnique({ where: { id: userId }, select: profileSelect });
-  return NextResponse.json(user);
+
+  // 他の協力会社が使用している色一覧（色選択の排他制御用）
+  const usedColors = await prisma.user.findMany({
+    where: { role: "PARTNER", color: { not: null }, id: { not: userId } },
+    select: { color: true },
+  });
+
+  return NextResponse.json({
+    ...user,
+    usedColors: usedColors.map(u => u.color).filter(Boolean) as string[],
+  });
 }
 
 export async function PATCH(req: NextRequest) {

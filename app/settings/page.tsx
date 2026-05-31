@@ -311,7 +311,8 @@ export default function SettingsPage() {
 
       // JWT を更新して profileComplete = true にする
       await update({ profileComplete: true });
-      router.push("/dashboard");
+      // フルリロードでミドルウェアに新しいJWTを確実に読ませる
+      window.location.href = "/dashboard";
     } catch (e) {
       setBasicMessage({ type: "error", text: e instanceof Error ? e.message : "エラーが発生しました" });
       setCompletingSetup(false);

@@ -74,7 +74,6 @@ export default function DashboardPage() {
 
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
-  const [dmUnread, setDmUnread] = useState(0);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -89,16 +88,6 @@ export default function DashboardPage() {
     }).catch(() => {});
   }, [role]);
 
-  // DM未読数
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    const fetchDm = () => fetch("/api/messages").then(r => r.ok ? r.json() : []).then((threads: { unreadCount: number }[]) => {
-      setDmUnread(threads.reduce((s, t) => s + t.unreadCount, 0));
-    }).catch(() => {});
-    fetchDm();
-    const id = setInterval(fetchDm, 30000);
-    return () => clearInterval(id);
-  }, [status]);
 
   useEffect(() => {
     if (role !== "ADMIN") return;
@@ -827,14 +816,6 @@ export default function DashboardPage() {
                 <span className="text-sm text-gray-300">未読案件</span>
                 <span className={`text-2xl font-bold ${unreadCount > 0 ? "text-blue-400" : "text-white"}`}>{unreadCount}<span className="text-sm font-normal text-gray-400 ml-1">件</span></span>
               </div>
-              <Link href="/messages" className={`rounded-xl px-4 py-3 flex items-center justify-between border transition group ${dmUnread > 0 ? "bg-green-900/30 border-green-700 hover:bg-green-900/50" : "bg-gray-800 border-gray-700 hover:border-blue-500"}`}>
-                <span className={`text-sm ${dmUnread > 0 ? "text-green-300" : "text-gray-300 group-hover:text-white transition"}`}>💬 メッセージ</span>
-                {dmUnread > 0 ? (
-                  <span className="min-w-[24px] h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5">{dmUnread > 9 ? "9+" : dmUnread}</span>
-                ) : (
-                  <span className="text-sm text-gray-400">→</span>
-                )}
-              </Link>
             </div>
 
             {/* サマリー（モバイル：横2列＋メッセージ） */}
@@ -854,23 +835,6 @@ export default function DashboardPage() {
                 <p className={`text-xl font-bold ${unreadCount > 0 ? "text-blue-400" : "text-white"}`}>{unreadCount}<span className="text-xs font-normal text-gray-500 ml-0.5">件</span></p>
               </div>
             </div>
-            {/* メッセージ直リンク（モバイルのみ） */}
-            <Link href="/messages" className={`lg:hidden flex items-center justify-between rounded-xl border px-4 py-3 transition ${dmUnread > 0 ? "bg-green-900/30 border-green-700 hover:bg-green-900/50" : "bg-gray-800 border-gray-700 hover:border-gray-500"}`}>
-              <div className="flex items-center gap-2.5">
-                <span className="text-lg">💬</span>
-                <span className={`text-sm font-medium ${dmUnread > 0 ? "text-green-300" : "text-gray-300"}`}>メッセージ</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {dmUnread > 0 ? (
-                  <span className="min-w-[22px] h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5">
-                    {dmUnread > 9 ? "9+" : dmUnread}
-                  </span>
-                ) : (
-                  <span className="text-xs text-gray-500">→</span>
-                )}
-              </div>
-            </Link>
-
             {/* 検索・フィルター：PC は常時展開、モバイルはアイコンボタン1つ */}
             {/* モバイル用トグルボタン */}
             <div className="lg:hidden">

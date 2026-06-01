@@ -124,14 +124,13 @@ function MessagesInner() {
     }
   }, [role]);
 
-  const fetchMessages = useCallback(async (userId: string) => {
-    setLoadingMessages(true);
+  const fetchMessages = useCallback(async (userId: string, showLoading = false) => {
+    if (showLoading) setLoadingMessages(true);
     const res = await fetch(`/api/messages?userId=${userId}`);
     if (res.ok) setMessages(await res.json());
-    setLoadingMessages(false);
-    // 既読
-    await fetch(`/api/messages?userId=${userId}`, { method: "PATCH" });
-    fetchThreads();
+    if (showLoading) setLoadingMessages(false);
+    // 既読（バックグラウンドで実行、レンダリングに影響しない）
+    fetch(`/api/messages?userId=${userId}`, { method: "PATCH" }).then(() => fetchThreads());
   }, [fetchThreads]);
 
   useEffect(() => {
@@ -151,11 +150,11 @@ function MessagesInner() {
   useEffect(() => {
     if (selectedId) {
       forceScrollRef.current = true;
-      fetchMessages(selectedId);
-      // ポーリング（10秒・入力中はスキップ）
+      fetchMessages(selectedId, true); // 初回のみローディング表示
+      // ポーリング（10秒・入力中はスキップ・ローディングなし）
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(() => {
-        if (!isInputFocusedRef.current) fetchMessages(selectedId);
+        if (!isInputFocusedRef.current) fetchMessages(selectedId, false);
       }, 10000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -189,7 +188,7 @@ function MessagesInner() {
       });
       if (res.ok) {
         forceScrollRef.current = true;
-        await fetchMessages(selectedId);
+        await fetchMessages(selectedId, false);
         fetchThreads();
       } else {
         setInputText(content);

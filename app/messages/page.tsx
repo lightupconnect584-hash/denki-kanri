@@ -408,12 +408,6 @@ function MessagesInner() {
                   <textarea
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                        e.preventDefault();
-                        sendMessage();
-                      }
-                    }}
                     onFocus={() => { isInputFocusedRef.current = true; }}
                     onBlur={() => { isInputFocusedRef.current = false; }}
                     placeholder="メッセージを入力..."

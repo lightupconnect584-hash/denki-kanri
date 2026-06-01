@@ -92,7 +92,17 @@ function MessagesInner() {
   const [showNewChat, setShowNewChat] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const isInputFocusedRef = useRef(false);
+  const forceScrollRef = useRef(false); // 送信後は強制スクロール
+
+  // 最下部に近いか判定（100px以内）
+  const isNearBottom = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -140,17 +150,25 @@ function MessagesInner() {
 
   useEffect(() => {
     if (selectedId) {
+      forceScrollRef.current = true;
       fetchMessages(selectedId);
-      // ポーリング（5秒）
+      // ポーリング（10秒・入力中はスキップ）
       if (pollRef.current) clearInterval(pollRef.current);
-      pollRef.current = setInterval(() => fetchMessages(selectedId), 5000);
+      pollRef.current = setInterval(() => {
+        if (!isInputFocusedRef.current) fetchMessages(selectedId);
+      }, 10000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [selectedId, fetchMessages]);
 
-  // 最下部にスクロール
+  // スクロール：送信後 or もともと最下部にいた時のみ
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length === 0) return;
+    if (forceScrollRef.current || isNearBottom()) {
+      bottomRef.current?.scrollIntoView({ behavior: forceScrollRef.current ? "smooth" : "instant" });
+      forceScrollRef.current = false;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
   const selectThread = (userId: string) => {
@@ -170,6 +188,7 @@ function MessagesInner() {
         body: JSON.stringify({ toId: selectedId, content }),
       });
       if (res.ok) {
+        forceScrollRef.current = true;
         await fetchMessages(selectedId);
         fetchThreads();
       } else {
@@ -206,7 +225,7 @@ function MessagesInner() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">
       <Header />
-      <main className="flex-1 flex overflow-hidden" style={{ height: "calc(100vh - 57px)" }}>
+      <main className="flex-1 flex overflow-hidden" style={{ height: "calc(100dvh - 57px)" }}>
 
         {/* ===== 左パネル：会話一覧 ===== */}
         <div className={`
@@ -330,7 +349,7 @@ function MessagesInner() {
               </div>
 
               {/* メッセージ一覧 */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
                 {loadingMessages ? (
                   <p className="text-xs text-gray-400 text-center py-8">読み込み中...</p>
                 ) : messages.length === 0 ? (
@@ -395,7 +414,9 @@ function MessagesInner() {
                         sendMessage();
                       }
                     }}
-                    placeholder="メッセージを入力... (Enterで送信)"
+                    onFocus={() => { isInputFocusedRef.current = true; }}
+                    onBlur={() => { isInputFocusedRef.current = false; }}
+                    placeholder="メッセージを入力..."
                     rows={1}
                     className="flex-1 bg-gray-700 border border-gray-600 rounded-2xl px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     style={{ minHeight: "42px", maxHeight: "120px" }}

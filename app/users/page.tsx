@@ -14,6 +14,7 @@ interface User {
   avatarUrl: string | null;
   color: string | null;
   lastLoginAt: string | null;
+  inviteToken: string | null;
   loginLogs: { createdAt: string }[];
   // 基本情報
   address: string | null;
@@ -39,7 +40,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newRole, setNewRole] = useState<"PARTNER" | "ADMIN">("PARTNER");
-  const [form, setForm] = useState({ name: "", email: "", password: "", companyName: "" });
+  const [form, setForm] = useState({ lastName: "", firstName: "", email: "", password: "", companyName: "" });
   const [loading, setLoading] = useState(false);
 
   const [resetUserId, setResetUserId] = useState<string | null>(null);
@@ -72,18 +73,33 @@ export default function UsersPage() {
     if (status === "authenticated") fetchUsers();
   }, [status]);
 
+  // タブに戻ったとき自動再取得（招待完了後などに最新状態を反映）
+  useEffect(() => {
+    const onFocus = () => { if (status === "authenticated") fetchUsers(); };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [status]);
+
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await fetch("/api/users", {
+    const fullName = `${form.lastName.trim()} ${form.firstName.trim()}`.trim();
+    const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, role: newRole }),
+      body: JSON.stringify({ ...form, name: fullName, role: newRole }),
     });
-    setForm({ name: "", email: "", password: "", companyName: "" });
+    const data = await res.json();
+    setForm({ lastName: "", firstName: "", email: "", password: "", companyName: "" });
     setShowForm(false);
     fetchUsers();
     setLoading(false);
+    // 招待リンクが発行された場合は表示
+    if (data.inviteToken) {
+      setInviteUrl(`${window.location.origin}/register/${data.inviteToken}`);
+    }
   };
 
   const handleResetPassword = async (userId: string) => {
@@ -142,81 +158,88 @@ export default function UsersPage() {
 
   const renderUserCard = (u: User) => (
     <div key={u.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          {/* カラードット（協力会社のみ） */}
-          {u.role === "PARTNER" && (
-            <div
-              className="w-3 h-3 rounded-full shrink-0 mt-0.5"
-              style={{ backgroundColor: u.color || "#d1d5db" }}
-            />
-          )}
-          {u.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={u.avatarUrl.startsWith("http") ? u.avatarUrl : `/uploads/${u.avatarUrl}`}
-              alt={u.name}
-              className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0"
-            />
-          ) : (
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white border border-gray-200 shrink-0"
-              style={{ backgroundColor: u.role === "PARTNER" ? (u.color || "#9ca3af") : "#2563eb" }}
-            >
-              {(u.companyName || u.name)[0]?.toUpperCase()}
-            </div>
-          )}
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-gray-800 text-sm">{u.companyName || u.name}</p>
-              {u.id === myId && (
-                <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">自分</span>
-              )}
-            </div>
-            {u.companyName && <p className="text-xs text-gray-500">{u.name}</p>}
-            <p className="text-xs text-gray-400 mt-0.5">{u.email}</p>
-            {u.role === "PARTNER" && (
-              <button
-                onClick={() => setLoginLogId(loginLogId === u.id ? null : u.id)}
-                className="text-xs text-gray-400 mt-0.5 hover:text-blue-500 transition text-left"
-              >
-                最終アクセス：{u.lastLoginAt
-                  ? new Date(u.lastLoginAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) +
-                    " " + new Date(u.lastLoginAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
-                  : "未ログイン"} {u.loginLogs?.length > 0 ? "▾" : ""}
-              </button>
-            )}
+      {/* 情報行 */}
+      <div className="flex items-center gap-3">
+        {u.role === "PARTNER" && (
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: u.color || "#d1d5db" }} />
+        )}
+        {u.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={u.avatarUrl.startsWith("http") ? u.avatarUrl : `/uploads/${u.avatarUrl}`}
+            alt={u.name}
+            className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0"
+          />
+        ) : (
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white border border-gray-200 shrink-0"
+            style={{ backgroundColor: u.role === "PARTNER" ? (u.color || "#9ca3af") : "#2563eb" }}
+          >
+            {(u.companyName || u.name)[0]?.toUpperCase()}
           </div>
-        </div>
-        <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-          {u.role === "PARTNER" && !u.color && (
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="font-medium text-gray-800 text-sm truncate">{u.companyName || (u.inviteToken ? "招待中" : u.name)}</p>
+            {u.id === myId && <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full shrink-0">自分</span>}
+            {u.inviteToken && <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full shrink-0">招待中</span>}
+          </div>
+          {u.companyName && !u.inviteToken && u.name !== "招待中" && <p className="text-xs text-gray-500 truncate">{u.name.split(" ")[0]}</p>}
+          <p className="text-xs text-gray-400 truncate">{u.inviteToken ? "（未登録）" : u.email}</p>
+          {u.role === "PARTNER" && (
             <button
-              onClick={() => setColorPickerId(colorPickerId === u.id ? null : u.id)}
-              className="text-xs text-gray-500 border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 transition flex items-center gap-1"
+              onClick={() => setLoginLogId(loginLogId === u.id ? null : u.id)}
+              className="text-xs text-gray-400 hover:text-blue-500 transition text-left truncate w-full"
             >
-              <span className="w-3 h-3 rounded-full inline-block bg-gray-300" />
-              カラー未設定
+              最終アクセス：{u.lastLoginAt
+                ? new Date(u.lastLoginAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) +
+                  " " + new Date(u.lastLoginAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
+                : "未ログイン"}{u.loginLogs?.length > 0 ? " ▾" : ""}
             </button>
           )}
+        </div>
+      </div>
+      {/* ボタン行 */}
+      <div className="flex gap-2 flex-wrap justify-end">
+        {u.inviteToken && (
           <button
             onClick={() => {
-              setResetUserId(resetUserId === u.id ? null : u.id);
-              setResetPassword("");
-              setResetError("");
+              const url = `${window.location.origin}/register/${u.inviteToken}`;
+              navigator.clipboard.writeText(url);
+              alert("招待リンクをコピーしました");
             }}
-            className="text-xs text-blue-500 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition"
+            className="text-xs text-yellow-600 border border-yellow-400 rounded px-2 py-1 hover:bg-yellow-50 transition"
           >
-            PW変更
+            🔗 招待リンク
           </button>
-          {u.id !== myId && u.role !== "ADMIN" && (
-            <button
-              onClick={() => setConfirmDeleteId(confirmDeleteId === u.id ? null : u.id)}
-              className="text-xs text-red-400 border border-red-300 rounded px-2 py-1 hover:bg-red-50 transition"
-            >
-              削除
-            </button>
-          )}
-        </div>
+        )}
+        {u.role === "PARTNER" && !u.color && !u.inviteToken && (
+          <button
+            onClick={() => setColorPickerId(colorPickerId === u.id ? null : u.id)}
+            className="text-xs text-gray-500 border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 transition flex items-center gap-1"
+          >
+            <span className="w-3 h-3 rounded-full inline-block bg-gray-300" />
+            カラー未設定
+          </button>
+        )}
+        <button
+          onClick={() => {
+            setResetUserId(resetUserId === u.id ? null : u.id);
+            setResetPassword("");
+            setResetError("");
+          }}
+          className="text-xs text-blue-500 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition"
+        >
+          PW変更
+        </button>
+        {u.id !== myId && u.role !== "ADMIN" && (
+          <button
+            onClick={() => setConfirmDeleteId(confirmDeleteId === u.id ? null : u.id)}
+            className="text-xs text-red-400 border border-red-300 rounded px-2 py-1 hover:bg-red-50 transition"
+          >
+            削除
+          </button>
+        )}
       </div>
 
       {/* ログイン履歴 */}
@@ -400,6 +423,24 @@ export default function UsersPage() {
           </button>
         </div>
 
+        {/* 招待URL発行ダイアログ */}
+        {inviteUrl && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 space-y-3">
+            <p className="text-sm font-bold text-blue-800">🔗 招待リンクが発行されました</p>
+            <p className="text-xs text-blue-600">このリンクを相手に送ってください。相手がリンクを開いてログインIDとパスワードを設定します。</p>
+            <div className="flex gap-2">
+              <input readOnly value={inviteUrl}
+                className="flex-1 bg-white border border-blue-300 rounded-lg px-3 py-2 text-xs text-gray-700 focus:outline-none" />
+              <button
+                onClick={() => { navigator.clipboard.writeText(inviteUrl); alert("コピーしました"); }}
+                className="bg-blue-600 text-white text-xs px-3 rounded-lg hover:bg-blue-700 transition whitespace-nowrap">
+                コピー
+              </button>
+            </div>
+            <button onClick={() => setInviteUrl(null)} className="text-xs text-blue-400 hover:text-blue-600">閉じる</button>
+          </div>
+        )}
+
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6 space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
             <h3 className="text-sm font-bold text-gray-700">新しいユーザーを追加</h3>
@@ -413,16 +454,26 @@ export default function UsersPage() {
                 </button>
               ))}
             </div>
-            {newRole === "PARTNER" && (
-              <input type="text" placeholder="会社名" value={form.companyName}
-                onChange={(e) => setForm({ ...form, companyName: e.target.value })} className={inputClass} />
+            {newRole === "ADMIN" && (
+              <>
+                <div className="flex gap-2">
+                  <input type="text" required placeholder="姓（例: 田中）" value={form.lastName}
+                    onChange={(e) => setForm({ ...form, lastName: e.target.value })} className={inputClass} />
+                  <input type="text" required placeholder="名（例: 太郎）" value={form.firstName}
+                    onChange={(e) => setForm({ ...form, firstName: e.target.value })} className={inputClass} />
+                </div>
+                <input type="text" required placeholder="ログインID（例: admin01）" value={form.email}
+                  autoCapitalize="none" autoCorrect="off"
+                  onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
+                <input type="password" required placeholder="初期パスワード" value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })} className={inputClass} />
+              </>
             )}
-            <input type="text" required placeholder="名前" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
-            <input type="email" required placeholder="メールアドレス" value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
-            <input type="password" required placeholder="初期パスワード" value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })} className={inputClass} />
+            {newRole === "PARTNER" && (
+              <p className="text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2">
+                🔗 追加すると招待リンクが発行されます。相手に送るとログインID・パスワード・名前などを自分で設定できます。
+              </p>
+            )}
             <div className="flex gap-2">
               <button type="submit" disabled={loading}
                 className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition">

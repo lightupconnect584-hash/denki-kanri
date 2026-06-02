@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     where: roleFilter ? { role: roleFilter } : undefined,
     select: {
       id: true, name: true, email: true, companyName: true, role: true,
-      avatarUrl: true, color: true, lastLoginAt: true,
+      avatarUrl: true, color: true, lastLoginAt: true, inviteToken: true,
       // 基本情報（協力会社向け）
       address: true, birthDate: true, bloodType: true,
       emergencyName: true, emergencyPhone: true,
@@ -43,14 +43,32 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error }, { status });
 
   const body = await req.json();
+
+  // 協力会社でログインID/パスワード未入力 → 招待リンク発行
+  if (body.role !== "ADMIN" && (!body.email || !body.password)) {
+    const { randomUUID } = await import("crypto");
+    const token = randomUUID();
+    const user = await prisma.user.create({
+      data: {
+        name: body.name?.trim() || "招待中",
+        email: `invite_${token}`,
+        password: null,
+        role: "PARTNER",
+        companyName: body.companyName?.trim() || null,
+        inviteToken: token,
+      },
+    });
+    return NextResponse.json({ id: user.id, inviteToken: token });
+  }
+
   const hashedPassword = await bcrypt.hash(body.password, 10);
   const user = await prisma.user.create({
     data: {
-      name: body.name,
+      name: body.name?.trim() || body.email,
       email: body.email,
       password: hashedPassword,
       role: body.role || "PARTNER",
-      companyName: body.companyName || null,
+      companyName: body.companyName?.trim() || null,
     },
   });
   return NextResponse.json({ id: user.id, name: user.name, email: user.email });

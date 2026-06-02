@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!user || !user.password) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const valid = await bcrypt.compare(body.currentPassword, user.password);
   if (!valid) return NextResponse.json({ error: "現在のパスワードが正しくありません" }, { status: 400 });

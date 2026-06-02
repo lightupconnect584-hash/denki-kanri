@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 const profileSelect = {
   avatarUrl: true,
   phone: true,
+  companyName: true,
   thankYouEnabled: true,
   thankYouImageUrl: true,
   thankYouMessage: true,

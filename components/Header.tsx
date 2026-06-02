@@ -3,7 +3,8 @@
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+// dmUnread はBottomNavで管理するため、Headerでのfetchは不要
 
 export default function Header() {
   const { data: session } = useSession();
@@ -11,24 +12,6 @@ export default function Header() {
   const avatarUrl = (session?.user as { avatarUrl?: string })?.avatarUrl;
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifStatus, setNotifStatus] = useState<"default" | "granted" | "denied">("default");
-  const [dmUnread, setDmUnread] = useState(0);
-
-  const fetchDmUnread = useCallback(async () => {
-    try {
-      const res = await fetch("/api/messages");
-      if (!res.ok) return;
-      const threads: { unreadCount: number }[] = await res.json();
-      setDmUnread(threads.reduce((sum, t) => sum + t.unreadCount, 0));
-    } catch { /* ignore */ }
-  }, []);
-
-  useEffect(() => {
-    if (session?.user) {
-      fetchDmUnread();
-      const id = setInterval(fetchDmUnread, 30000); // 30秒ごとにポーリング
-      return () => clearInterval(id);
-    }
-  }, [session?.user, fetchDmUnread]);
 
   // アプリを開いたことを記録（5分に1回）
   useEffect(() => {
@@ -129,13 +112,8 @@ export default function Header() {
               🔔 通知をON
             </button>
           )}
-          <Link href="/messages" className="relative text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">
+          <Link href="/messages" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">
             💬 メッセージ
-            {dmUnread > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
-                {dmUnread > 9 ? "9+" : dmUnread}
-              </span>
-            )}
           </Link>
           {role === "ADMIN" && (
             <Link href="/estimate" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">見積り</Link>
@@ -152,30 +130,11 @@ export default function Header() {
           </button>
         </div>
 
-        {/* モバイル：常時表示アイコン＋アバター＋ハンバーガー */}
-        <div className="flex sm:hidden items-center gap-1">
-          <Link href="/billing" className="w-9 h-9 flex items-center justify-center text-gray-300 hover:text-white rounded-lg hover:bg-gray-800 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-              <path fillRule="evenodd" d="M7.502 6h7.128A3.375 3.375 0 0118 9.375v9.375a3 3 0 003-3V6.108c0-1.505-1.125-2.811-2.664-2.94a48.972 48.972 0 00-.673-.05A3 3 0 0015 1.5h-1.5a3 3 0 00-2.663 1.618c-.225.015-.45.032-.673.05C8.662 3.295 7.554 4.542 7.502 6zM13.5 3A1.5 1.5 0 0012 4.5h4.5A1.5 1.5 0 0015 3h-1.5z" clipRule="evenodd" />
-              <path fillRule="evenodd" d="M3 9.375C3 8.339 3.84 7.5 4.875 7.5h9.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 013 20.625V9.375zM6 12a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V12zm2.25 0a.75.75 0 01.75-.75h3.75a.75.75 0 010 1.5H9a.75.75 0 01-.75-.75zM6 15a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V15zm2.25 0a.75.75 0 01.75-.75h3.75a.75.75 0 010 1.5H9a.75.75 0 01-.75-.75zM6 18a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V18zm2.25 0a.75.75 0 01.75-.75h3.75a.75.75 0 010 1.5H9a.75.75 0 01-.75-.75z" clipRule="evenodd" />
-            </svg>
-          </Link>
-          <Link href="/messages" className="relative w-9 h-9 flex items-center justify-center text-gray-300 hover:text-white rounded-lg hover:bg-gray-800 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-              <path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97z" clipRule="evenodd" />
-            </svg>
-            {dmUnread > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
-                {dmUnread > 9 ? "9+" : dmUnread}
-              </span>
-            )}
-          </Link>
-          <Link href="/settings" className="hover:opacity-80 transition">
-            <Avatar />
-          </Link>
+        {/* モバイル：ハンバーガーのみ */}
+        <div className="flex sm:hidden items-center">
           <button
             onClick={() => setMenuOpen(v => !v)}
-            className="text-gray-300 hover:text-white w-8 h-8 flex flex-col items-center justify-center gap-1.5"
+            className="text-gray-300 hover:text-white w-9 h-9 flex flex-col items-center justify-center gap-1.5"
             aria-label="メニュー"
           >
             <span className={`block w-5 h-0.5 bg-current transition-transform origin-center ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
@@ -211,9 +170,6 @@ export default function Header() {
           </Link>
           <Link href="/help" className="flex items-center gap-2 text-sm text-gray-200 hover:text-white py-2 border-b border-gray-700">
             <span>❓</span><span>使い方</span>
-          </Link>
-          <Link href="/settings" className="flex items-center gap-2 text-sm text-gray-200 hover:text-white py-2 border-b border-gray-700">
-            <span>⚙️</span><span>設定</span>
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}

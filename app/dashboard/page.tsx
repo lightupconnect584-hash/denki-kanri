@@ -766,10 +766,7 @@ export default function DashboardPage() {
                 全て既読
               </button>
             )}
-            <Link href="/calendar" className="text-gray-300 border border-gray-600 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-gray-800 transition">
-              <span className="text-sm">📅</span><span className="hidden sm:inline text-sm ml-1">カレンダー</span>
-            </Link>
-            {role === "ADMIN" && (
+{role === "ADMIN" && (
               <Link href="/projects/new" className="bg-blue-600 text-white text-sm px-3 sm:px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
                 <span>＋</span><span className="hidden sm:inline ml-1">新規依頼</span>
               </Link>

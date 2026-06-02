@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "メールアドレス", type: "email" },
+        email: { label: "ログインID", type: "text" },
         password: { label: "パスワード", type: "password" },
       },
       async authorize(credentials) {
@@ -33,7 +33,7 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email },
         });
 
-        if (!user) return null;
+        if (!user || !user.password) return null; // 招待未完了ユーザーはログイン不可
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
@@ -99,6 +99,7 @@ export const authOptions: NextAuthOptions = {
         if (session?.avatarUrl !== undefined) token.avatarUrl = session.avatarUrl;
         if (session?.phone !== undefined) token.phone = session.phone;
         if (session?.profileComplete !== undefined) token.profileComplete = session.profileComplete;
+        if (session?.companyName !== undefined) token.companyName = session.companyName;
       }
       return token;
     },

@@ -217,6 +217,10 @@ function MessagesInner() {
   // 未接触の協力会社（スレッドにない）
   const untouchedPartners = partners.filter(p => !threads.find(t => t.partner.id === p.id));
 
+  // マイチャット（自分宛てスレッド）を通常スレッドから除外
+  const regularThreads = threads.filter(t => t.partner.id !== myId);
+  const isSelfChat = selectedId === myId;
+
   if (status === "loading") {
     return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>;
   }
@@ -267,10 +271,35 @@ function MessagesInner() {
           )}
 
           <div className="flex-1 overflow-y-auto">
+            {/* マイチャット（常に最上部に固定） */}
+            <button
+              onClick={() => selectThread(myId!)}
+              className={`w-full flex items-center gap-3 px-4 py-3 border-b border-gray-800 text-left transition ${
+                selectedId === myId ? "bg-gray-700" : "hover:bg-gray-800"
+              }`}
+            >
+              <div className="w-10 h-10 rounded-full bg-purple-700 flex items-center justify-center text-xl shrink-0">
+                📝
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-100">マイチャット</p>
+                  {threads.find(t => t.partner.id === myId) && (
+                    <span className="text-xs text-gray-400 shrink-0 ml-1">
+                      {formatTime(threads.find(t => t.partner.id === myId)!.lastMessage.createdAt)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 truncate mt-0.5">
+                  {threads.find(t => t.partner.id === myId)?.lastMessage.content || "メモ・記録用"}
+                </p>
+              </div>
+            </button>
+
             {loadingThreads ? (
               <p className="text-xs text-gray-400 text-center py-8">読み込み中...</p>
-            ) : threads.length === 0 ? (
-              <div className="text-center py-12">
+            ) : regularThreads.length === 0 ? (
+              <div className="text-center py-10">
                 <p className="text-3xl mb-2">💬</p>
                 <p className="text-sm text-gray-400">まだメッセージがありません</p>
                 {role === "ADMIN" && (
@@ -278,7 +307,7 @@ function MessagesInner() {
                 )}
               </div>
             ) : (
-              threads.map(thread => (
+              regularThreads.map(thread => (
                 <button
                   key={thread.partner.id}
                   onClick={() => selectThread(thread.partner.id)}
@@ -332,7 +361,15 @@ function MessagesInner() {
                 >
                   ←
                 </button>
-                {selectedUser && (
+                {isSelfChat ? (
+                  <>
+                    <div className="w-9 h-9 rounded-full bg-purple-700 flex items-center justify-center text-lg shrink-0">📝</div>
+                    <div>
+                      <p className="text-sm font-bold text-white">マイチャット</p>
+                      <p className="text-xs text-gray-400">自分だけのメモ・記録</p>
+                    </div>
+                  </>
+                ) : selectedUser && (
                   <>
                     <UserAvatar user={selectedUser} size={9} />
                     <div>
@@ -353,9 +390,19 @@ function MessagesInner() {
                   <p className="text-xs text-gray-400 text-center py-8">読み込み中...</p>
                 ) : messages.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-3xl mb-2">👋</p>
-                    <p className="text-sm text-gray-400">まだメッセージはありません</p>
-                    <p className="text-xs text-gray-500 mt-1">最初のメッセージを送りましょう</p>
+                    {isSelfChat ? (
+                      <>
+                        <p className="text-3xl mb-2">📝</p>
+                        <p className="text-sm text-gray-400">メモや記録を残しましょう</p>
+                        <p className="text-xs text-gray-500 mt-1">自分だけが見られるスペースです</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-3xl mb-2">👋</p>
+                        <p className="text-sm text-gray-400">まだメッセージはありません</p>
+                        <p className="text-xs text-gray-500 mt-1">最初のメッセージを送りましょう</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   messages.map((msg, i) => {
@@ -381,7 +428,9 @@ function MessagesInner() {
                           <div className={`max-w-[75%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1`}>
                             <div
                               className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                                isMine
+                                isMine && isSelfChat
+                                  ? "bg-purple-700 text-white rounded-br-sm"
+                                  : isMine
                                   ? "bg-blue-600 text-white rounded-br-sm"
                                   : "bg-gray-700 text-gray-100 rounded-bl-sm"
                               }`}
@@ -409,7 +458,7 @@ function MessagesInner() {
                     onChange={(e) => setInputText(e.target.value)}
                     onFocus={() => { isInputFocusedRef.current = true; }}
                     onBlur={() => { isInputFocusedRef.current = false; }}
-                    placeholder="メッセージを入力..."
+                    placeholder={isSelfChat ? "メモを入力..." : "メッセージを入力..."}
                     rows={1}
                     className="flex-1 bg-gray-700 border border-gray-600 rounded-2xl px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     style={{ minHeight: "42px", maxHeight: "120px" }}

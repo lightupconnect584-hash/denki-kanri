@@ -11,7 +11,8 @@ model User {
   id          String    @id @default(cuid())
   name        String
   email       String    @unique
-  password    String
+  password    String?
+  inviteToken String?   @unique
   role        String    @default("PARTNER")
   companyName String?
   avatarUrl        String?

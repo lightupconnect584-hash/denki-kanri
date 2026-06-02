@@ -162,9 +162,8 @@ export default function SettingsPage() {
       fetch("/api/auth/profile", { method: "GET" }).then((r) => r.json()).then((data) => {
         if (data.color !== undefined) setMyColor(data.color);
         if (data.usedColors) setUsedColors(data.usedColors);
-        const cn = (session?.user as { companyName?: string })?.companyName || "";
         const filled = {
-          companyName:    cn,
+          companyName:    data.companyName    || "",
           address:        data.address        || "",
           birthDate:      data.birthDate      ? data.birthDate.slice(0, 10) : "",
           bloodType:      data.bloodType      || "",
@@ -316,8 +315,8 @@ export default function SettingsPage() {
         setMyColor(pendingColor);
       }
 
-      // JWT を更新して profileComplete = true にする
-      await update({ profileComplete: true });
+      // JWT を更新して profileComplete = true と companyName を反映
+      await update({ profileComplete: true, companyName: basicInfo.companyName || null });
       // フルリロードでミドルウェアに新しいJWTを確実に読ませる
       window.location.href = "/dashboard";
     } catch (e) {

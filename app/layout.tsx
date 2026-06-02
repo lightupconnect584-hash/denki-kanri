@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
+import BottomNav from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   title: "システム",
@@ -26,8 +27,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon.png" />
         <link rel="icon" href="/icon.png" />
       </head>
-      <body className="min-h-full bg-gray-950">
-        <SessionProvider>{children}</SessionProvider>
+      <body className="min-h-full bg-gray-950 pb-32 sm:pb-0">
+        <SessionProvider>
+          {children}
+          <BottomNav />
+        </SessionProvider>
       </body>
     </html>
   );

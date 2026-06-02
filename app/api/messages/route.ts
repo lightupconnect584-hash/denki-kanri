@@ -105,24 +105,26 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // プッシュ通知
-  try {
-    const notifBody = `${myName}：${body.content.trim().slice(0, 60)}`;
-    if (myRole === "ADMIN") {
-      await sendPushToUsers([body.toId], {
-        title: "💬 メッセージが届きました",
-        body: notifBody,
-        url: "/messages",
-      });
-    } else {
-      const adminIds = await getAdminIds();
-      await sendPushToUsers(adminIds, {
-        title: "💬 メッセージが届きました",
-        body: notifBody,
-        url: "/messages",
-      });
-    }
-  } catch { /* 通知失敗はスルー */ }
+  // プッシュ通知（自分宛て＝マイチャットはスキップ）
+  if (body.toId !== myId) {
+    try {
+      const notifBody = `${myName}：${body.content.trim().slice(0, 60)}`;
+      if (myRole === "ADMIN") {
+        await sendPushToUsers([body.toId], {
+          title: "💬 メッセージが届きました",
+          body: notifBody,
+          url: "/messages",
+        });
+      } else {
+        const adminIds = await getAdminIds();
+        await sendPushToUsers(adminIds, {
+          title: "💬 メッセージが届きました",
+          body: notifBody,
+          url: "/messages",
+        });
+      }
+    } catch { /* 通知失敗はスルー */ }
+  }
 
   return NextResponse.json(msg);
 }

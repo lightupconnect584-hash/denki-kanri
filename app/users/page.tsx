@@ -40,7 +40,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newRole, setNewRole] = useState<"PARTNER" | "ADMIN">("PARTNER");
-  const [form, setForm] = useState({ lastName: "", firstName: "", email: "", password: "", companyName: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", companyName: "" });
   const [loading, setLoading] = useState(false);
 
   const [resetUserId, setResetUserId] = useState<string | null>(null);
@@ -85,14 +85,13 @@ export default function UsersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const fullName = `${form.lastName.trim()} ${form.firstName.trim()}`.trim();
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, name: fullName, role: newRole }),
+      body: JSON.stringify({ ...form, role: newRole }),
     });
     const data = await res.json();
-    setForm({ lastName: "", firstName: "", email: "", password: "", companyName: "" });
+    setForm({ name: "", email: "", password: "", companyName: "" });
     setShowForm(false);
     fetchUsers();
     setLoading(false);
@@ -184,7 +183,7 @@ export default function UsersPage() {
             {u.id === myId && <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full shrink-0">自分</span>}
             {u.inviteToken && <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full shrink-0">招待中</span>}
           </div>
-          {u.companyName && !u.inviteToken && u.name !== "招待中" && <p className="text-xs text-gray-500 truncate">{u.name.split(" ")[0]}</p>}
+          {u.companyName && !u.inviteToken && u.name !== "招待中" && <p className="text-xs text-gray-500 truncate">{u.name}</p>}
           <p className="text-xs text-gray-400 truncate">{u.inviteToken ? "（未登録）" : u.email}</p>
           {u.role === "PARTNER" && (
             <button
@@ -456,12 +455,8 @@ export default function UsersPage() {
             </div>
             {newRole === "ADMIN" && (
               <>
-                <div className="flex gap-2">
-                  <input type="text" required placeholder="姓（例: 田中）" value={form.lastName}
-                    onChange={(e) => setForm({ ...form, lastName: e.target.value })} className={inputClass} />
-                  <input type="text" required placeholder="名（例: 太郎）" value={form.firstName}
-                    onChange={(e) => setForm({ ...form, firstName: e.target.value })} className={inputClass} />
-                </div>
+                <input type="text" required placeholder="名前" value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
                 <input type="text" required placeholder="ログインID（例: admin01）" value={form.email}
                   autoCapitalize="none" autoCorrect="off"
                   onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />

@@ -11,8 +11,7 @@ export default function RegisterPage() {
   const [invalid, setInvalid] = useState(false);
   const [companyName, setCompanyName] = useState<string | null>(null);
 
-  const [lastName, setLastName] = useState("");
-  const [firstName, setFirstName] = useState("");
+  const [name, setName] = useState("");
   const [myCompanyName, setMyCompanyName] = useState("");
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -38,12 +37,11 @@ export default function RegisterPage() {
     if (password !== passwordConfirm) { setError("パスワードが一致しません"); return; }
     if (password.length < 4) { setError("パスワードは4文字以上必要です"); return; }
 
-    const fullName = `${lastName.trim()} ${firstName.trim()}`.trim();
     setLoading(true);
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, loginId: loginId.trim(), password, name: fullName || null, companyName: myCompanyName.trim() || null }),
+      body: JSON.stringify({ token, loginId: loginId.trim(), password, name: name.trim() || null, companyName: myCompanyName.trim() || null }),
     });
     const data = await res.json();
     if (res.ok) {
@@ -106,24 +104,14 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">お名前 <span className="text-red-400 text-xs">*</span></label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                required
-                placeholder="姓（例: 鈴木）"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                required
-                placeholder="名（例: 太郎）"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              placeholder="例: 鈴木 太郎"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">屋号または会社名 <span className="text-red-400 text-xs">*</span></label>
@@ -176,7 +164,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading || !lastName.trim() || !firstName.trim() || !myCompanyName.trim() || !loginId.trim() || !password || !passwordConfirm}
+            disabled={loading || !name.trim() || !myCompanyName.trim() || !loginId.trim() || !password || !passwordConfirm}
             className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {loading ? "設定中..." : "設定して始める"}

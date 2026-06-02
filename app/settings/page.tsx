@@ -60,7 +60,6 @@ export default function SettingsPage() {
 
   // 基本情報（パートナー用）
   const [basicInfo, setBasicInfo] = useState({
-    lastName: "", firstName: "",
     companyName: "",
     address: "", birthDate: "", bloodType: "",
     emergencyName: "", emergencyPhone: "",
@@ -163,10 +162,7 @@ export default function SettingsPage() {
       fetch("/api/auth/profile", { method: "GET" }).then((r) => r.json()).then((data) => {
         if (data.color !== undefined) setMyColor(data.color);
         if (data.usedColors) setUsedColors(data.usedColors);
-        const nameParts = (data.name || "").split(" ");
         const filled = {
-          lastName:       nameParts[0] || "",
-          firstName:      nameParts.slice(1).join(" ") || "",
           companyName:    data.companyName    || "",
           address:        data.address        || "",
           birthDate:      data.birthDate      ? data.birthDate.slice(0, 10) : "",
@@ -267,12 +263,11 @@ export default function SettingsPage() {
   const saveBasicInfo = async () => {
     setSavingBasic(true);
     setBasicMessage(null);
-    const fullName = `${basicInfo.lastName.trim()} ${basicInfo.firstName.trim()}`.trim();
     try {
       const res = await fetch("/api/auth/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ basicInfo: { ...basicInfo, name: fullName || null } }),
+        body: JSON.stringify({ basicInfo }),
       });
       if (res.ok) {
         setBasicMessage({ type: "success", text: "保存しました" });
@@ -291,7 +286,7 @@ export default function SettingsPage() {
   const completeSetup = async () => {
     if (completingSetup) return;
     // バリデーション
-    if (!basicInfo.companyName || !basicInfo.address || !basicInfo.birthDate || !basicInfo.bloodType || !basicInfo.emergencyName || !basicInfo.emergencyPhone || !basicInfo.lastName) {
+    if (!basicInfo.companyName || !basicInfo.address || !basicInfo.birthDate || !basicInfo.bloodType || !basicInfo.emergencyName || !basicInfo.emergencyPhone) {
       setBasicMessage({ type: "error", text: "必須項目をすべて入力してください" });
       return;
     }
@@ -302,11 +297,10 @@ export default function SettingsPage() {
     setCompletingSetup(true);
     try {
       // 基本情報保存
-      const fullName = `${basicInfo.lastName.trim()} ${basicInfo.firstName.trim()}`.trim();
       const r1 = await fetch("/api/auth/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ basicInfo: { ...basicInfo, name: fullName || null } }),
+        body: JSON.stringify({ basicInfo }),
       });
       if (!r1.ok) throw new Error("基本情報の保存に失敗しました");
 
@@ -765,7 +759,7 @@ export default function SettingsPage() {
   if (isSetupMode && role === "PARTNER") {
     const blockedColors = getBlockedColors(usedColors);
     const availableColors = ALL_COLORS.filter(c => !blockedColors.has(c));
-    const basicComplete = !!(basicInfo.lastName && basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
+    const basicComplete = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone);
     const colorSelected = !!(myColor || pendingColor);
     const allDone = basicComplete && colorSelected;
     const ic = "w-full border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500";
@@ -802,23 +796,6 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-4">
-                {/* 姓・名 */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                    お名前 <span className="text-red-400">*</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <input type="text" value={basicInfo.lastName}
-                      onChange={(e) => setBasicInfo(p => ({ ...p, lastName: e.target.value }))}
-                      placeholder="姓（例: 鈴木）"
-                      className={ic} />
-                    <input type="text" value={basicInfo.firstName}
-                      onChange={(e) => setBasicInfo(p => ({ ...p, firstName: e.target.value }))}
-                      placeholder="名（例: 太郎）"
-                      className={ic} />
-                  </div>
-                </div>
-
                 {/* 屋号または会社名 */}
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1.5">
@@ -1517,28 +1494,6 @@ export default function SettingsPage() {
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">必須項目</p>
                 <div className="space-y-2.5">
-                  {/* 姓・名 */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">
-                      お名前 <span className="text-red-400">*</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={basicInfo.lastName}
-                        onChange={(e) => setBasicInfo(p => ({ ...p, lastName: e.target.value }))}
-                        placeholder="姓（例: 鈴木）"
-                        className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                      />
-                      <input
-                        type="text"
-                        value={basicInfo.firstName}
-                        onChange={(e) => setBasicInfo(p => ({ ...p, firstName: e.target.value }))}
-                        placeholder="名（例: 太郎）"
-                        className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                      />
-                    </div>
-                  </div>
                   {/* 屋号または会社名 */}
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1">

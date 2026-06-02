@@ -177,7 +177,7 @@ export default function SettingsPage() {
         };
         setBasicInfo(filled);
         // 必須項目が未入力ならデフォルトで開く
-        const allFilled = !!(filled.companyName && filled.address && filled.birthDate && filled.bloodType && filled.emergencyName && filled.emergencyPhone);
+        const allFilled = !!(filled.address && filled.birthDate && filled.bloodType && filled.emergencyName && filled.emergencyPhone);
         if (!allFilled) {
           setOpenSections(prev => { const s = new Set(prev); s.add("basicInfo"); return s; });
         }
@@ -797,15 +797,16 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-4">
-                {/* 会社名 */}
+                {/* 屋号または会社名 */}
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                    会社名 <span className="text-red-400">*</span>
+                    屋号または会社名 <span className="text-red-400">*</span>
                   </label>
                   <input type="text" value={basicInfo.companyName}
                     onChange={(e) => setBasicInfo(p => ({ ...p, companyName: e.target.value }))}
-                    placeholder="例：株式会社〇〇電設"
+                    placeholder="例：株式会社〇〇電設 / 山田電気工事"
                     className={ic} />
+                  <p className="text-xs text-gray-500 mt-1">依頼一覧・カレンダーに表示される名前です</p>
                 </div>
 
                 {/* 住所 */}
@@ -1467,7 +1468,7 @@ export default function SettingsPage() {
         {/* 基本情報（パートナーのみ） */}
         {role === "PARTNER" && (() => {
           const colorSelected = !!(myColor || pendingColor);
-          const basicAllFilled = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone && colorSelected);
+          const basicAllFilled = !!(basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone && colorSelected);
           const blockedColors = getBlockedColors(usedColors);
           const availableColors = ALL_COLORS.filter(c => !blockedColors.has(c));
           return (
@@ -1494,6 +1495,20 @@ export default function SettingsPage() {
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">必須項目</p>
                 <div className="space-y-2.5">
+                  {/* 屋号または会社名 */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                      屋号または会社名
+                    </label>
+                    <input
+                      type="text"
+                      value={basicInfo.companyName}
+                      onChange={(e) => setBasicInfo(p => ({ ...p, companyName: e.target.value }))}
+                      placeholder="例：株式会社〇〇電設 / 山田電気工事"
+                      className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">協力会社名として依頼一覧・カレンダーに表示されます</p>
+                  </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1">
                       住所 <span className="text-red-400">*</span>
@@ -1680,7 +1695,7 @@ export default function SettingsPage() {
                 onClick={async () => {
                   await saveBasicInfo();
                   // 保存成功後、全必須項目＋カラーが揃っていれば自動で閉じる
-                  const allFilled = !!(basicInfo.companyName && basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone && (myColor || pendingColor));
+                  const allFilled = !!(basicInfo.address && basicInfo.birthDate && basicInfo.bloodType && basicInfo.emergencyName && basicInfo.emergencyPhone && (myColor || pendingColor));
                   if (allFilled) {
                     setOpenSections(prev => { const s = new Set(prev); s.delete("basicInfo"); return s; });
                   }

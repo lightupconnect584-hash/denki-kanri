@@ -119,6 +119,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
   if (body.preferredContactAt !== undefined) updateData.preferredContactAt = body.preferredContactAt || null;
   if (body.preferredVisitAt !== undefined) updateData.preferredVisitAt = body.preferredVisitAt || null;
+  if (body.moveInDate !== undefined) updateData.moveInDate = body.moveInDate || null;
 
   // 金額変更は管理者のみ・変更履歴を記録
   let oldAmount: number | null = null;

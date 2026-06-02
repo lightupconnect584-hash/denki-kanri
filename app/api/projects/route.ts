@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       assignedToId: body.assignedToId || null,
       preferredContactAt: body.preferredContactAt || null,
       preferredVisitAt: body.preferredVisitAt || null,
+      moveInDate: body.moveInDate || null,
       createdById: userId,
       status: "PENDING",
       notifyPartnerAt: new Date(),

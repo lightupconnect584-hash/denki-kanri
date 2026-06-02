@@ -36,6 +36,7 @@ export default function EditProjectPage() {
     assignedToId: "",
     preferredContactAt: "",
     preferredVisitAt: "",
+    moveInDate: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,6 +70,7 @@ export default function EditProjectPage() {
             assignedToId: data.assignedTo?.id || "",
             preferredContactAt: data.preferredContactAt || "",
             preferredVisitAt: data.preferredVisitAt || "",
+            moveInDate: data.moveInDate || "",
           });
           setLoading(false);
         });
@@ -219,6 +221,12 @@ export default function EditProjectPage() {
               <input type="text" value={form.preferredVisitAt}
                 onChange={(e) => setForm({ ...form, preferredVisitAt: e.target.value })}
                 className={inputClass} placeholder="例: 5/12 14時以降" maxLength={15} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">入居開始日</label>
+              <input type="text" value={form.moveInDate}
+                onChange={(e) => setForm({ ...form, moveInDate: e.target.value })}
+                className={inputClass} placeholder="例: R7.6.1" maxLength={12} />
             </div>
           </div>
 

@@ -71,6 +71,7 @@ interface Project {
   description: string | null;
   preferredContactAt: string | null;
   preferredVisitAt: string | null;
+  moveInDate: string | null;
   urgency: string;
   amount: number | null;
   visitDate: string | null;
@@ -428,6 +429,12 @@ export default function ProjectDetailPage() {
             <div>
               <p className="text-xs text-gray-500">訪問希望日時</p>
               <p className="text-sm text-gray-700">{project.preferredVisitAt}</p>
+            </div>
+          )}
+          {project.moveInDate && (
+            <div>
+              <p className="text-xs text-gray-500">入居開始日</p>
+              <p className="text-sm text-gray-700">{project.moveInDate}</p>
             </div>
           )}
           {project.contractorName && (

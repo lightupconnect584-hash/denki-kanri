@@ -40,6 +40,7 @@ export default function NewProjectPage() {
     assignedToId: "",
     preferredContactAt: "",
     preferredVisitAt: "",
+    moveInDate: "",
   });
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -238,6 +239,13 @@ export default function NewProjectPage() {
                       placeholder="例: 5/12 14時以降" maxLength={15} />
                   </div>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">入居開始日 <span className="text-gray-500 font-normal text-xs">（任意）</span></label>
+                <input type="text" value={form.moveInDate}
+                  onChange={(e) => setForm({ ...form, moveInDate: e.target.value })}
+                  className={inputClass}
+                  placeholder="例: R7.6.1" maxLength={12} />
               </div>
             </div>
           </div>

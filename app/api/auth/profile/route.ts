@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 const profileSelect = {
   avatarUrl: true,
   phone: true,
+  name: true,
   companyName: true,
   thankYouEnabled: true,
   thankYouImageUrl: true,
@@ -64,6 +65,7 @@ export async function PATCH(req: NextRequest) {
     await prisma.user.update({
       where: { id: userId },
       data: {
+        ...(d.name !== undefined ? { name: d.name?.trim() || null } : {}),
         ...(d.companyName !== undefined ? { companyName: d.companyName?.trim() || null } : {}),
         address:        d.address?.trim()        || null,
         birthDate:      d.birthDate              ? new Date(d.birthDate) : null,

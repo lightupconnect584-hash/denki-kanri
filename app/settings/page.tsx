@@ -1093,6 +1093,14 @@ export default function SettingsPage() {
           <span className="text-gray-400 text-xs">→</span>
         </Link>
 
+        {/* 見積りリンク（管理者のみ） */}
+        {role === "ADMIN" && (
+          <Link href="/estimate" className="bg-gray-800 rounded-xl border border-gray-700 mb-3 flex items-center justify-between px-4 py-3.5 hover:bg-gray-700 transition block">
+            <span className="text-sm font-bold text-gray-100">📋 見積り</span>
+            <span className="text-gray-400 text-xs">→</span>
+          </Link>
+        )}
+
         {/* 依頼名マスター */}
         {role === "ADMIN" && (
           <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">

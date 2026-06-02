@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Header from "@/components/Header";
 
-// ── バージョン・更新履歴 ──────────────────────────────
-const VERSION = "2026年5月";
+const VERSION = "2026年6月";
 const CHANGELOG = [
-  { date: "2026年5月", text: "カレンダー機能追加・訪問時間帯入力に対応" },
-  { date: "2026年5月", text: "完了済依頼ページの追加・費用集計CSV出力" },
-  { date: "2026年5月", text: "依頼名（作業種別）・絞り込み機能の強化" },
+  { date: "2026年6月", text: "モバイル用ボトムナビ追加（依頼/チャット/カレンダー/完了済/設定）" },
+  { date: "2026年6月", text: "協力会社の招待リンク登録フロー追加" },
+  { date: "2026年6月", text: "マイチャット（自分へのメモ）機能追加" },
+  { date: "2026年5月", text: "カレンダー機能・訪問時間帯入力に対応" },
+  { date: "2026年5月", text: "完了済依頼ページ・費用集計CSV出力" },
 ];
-// ────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -20,7 +20,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700">
         <p className="text-sm font-bold text-gray-200">{title}</p>
       </div>
-      <div className="px-4 py-4 space-y-2 text-sm text-gray-200">{children}</div>
+      <div className="px-4 py-4 space-y-2.5 text-sm text-gray-200">{children}</div>
     </div>
   );
 }
@@ -67,19 +67,27 @@ export default function HelpPage() {
           </div>
         </div>
 
+        {/* ── 共通：画面構成 ── */}
+        <Section title="📱 画面構成（モバイル）">
+          <Row label="下部タブバー">画面下に常時表示。5つのタブで各機能にアクセスできます。</Row>
+          <Row label="依頼">案件一覧・新規作成はここから。</Row>
+          <Row label="チャット">管理者・協力会社間のメッセージ。自分へのメモ（マイチャット）も使えます。</Row>
+          <Row label="カレンダー">訪問予定を月単位で確認。</Row>
+          <Row label="完了済">完了した案件と請求金額の確認。</Row>
+          <Row label="設定">プロフィール・通知・各種設定はここから。</Row>
+        </Section>
+
         {/* ── 協力会社向け ── */}
         {role === "PARTNER" && (
           <>
-            <Section title="📋 ホーム画面（依頼一覧）">
-              <Row label="青い枠の依頼">未確認の更新があります。優先して確認してください。</Row>
-              <Row label="カレンダーボタン">右上「📅 カレンダー」から訪問予定の一覧を確認できます。</Row>
-              <Row label="完了済依頼">ヘッダーの「完了済依頼」から過去の案件・請求金額を確認できます。</Row>
+            <Section title="🚀 はじめてログインしたら">
+              <Row label="初回設定">ログイン後に初回設定画面が表示されます。屋号または会社名・住所・生年月日・血液型・緊急連絡先・自社カラーをすべて入力すると利用開始できます。</Row>
+              <Row label="自社カラー">カレンダーで自社の依頼を色で識別するために使います。一度設定すると変更できません。</Row>
             </Section>
 
-            <Section title="✅ 依頼への対応">
-              <Row label="受注する">依頼をタップし「受注する」ボタンを押してください。</Row>
-              <Row label="辞退する">対応できない場合は「辞退する」を押すと管理者に戻ります。</Row>
-              <Row label="通常の流れ">
+            <Section title="📋 依頼タブ（案件一覧）">
+              <Row label="青い枠の依頼">未確認の更新があります。優先して確認してください。</Row>
+              <Row label="ステータスの流れ">
                 <span className="flex gap-1 flex-wrap items-center">
                   <Badge color="bg-yellow-100 text-yellow-700">依頼中</Badge>→
                   <Badge color="bg-blue-100 text-blue-700">受注済</Badge>→
@@ -97,44 +105,52 @@ export default function HelpPage() {
               </Row>
             </Section>
 
-            <Section title="📅 訪問予定日・時間の設定（重要）">
+            <Section title="✅ 依頼への対応">
+              <Row label="受注する">依頼をタップし「受注する」ボタンを押してください。</Row>
+              <Row label="辞退する">対応できない場合は「辞退する」を押すと管理者に戻ります。</Row>
+            </Section>
+
+            <Section title="📅 訪問予定日・時間の設定">
               <Row label="設定場所">依頼詳細の「📅 訪問予定日」欄</Row>
               <Row label="手順">日付を選択 → 時間帯を選択（例：10時〜12時）→「保存」</Row>
               <Row label="ポイント">管理者のカレンダーにも反映されます。日程が決まったら必ず入力してください。</Row>
-              <Row label="変更できる期間">受注済・再報告待ち中のみ変更可能です。</Row>
             </Section>
 
             <Section title="📷 作業完了後の報告">
               <Row label="提出場所">依頼詳細の「📋 完了報告する」ボタンから提出します。</Row>
               <Row label="入力内容">作業日・作業内容・写真（作業前後）</Row>
-              <Row label="修理が必要な場合">作業内容で「修理・交換が必要」を選ぶと管理者に修理が必要な旨が伝わります。管理者から見積りを依頼される場合があります。</Row>
-              <Row label="再報告">「再報告待ち」になった場合は内容を修正して再度「再報告する」を押してください。</Row>
-              <Row label="注意">報告写真はチャットではなく「完了報告する」ボタンから提出してください。</Row>
+              <Row label="修理が必要な場合">作業内容で「修理・交換が必要」を選ぶと、管理者から見積りを依頼される場合があります。</Row>
+              <Row label="再報告">「再報告待ち」になった場合は内容を修正して「再報告する」を押してください。</Row>
             </Section>
 
             <Section title="📄 見積りの提出">
-              <Row label="タイミング">管理者から見積りを依頼されると、ステータスが「見積依頼」になります。</Row>
+              <Row label="タイミング">管理者から依頼されるとステータスが「見積依頼」になります。</Row>
               <Row label="提出場所">依頼詳細の「見積もりを提出する」ボタンをタップ</Row>
               <Row label="入力内容">金額・備考・見積書ファイル（PDF等）を添付して送信</Row>
-              <Row label="提出後">管理者が確認するとステータスが「見積り中」に変わります。承認されると「確認済」になります。</Row>
-              <Row label="ポイント">見積りを提出しても、管理者が「見積りなしで確認・完了」を選ぶ場合もあります。</Row>
             </Section>
 
-            <Section title="💬 チャット">
-              <Row label="使い方">依頼詳細の下部で管理者とやりとりができます。</Row>
-              <Row label="送信">Enterキーで送信、Shift+Enterで改行。</Row>
-              <Row label="用途">日程調整・質問・連絡事項などに使ってください。</Row>
+            <Section title="💬 チャットタブ">
+              <Row label="スレッド一覧">管理者との会話が案件ごとに表示されます。</Row>
+              <Row label="マイチャット">一番上の「📝 マイチャット」は自分だけのメモ帳として使えます。</Row>
+              <Row label="未読バッジ">未読メッセージがあるとタブに数字バッジが表示されます。</Row>
             </Section>
 
-            <Section title="📅 カレンダー">
+            <Section title="📅 カレンダータブ">
               <Row label="表示内容">訪問予定日が入った案件が月カレンダーに表示されます。</Row>
               <Row label="日付タップ">その日の訪問予定が時間の早い順に一覧表示されます。</Row>
             </Section>
 
-            <Section title="💰 完了済依頼・請求金額">
-              <Row label="確認方法">ヘッダーの「完了済依頼」をタップ</Row>
+            <Section title="💰 完了済タブ">
               <Row label="表示内容">完了した案件と請求金額を月ごとに確認できます。</Row>
               <Row label="件名タップ">案件の詳細ページに移動します。</Row>
+            </Section>
+
+            <Section title="⚙️ 設定タブ">
+              <Row label="プロフィール画像">設定ページ上部から変更できます。</Row>
+              <Row label="電話番号">設定ページから登録・変更できます。</Row>
+              <Row label="基本情報">住所・生年月日・緊急連絡先などを更新できます。</Row>
+              <Row label="パスワード変更">設定ページ下部から変更できます。</Row>
+              <Row label="交換機種表">設定ページから参照できます。</Row>
             </Section>
           </>
         )}
@@ -142,28 +158,27 @@ export default function HelpPage() {
         {/* ── 管理者向け ── */}
         {role === "ADMIN" && (
           <>
-            <Section title="📋 ホーム画面（依頼一覧）">
+            <Section title="📋 依頼タブ（案件一覧）">
               <Row label="新規依頼">右上「＋ 新規依頼」から案件を登録します。</Row>
               <Row label="青い枠の依頼">協力会社から更新があった案件です（報告・コメントなど）。</Row>
-              <Row label="絞り込み">「絞り込み」ボタンでステータス・緊急度・地域・協力会社で絞り込み可能。</Row>
+              <Row label="絞り込み">ステータス・緊急度・地域・協力会社で絞り込み可能。</Row>
               <Row label="並べ替え">訪問順 / 緊急順 / 状態順 / 地域順で切り替えられます。</Row>
-              <Row label="進行中カード">7件超で黄色、9件超で赤に変わります。案件が増えすぎているサインです。</Row>
             </Section>
 
             <Section title="📝 新規依頼の登録">
-              <Row label="依頼名">作業種別を入力。右端「▼」で設定済みのテンプレートから選択すると金額・緊急度が自動入力されます。</Row>
+              <Row label="依頼名">右端「▼」で設定済みのテンプレートから選択すると金額・緊急度が自動入力されます。</Row>
               <Row label="必須項目">物件名・住所・依頼名</Row>
               <Row label="担当割り当て">「担当協力会社」で担当を選択すると相手に通知されます。</Row>
             </Section>
 
-            <Section title="📋 完了報告・見積りの確認と操作">
+            <Section title="📋 完了報告・見積りの確認">
               <Row label="完了報告後の操作">
                 <span>協力会社が報告を提出するとステータスが「完了報告済」になります。<br />
                 ・そのまま完了 → 「✅ 確認・完了する」<br />
                 ・修理見積りが必要 → 「📋 見積依頼する」<br />
-                ・内容に問題あり → 「↩ 差し戻す（再報告要求）」</span>
+                ・内容に問題あり → 「↩ 差し戻す」</span>
               </Row>
-              <Row label="見積り依頼後の流れ">
+              <Row label="見積り依頼後">
                 <span>
                   <Badge color="bg-orange-100 text-orange-700">見積依頼</Badge>
                   → 協力会社が見積りを提出 →
@@ -171,24 +186,32 @@ export default function HelpPage() {
                   → 「✅ 確認・完了する」で完了
                 </span>
               </Row>
-              <Row label="見積書の確認">依頼詳細の「見積もり」セクションで提出内容・金額・添付ファイルを確認できます。</Row>
-              <Row label="見積りなしで完了">修理報告後でも「見積依頼する」を使わず直接「確認・完了する」を押すことができます。</Row>
             </Section>
 
-            <Section title="📅 カレンダー">
+            <Section title="💬 チャットタブ">
+              <Row label="スレッド一覧">協力会社ごとの会話が表示されます。</Row>
+              <Row label="マイチャット">一番上の「📝 マイチャット」は自分だけのメモ帳として使えます。</Row>
+              <Row label="未読バッジ">未読メッセージがあるとタブに数字バッジが表示されます。</Row>
+            </Section>
+
+            <Section title="📅 カレンダータブ">
               <Row label="表示内容">全協力会社の訪問予定を一覧確認できます。</Row>
               <Row label="色分け">ユーザー管理でカラーを設定した会社はドットの色で識別できます。</Row>
               <Row label="絞り込み">右上ドロップダウンで会社ごとに絞り込み可能です。</Row>
             </Section>
 
-            <Section title="💰 完了済依頼・費用集計">
-              <Row label="確認方法">ヘッダーの「完了済依頼」をタップ</Row>
+            <Section title="💰 完了済タブ">
               <Row label="絞り込み">月・協力会社で絞り込めます。</Row>
               <Row label="CSV出力">「CSV出力」ボタンで費用データをダウンロードできます。</Row>
             </Section>
 
-            <Section title="⚙️ 設定・ユーザー管理">
-              <Row label="依頼名テンプレート">設定ページで依頼名と既定金額・緊急度を登録できます。</Row>
+            <Section title="⚙️ 設定タブ">
+              <Row label="ユーザー管理">「＋ 追加」から管理者または協力会社を追加できます。協力会社は招待リンクを発行して相手に送ります。</Row>
+              <Row label="招待リンク">相手がリンクを開いてログインID・パスワード・名前・会社名を自分で設定します。完了後に自動でログイン可能になります。</Row>
+              <Row label="依頼名テンプレート">よく使う依頼名と既定金額・緊急度を登録できます。</Row>
+              <Row label="季節メッセージ">月次の感謝メッセージや季節ごとのアニメーション付きメッセージを設定できます。</Row>
+              <Row label="見積り">設定ページから見積り画面に移動できます。</Row>
+              <Row label="交換機種表">設定ページから参照できます。</Row>
               <Row label="カラー設定">ユーザー管理ページで協力会社ごとにカレンダー表示カラーを設定できます。</Row>
               <Row label="PW変更">ユーザー管理ページから各ユーザーのパスワードを変更できます。</Row>
             </Section>

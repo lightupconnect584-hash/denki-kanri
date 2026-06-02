@@ -115,11 +115,7 @@ export default function Header() {
           <Link href="/messages" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">
             💬 メッセージ
           </Link>
-          {role === "ADMIN" && (
-            <Link href="/estimate" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">見積り</Link>
-          )}
           <Link href="/billing" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">完了済依頼</Link>
-          <Link href="/replacement-models" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">交換機種表</Link>
           <Link href="/help" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">使い方</Link>
           <Link href="/settings" className="flex items-center gap-1.5 hover:opacity-80 transition ml-1">
             <Avatar />
@@ -160,14 +156,6 @@ export default function Header() {
               <span>🔔</span><span>通知をONにする</span>
             </button>
           )}
-          {role === "ADMIN" && (
-            <Link href="/estimate" className="flex items-center gap-2 text-sm text-gray-200 hover:text-white py-2 border-b border-gray-700">
-              <span>📋</span><span>見積り</span>
-            </Link>
-          )}
-          <Link href="/replacement-models" className="flex items-center gap-2 text-sm text-gray-200 hover:text-white py-2 border-b border-gray-700">
-            <span>🔌</span><span>交換機種表</span>
-          </Link>
           <Link href="/help" className="flex items-center gap-2 text-sm text-gray-200 hover:text-white py-2 border-b border-gray-700">
             <span>❓</span><span>使い方</span>
           </Link>

@@ -24,8 +24,10 @@ export async function sendPushToUsers(userIds: string[], payload: { title: strin
           message
         );
       } catch (err: unknown) {
+        const status = (err as { statusCode?: number }).statusCode;
+        console.error(`[push] failed endpoint=${sub.endpoint.slice(-20)} status=${status}`, err);
         // 無効なサブスクリプションは削除
-        if ((err as { statusCode?: number }).statusCode === 410 || (err as { statusCode?: number }).statusCode === 404) {
+        if (status === 410 || status === 404) {
           await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
         }
       }

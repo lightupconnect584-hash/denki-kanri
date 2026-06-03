@@ -52,6 +52,65 @@ export default function SettingsPage() {
     }
   }, []);
 
+  // プッシュ通知
+  const [notifStatus, setNotifStatus] = useState<"default" | "granted" | "denied">("default");
+  const [notifRegistering, setNotifRegistering] = useState(false);
+  const [notifMessage, setNotifMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  useEffect(() => {
+    if (typeof Notification !== "undefined") {
+      setNotifStatus(Notification.permission as "default" | "granted" | "denied");
+    }
+  }, []);
+
+  const urlBase64ToUint8Array = (base64: string) => {
+    const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+    const b64 = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(b64);
+    return new Uint8Array([...raw].map((c) => c.charCodeAt(0)));
+  };
+
+  const registerNotification = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setNotifMessage({ type: "error", text: "iPhoneの場合はSafariで「ホーム画面に追加」してから開いてください" });
+      return;
+    }
+    setNotifRegistering(true);
+    setNotifMessage(null);
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      const permission = await Notification.requestPermission();
+      setNotifStatus(permission as "default" | "granted" | "denied");
+      if (permission !== "granted") {
+        setNotifMessage({ type: "error", text: "通知が許可されませんでした。端末の設定から通知を許可してください。" });
+        return;
+      }
+      const res = await fetch("/api/push");
+      const { publicKey } = await res.json();
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) await existing.unsubscribe();
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+      const json = sub.toJSON();
+      const saveRes = await fetch("/api/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+      });
+      if (saveRes.ok) {
+        await fetch("/api/push/test", { method: "POST" });
+        setNotifMessage({ type: "success", text: "通知を登録しました！テスト通知を送信しました。" });
+      } else {
+        setNotifMessage({ type: "error", text: "登録に失敗しました。再度お試しください。" });
+      }
+    } catch (e) {
+      setNotifMessage({ type: "error", text: `エラー: ${String(e)}` });
+    }
+    setNotifRegistering(false);
+  };
+
   // 自社カラー（パートナー用）
   const [myColor, setMyColor] = useState<string | null>(null);
   const [pendingColor, setPendingColor] = useState<string | null>(null);
@@ -1788,6 +1847,43 @@ export default function SettingsPage() {
             )}
           </div>
         )}
+
+        {/* プッシュ通知 */}
+        <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3 px-4 py-3.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-gray-100">🔔 プッシュ通知</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {notifStatus === "granted" ? "通知が有効です" : notifStatus === "denied" ? "端末設定でブロック中" : "未設定"}
+              </p>
+            </div>
+            {notifStatus === "denied" ? (
+              <span className="text-xs text-gray-500 border border-gray-600 rounded px-2 py-1">端末設定から許可</span>
+            ) : (
+              <button
+                onClick={registerNotification}
+                disabled={notifRegistering}
+                className={`text-xs rounded px-3 py-1.5 font-medium transition disabled:opacity-50 ${
+                  notifStatus === "granted"
+                    ? "text-green-400 border border-green-700 hover:bg-green-900/30"
+                    : "text-yellow-400 border border-yellow-600 hover:bg-yellow-900/30 animate-pulse"
+                }`}
+              >
+                {notifRegistering ? "登録中..." : notifStatus === "granted" ? "✓ ON（再登録）" : "通知をONにする"}
+              </button>
+            )}
+          </div>
+          {notifMessage && (
+            <p className={`text-xs mt-2 ${notifMessage.type === "success" ? "text-green-400" : "text-red-400"}`}>
+              {notifMessage.text}
+            </p>
+          )}
+          {notifStatus !== "denied" && (
+            <p className="text-xs text-gray-500 mt-2">
+              ※ iPhoneはSafariで「ホーム画面に追加」してから開いてください
+            </p>
+          )}
+        </div>
 
         {/* パスワード変更 */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">

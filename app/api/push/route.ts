@@ -16,6 +16,10 @@ export async function POST(req: NextRequest) {
   const userId = (session.user as { id: string }).id;
   const { endpoint, keys } = await req.json();
 
+  // 古い購読（同じユーザーの別エンドポイント）を削除してから登録
+  await prisma.pushSubscription.deleteMany({
+    where: { userId, NOT: { endpoint } },
+  });
   await prisma.pushSubscription.upsert({
     where: { endpoint },
     update: { userId, p256dh: keys.p256dh, auth: keys.auth },

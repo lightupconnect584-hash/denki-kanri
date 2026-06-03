@@ -56,10 +56,12 @@ export default function SettingsPage() {
   const [notifStatus, setNotifStatus] = useState<"default" | "granted" | "denied">("default");
   const [notifRegistering, setNotifRegistering] = useState(false);
   const [notifMessage, setNotifMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [notifSubCount, setNotifSubCount] = useState<number | null>(null);
   useEffect(() => {
     if (typeof Notification !== "undefined") {
       setNotifStatus(Notification.permission as "default" | "granted" | "denied");
     }
+    fetch("/api/push/status").then(r => r.json()).then(d => setNotifSubCount(d.count ?? 0)).catch(() => {});
   }, []);
 
   const urlBase64ToUint8Array = (base64: string) => {
@@ -102,6 +104,7 @@ export default function SettingsPage() {
       if (saveRes.ok) {
         await fetch("/api/push/test", { method: "POST" });
         setNotifMessage({ type: "success", text: "通知を登録しました！テスト通知を送信しました。" });
+        fetch("/api/push/status").then(r => r.json()).then(d => setNotifSubCount(d.count ?? 0)).catch(() => {});
       } else {
         setNotifMessage({ type: "error", text: "登録に失敗しました。再度お試しください。" });
       }
@@ -1855,6 +1858,11 @@ export default function SettingsPage() {
               <p className="text-sm font-bold text-gray-100">🔔 プッシュ通知</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {notifStatus === "granted" ? "通知が有効です" : notifStatus === "denied" ? "端末設定でブロック中" : "未設定"}
+                {notifSubCount !== null && (
+                  <span className={`ml-2 ${notifSubCount > 0 ? "text-green-500" : "text-red-400"}`}>
+                    （DB登録: {notifSubCount}件）
+                  </span>
+                )}
               </p>
             </div>
             {notifStatus === "denied" ? (

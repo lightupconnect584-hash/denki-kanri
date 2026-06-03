@@ -109,21 +109,25 @@ export async function POST(req: NextRequest) {
   if (body.toId !== myId) {
     try {
       const notifBody = `${myName}：${body.content.trim().slice(0, 60)}`;
+      console.log(`[messages/push] myRole=${myRole} myId=${myId} toId=${body.toId}`);
       if (myRole === "ADMIN") {
         await sendPushToUsers([body.toId], {
           title: "💬 メッセージが届きました",
           body: notifBody,
           url: "/messages",
         });
-      } else {
+      } else if (myRole === "PARTNER") {
         const adminIds = await getAdminIds();
+        console.log(`[messages/push] partner→admins adminIds=${JSON.stringify(adminIds)}`);
         await sendPushToUsers(adminIds, {
           title: "💬 メッセージが届きました",
           body: notifBody,
           url: "/messages",
         });
       }
-    } catch { /* 通知失敗はスルー */ }
+    } catch (e) {
+      console.error("[messages/push] error:", e);
+    }
   }
 
   return NextResponse.json(msg);

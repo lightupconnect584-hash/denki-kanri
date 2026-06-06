@@ -745,10 +745,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* 管理者向けステータス操作 */}
-        {role === "ADMIN" && (
-          ["INSPECTED", "QUOTE_REQUESTED"].includes(project.status) ||
-          (project.status === "QUOTE_REVIEWING" && project.quotes.length > 0)
-        ) && (
+        {role === "ADMIN" && ["INSPECTED", "QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status) && (
           <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-2">
             <p className="text-xs font-bold text-gray-500 mb-3">管理者操作</p>
             <div className="flex flex-wrap gap-2">
@@ -761,26 +758,14 @@ export default function ProjectDetailPage() {
                   📋 見積依頼する
                 </button>
               )}
-              {/* INSPECTED / QUOTE_REVIEWING（見積り提出後）→ 確認・完了 */}
-              {(project.status === "INSPECTED" || project.status === "QUOTE_REVIEWING") && (
-                <button
-                  onClick={() => changeStatus("CONFIRMED")}
-                  disabled={updating}
-                  className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
-                >
-                  ✅ 確認・完了する
-                </button>
-              )}
-              {/* QUOTE_REQUESTED（修理報告後）→ 見積り中へ */}
-              {project.status === "QUOTE_REQUESTED" && (
-                <button
-                  onClick={() => changeStatus("QUOTE_REVIEWING")}
-                  disabled={updating}
-                  className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
-                >
-                  ✅ 確認する（見積り中へ）
-                </button>
-              )}
+              {/* 完了ボタン：INSPECTED / QUOTE_REQUESTED / QUOTE_REVIEWING すべてで表示 */}
+              <button
+                onClick={() => changeStatus("CONFIRMED")}
+                disabled={updating}
+                className="flex-1 min-w-0 bg-green-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-green-700 disabled:opacity-50 transition"
+              >
+                ✅ 確認・完了する
+              </button>
               <button
                 onClick={() => changeStatus("REWORK")}
                 disabled={updating}

@@ -3,6 +3,21 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
+
+function renderWithLinks(text: string) {
+  const urlRegex = /(https?:\/\/[^\s　]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) =>
+    urlRegex.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+        className="underline text-blue-600 hover:text-blue-800 break-all">
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
 import Link from "next/link";
 import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
@@ -1052,7 +1067,7 @@ export default function ProjectDetailPage() {
                           ? "bg-blue-50 text-gray-800 rounded-tl-none"
                           : "bg-gray-100 text-gray-800 rounded-tr-none"
                       }`}>
-                        <p className="whitespace-pre-wrap">{c.content}</p>
+                        <p className="whitespace-pre-wrap break-words">{renderWithLinks(c.content)}</p>
                       </div>
                       {/* リアクション */}
                       <div className={`flex flex-wrap items-center gap-1 mt-1 px-1 relative ${isAdmin ? "flex-row" : "flex-row-reverse"}`}>

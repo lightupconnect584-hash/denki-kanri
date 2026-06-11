@@ -5,6 +5,28 @@ import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 
+// URLをクリッカブルリンクに変換
+function renderWithLinks(text: string, isMine: boolean) {
+  const urlRegex = /(https?:\/\/[^\s　]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (urlRegex.test(part)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`underline break-all ${isMine ? "text-blue-200 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 interface UserMini {
   id: string;
   name: string;
@@ -435,7 +457,7 @@ function MessagesInner() {
                                   : "bg-gray-700 text-gray-100 rounded-bl-sm"
                               }`}
                             >
-                              {msg.content}
+                              {renderWithLinks(msg.content, isMine)}
                             </div>
                             <span className="text-xs text-gray-500 px-1">
                               {formatDateTime(msg.createdAt)}

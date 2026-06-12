@@ -3,6 +3,7 @@
 export interface ActionCheckProject {
   status: string;
   visitDate: string | Date | null;
+  updatedAt: string | Date;
   assignedTo?: { id: string } | null;
   assignedToId?: string | null;
   quotes: { status: string }[];
@@ -14,6 +15,19 @@ export interface ActionReason {
 }
 
 const DONE = ["CONFIRMED", "COMPLETED", "REJECTED"];
+
+// 最終更新からの経過日数
+function daysSince(date: string | Date): number {
+  return Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+}
+
+// 訪問予定日が過ぎているか（当日は含まない）
+function visitOverdue(visitDate: string | Date | null): boolean {
+  if (!visitDate) return false;
+  const v = new Date(visitDate);
+  v.setHours(23, 59, 59, 999);
+  return v.getTime() < Date.now();
+}
 
 // 管理者にとっての要対応理由（なければnull）
 export function adminActionReason(p: ActionCheckProject): ActionReason | null {
@@ -29,6 +43,20 @@ export function adminActionReason(p: ActionCheckProject): ActionReason | null {
   const assigned = p.assignedTo?.id ?? p.assignedToId;
   if (!assigned && !DONE.includes(p.status)) {
     return { label: "担当未割り当て", color: "bg-red-100 text-red-700" };
+  }
+  // ── 放置検知 ──
+  if (p.status === "PENDING" && assigned && daysSince(p.updatedAt) >= 3) {
+    return { label: `未受注${daysSince(p.updatedAt)}日`, color: "bg-yellow-100 text-yellow-700" };
+  }
+  if (p.status === "ACCEPTED" && visitOverdue(p.visitDate)) {
+    return { label: "訪問日超過・報告待ち", color: "bg-red-100 text-red-700" };
+  }
+  if (
+    p.status === "QUOTE_REQUESTED" &&
+    !p.quotes.some((q) => q.status === "PENDING") &&
+    daysSince(p.updatedAt) >= 7
+  ) {
+    return { label: `見積り待ち${daysSince(p.updatedAt)}日`, color: "bg-yellow-100 text-yellow-700" };
   }
   return null;
 }
@@ -46,6 +74,10 @@ export function partnerActionReason(p: ActionCheckProject): ActionReason | null 
   }
   if (p.status === "ACCEPTED" && !p.visitDate) {
     return { label: "訪問日の入力", color: "bg-blue-100 text-blue-700" };
+  }
+  // ── 放置検知 ──
+  if (p.status === "ACCEPTED" && visitOverdue(p.visitDate)) {
+    return { label: "完了報告の提出", color: "bg-purple-100 text-purple-700" };
   }
   return null;
 }

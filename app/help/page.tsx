@@ -7,6 +7,8 @@ import Header from "@/components/Header";
 
 const VERSION = "2026年6月";
 const CHANGELOG = [
+  { date: "2026年6月", text: "要対応ボックス・依頼タブのバッジ・放置検知を追加" },
+  { date: "2026年6月", text: "チャット内のURLをタップで開けるように" },
   { date: "2026年6月", text: "モバイル用ボトムナビ追加（依頼/チャット/カレンダー/完了済/設定）" },
   { date: "2026年6月", text: "協力会社の招待リンク登録フロー追加" },
   { date: "2026年6月", text: "マイチャット（自分へのメモ）機能追加" },
@@ -70,7 +72,7 @@ export default function HelpPage() {
         {/* ── 共通：画面構成 ── */}
         <Section title="📱 画面構成（モバイル）">
           <Row label="下部タブバー">画面下に常時表示。5つのタブで各機能にアクセスできます。</Row>
-          <Row label="依頼">案件一覧・新規作成はここから。</Row>
+          <Row label="依頼">案件一覧・新規作成はここから。対応が必要な件数が赤バッジで表示されます。</Row>
           <Row label="チャット">管理者・協力会社間のメッセージ。自分へのメモ（マイチャット）も使えます。</Row>
           <Row label="カレンダー">訪問予定を月単位で確認。</Row>
           <Row label="完了済">完了した案件と請求金額の確認。</Row>
@@ -86,6 +88,7 @@ export default function HelpPage() {
             </Section>
 
             <Section title="📋 依頼タブ（案件一覧）">
+              <Row label="⚡ 要対応">一覧の最上部に、いま対応が必要な依頼が自動で表示されます（受注の判断・再報告・見積り提出・訪問日の入力など）。ここを上から処理すればOKです。</Row>
               <Row label="青い枠の依頼">未確認の更新があります。優先して確認してください。</Row>
               <Row label="ステータスの流れ">
                 <span className="flex gap-1 flex-wrap items-center">
@@ -159,6 +162,7 @@ export default function HelpPage() {
         {role === "ADMIN" && (
           <>
             <Section title="📋 依頼タブ（案件一覧）">
+              <Row label="⚡ 要対応">一覧の最上部に、いま対応が必要な依頼が自動で表示されます（完了報告の確認・見積りの確認・担当未割り当て・3日以上未受注・訪問日超過など）。ここを上から処理すればOKです。</Row>
               <Row label="新規依頼">右上「＋ 新規依頼」から案件を登録します。</Row>
               <Row label="青い枠の依頼">協力会社から更新があった案件です（報告・コメントなど）。</Row>
               <Row label="絞り込み">ステータス・緊急度・地域・協力会社で絞り込み可能。</Row>

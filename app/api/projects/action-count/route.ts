@@ -20,6 +20,7 @@ export async function GET() {
     select: {
       status: true,
       visitDate: true,
+      updatedAt: true,
       assignedToId: true,
       quotes: { select: { status: true } },
     },

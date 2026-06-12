@@ -569,6 +569,18 @@ function ModelCard({
   onDeleteCancel: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copyText = async (e: React.MouseEvent, text: string, key: string) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1200);
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <div className="px-4 py-3">
@@ -579,9 +591,17 @@ function ModelCard({
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <span className="text-xs text-gray-400">既存</span>
               <span className="text-sm font-bold text-gray-100">{item.existingModel}</span>
+              <button type="button" onClick={(e) => copyText(e, item.existingModel, "existing")}
+                className="text-xs text-gray-400 hover:text-gray-200 px-1">
+                {copied === "existing" ? "✓" : "📋"}
+              </button>
               <span className="text-gray-400 text-xs">→</span>
               <span className="text-xs text-gray-400">後継</span>
               <span className="text-sm font-bold text-blue-400">{item.replacementModel}</span>
+              <button type="button" onClick={(e) => copyText(e, item.replacementModel, "replacement")}
+                className="text-xs text-gray-400 hover:text-gray-200 px-1">
+                {copied === "replacement" ? "✓" : "📋"}
+              </button>
             </div>
             {(item.maker || item.color) && (
               <p className="text-xs text-gray-400 mt-0.5">

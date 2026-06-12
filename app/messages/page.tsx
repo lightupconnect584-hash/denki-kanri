@@ -7,10 +7,9 @@ import Header from "@/components/Header";
 
 // URLをクリッカブルリンクに変換
 function renderWithLinks(text: string, isMine: boolean) {
-  const urlRegex = /(https?:\/\/[^\s　]+)/g;
-  const parts = text.split(urlRegex);
+  const parts = text.split(/(https?:\/\/[^\s　]+)/g);
   return parts.map((part, i) => {
-    if (urlRegex.test(part)) {
+    if (/^https?:\/\//.test(part)) {
       return (
         <a
           key={i}
@@ -142,7 +141,9 @@ function MessagesInner() {
     const res = await fetch("/api/users?role=PARTNER");
     if (res.ok) {
       const data = await res.json();
-      setPartners(data.users || data || []);
+      // 招待中（未登録）のユーザーはチャット相手に表示しない
+      const list = (data.users || data || []) as (UserMini & { inviteToken?: string | null })[];
+      setPartners(list.filter((u) => !u.inviteToken));
     }
   }, [role]);
 

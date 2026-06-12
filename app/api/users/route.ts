@@ -61,11 +61,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: user.id, inviteToken: token });
   }
 
+  if (!body.email?.trim() || !body.password) {
+    return NextResponse.json({ error: "ログインIDとパスワードを入力してください" }, { status: 400 });
+  }
+  const existing = await prisma.user.findUnique({ where: { email: body.email.trim() } });
+  if (existing) {
+    return NextResponse.json({ error: "そのログインIDはすでに使われています" }, { status: 409 });
+  }
   const hashedPassword = await bcrypt.hash(body.password, 10);
   const user = await prisma.user.create({
     data: {
-      name: body.name?.trim() || body.email,
-      email: body.email,
+      name: body.name?.trim() || body.email.trim(),
+      email: body.email.trim(),
       password: hashedPassword,
       role: body.role || "PARTNER",
       companyName: body.companyName?.trim() || null,

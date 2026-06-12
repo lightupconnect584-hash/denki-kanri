@@ -91,10 +91,14 @@ export default function UsersPage() {
       body: JSON.stringify({ ...form, role: newRole }),
     });
     const data = await res.json();
+    setLoading(false);
+    if (!res.ok) {
+      alert(data.error || "追加に失敗しました");
+      return;
+    }
     setForm({ name: "", email: "", password: "", companyName: "" });
     setShowForm(false);
     fetchUsers();
-    setLoading(false);
     // 招待リンクが発行された場合は表示
     if (data.inviteToken) {
       setInviteUrl(`${window.location.origin}/register/${data.inviteToken}`);

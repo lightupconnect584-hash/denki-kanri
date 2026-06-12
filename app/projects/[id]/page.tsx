@@ -5,10 +5,9 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 
 function renderWithLinks(text: string) {
-  const urlRegex = /(https?:\/\/[^\s　]+)/g;
-  const parts = text.split(urlRegex);
+  const parts = text.split(/(https?:\/\/[^\s　]+)/g);
   return parts.map((part, i) =>
-    urlRegex.test(part) ? (
+    /^https?:\/\//.test(part) ? (
       <a key={i} href={part} target="_blank" rel="noopener noreferrer"
         className="underline text-blue-600 hover:text-blue-800 break-all">
         {part}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
+import { actionReason } from "@/lib/actionRequired";
 
 interface Project {
   id: string;
@@ -355,6 +356,11 @@ export default function DashboardPage() {
   });
 
   const unreadCount = filtered.filter((p) => !DONE_STATUSES.includes(p.status) && p.status !== "REJECTED" && isUnread(p)).length;
+
+  // 要対応リスト（フィルター無視・全件から抽出）
+  const actionItems = projects
+    .map((p) => ({ project: p, reason: actionReason(role, p) }))
+    .filter((x): x is { project: Project; reason: NonNullable<ReturnType<typeof actionReason>> } => x.reason !== null);
 
   const getVisitBadge = (visitDate: string | null) => {
     if (!visitDate) return null;
@@ -990,6 +996,38 @@ export default function DashboardPage() {
 
           {/* ===== 右メインエリア ===== */}
           <div className="mt-3 lg:mt-0">
+
+            {/* ⚡ 要対応ボックス */}
+            {actionItems.length > 0 && (
+              <div className="mb-4 bg-amber-950/40 border border-amber-700 rounded-xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-800/60">
+                  <span className="text-base">⚡</span>
+                  <span className="text-sm font-bold text-amber-300">要対応</span>
+                  <span className="text-xs text-amber-500">{actionItems.length}件</span>
+                </div>
+                <div className="divide-y divide-amber-900/40">
+                  {actionItems.map(({ project: p, reason }) => (
+                    <Link
+                      key={p.id}
+                      href={`/projects/${p.id}`}
+                      className="flex items-center gap-2 px-4 py-2.5 hover:bg-amber-900/30 transition"
+                    >
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${reason.color}`}>
+                        {reason.label}
+                      </span>
+                      <span className="text-sm text-gray-200 truncate flex-1 min-w-0">{p.title}</span>
+                      {role === "ADMIN" && p.assignedTo && (
+                        <span className="text-xs text-gray-500 truncate max-w-[90px] shrink-0">
+                          {p.assignedTo.companyName || p.assignedTo.name}
+                        </span>
+                      )}
+                      <span className="text-amber-600 text-xs shrink-0">→</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {sortedActive.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 <p className="text-4xl mb-3">📋</p>

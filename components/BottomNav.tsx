@@ -9,23 +9,32 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [dmUnread, setDmUnread] = useState(0);
+  const [actionCount, setActionCount] = useState(0);
 
-  const fetchDmUnread = useCallback(async () => {
+  const fetchBadges = useCallback(async () => {
     try {
-      const res = await fetch("/api/messages");
-      if (!res.ok) return;
-      const threads: { unreadCount: number }[] = await res.json();
-      setDmUnread(threads.reduce((sum, t) => sum + t.unreadCount, 0));
+      const [msgRes, actionRes] = await Promise.all([
+        fetch("/api/messages"),
+        fetch("/api/projects/action-count"),
+      ]);
+      if (msgRes.ok) {
+        const threads: { unreadCount: number }[] = await msgRes.json();
+        setDmUnread(threads.reduce((sum, t) => sum + t.unreadCount, 0));
+      }
+      if (actionRes.ok) {
+        const data = await actionRes.json();
+        setActionCount(data.count ?? 0);
+      }
     } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
     if (session?.user) {
-      fetchDmUnread();
-      const id = setInterval(fetchDmUnread, 30000);
+      fetchBadges();
+      const id = setInterval(fetchBadges, 30000);
       return () => clearInterval(id);
     }
-  }, [session?.user, fetchDmUnread]);
+  }, [session?.user, fetchBadges]);
 
   // ログイン画面・未認証は非表示
   if (!session?.user || pathname === "/login") return null;
@@ -35,7 +44,7 @@ export default function BottomNav() {
       href: "/dashboard",
       label: "依頼",
       active: pathname === "/dashboard" || pathname.startsWith("/projects"),
-      badge: 0,
+      badge: actionCount,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
           <path fillRule="evenodd" d="M7.502 6h7.128A3.375 3.375 0 0118 9.375v9.375a3 3 0 003-3V6.108c0-1.505-1.125-2.811-2.664-2.94a48.972 48.972 0 00-.673-.05A3 3 0 0015 1.5h-1.5a3 3 0 00-2.663 1.618c-.225.015-.45.032-.673.05C8.662 3.295 7.554 4.542 7.502 6zM13.5 3A1.5 1.5 0 0012 4.5h4.5A1.5 1.5 0 0015 3h-1.5z" clipRule="evenodd" />

@@ -87,6 +87,7 @@ interface Project {
   preferredVisitAt: string | null;
   moveInDate: string | null;
   urgency: string;
+  materialSupplied: boolean;
   amount: number | null;
   visitDate: string | null;
   visitTime: string | null;
@@ -428,6 +429,11 @@ export default function ProjectDetailPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3 space-y-3">
           <div>
             <h2 className="text-base font-bold text-gray-800 leading-snug">{project.title}</h2>
+            {project.materialSupplied && (
+              <span className="inline-block mt-1.5 text-xs bg-teal-100 text-teal-700 border border-teal-300 px-2 py-0.5 rounded-full font-bold">
+                📦 材料支給あり
+              </span>
+            )}
           </div>
           <div>
             <p className="text-xs text-gray-500">住所</p>

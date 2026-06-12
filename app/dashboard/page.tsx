@@ -14,6 +14,7 @@ interface Project {
   location: string;
   workType: string | null;
   urgency: string;
+  materialSupplied: boolean;
   status: string;
   amount: number | null;
   dueDate: string | null;
@@ -608,6 +609,7 @@ export default function DashboardPage() {
               <p className="font-semibold text-gray-100 truncate">{p.title}</p>
               {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
               {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">中</span>}
+              {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">📦 材料支給</span>}
             </div>
             <p className="text-sm text-gray-400 mt-0.5 truncate">📍 {p.location}</p>
             <div className="flex items-center gap-3 mt-1 flex-wrap">

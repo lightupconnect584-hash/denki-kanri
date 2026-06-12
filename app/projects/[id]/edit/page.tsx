@@ -31,6 +31,7 @@ export default function EditProjectPage() {
     smsAllowed: false,
     description: "",
     urgency: "LOW",
+    materialSupplied: false,
     amount: "",
     dueDate: "",
     assignedToId: "",
@@ -65,6 +66,7 @@ export default function EditProjectPage() {
             smsAllowed: data.smsAllowed ?? false,
             description: data.description || "",
             urgency: data.urgency || "LOW",
+            materialSupplied: data.materialSupplied ?? false,
             amount: data.amount != null ? String(data.amount) : "",
             dueDate: data.dueDate ? data.dueDate.slice(0, 10) : "",
             assignedToId: data.assignedTo?.id || "",
@@ -270,6 +272,19 @@ export default function EditProjectPage() {
                   }`}>{label}</button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">材料支給</label>
+            <button type="button"
+              onClick={() => setForm({ ...form, materialSupplied: !form.materialSupplied })}
+              className={`w-full py-2 rounded-lg text-sm font-medium border transition flex items-center justify-center gap-2 ${
+                form.materialSupplied
+                  ? "bg-teal-600 text-white border-teal-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:border-teal-400"
+              }`}>
+              📦 {form.materialSupplied ? "材料支給あり" : "材料支給なし"}
+            </button>
           </div>
 
           <div>

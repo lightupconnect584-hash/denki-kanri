@@ -104,7 +104,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // 管理者は visitDate / visitTime を変更不可（無視）
   }
   // 編集フィールド（管理者が内容を変更した場合 → 協力会社に通知）
-  const contentFields = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate", "preferredContactAt", "preferredVisitAt"];
+  const contentFields = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate", "preferredContactAt", "preferredVisitAt", "materialSupplied"];
   const contentEdited = role === "ADMIN" && contentFields.some(f => body[f] !== undefined);
   if (contentEdited) updateData.notifyPartnerAt = new Date();
   if (body.title !== undefined) updateData.title = body.title;
@@ -116,6 +116,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.smsAllowed !== undefined) updateData.smsAllowed = body.smsAllowed;
   if (body.description !== undefined) updateData.description = body.description || null;
   if (body.urgency !== undefined) updateData.urgency = body.urgency;
+  if (body.materialSupplied !== undefined) updateData.materialSupplied = Boolean(body.materialSupplied);
   if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
   if (body.preferredContactAt !== undefined) updateData.preferredContactAt = body.preferredContactAt || null;
   if (body.preferredVisitAt !== undefined) updateData.preferredVisitAt = body.preferredVisitAt || null;

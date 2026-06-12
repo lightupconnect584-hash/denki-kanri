@@ -35,6 +35,7 @@ export default function NewProjectPage() {
     smsAllowed: false,
     description: "",
     urgency: "LOW",
+    materialSupplied: false,
     amount: "",
     dueDate: "",
     assignedToId: "",
@@ -330,6 +331,18 @@ export default function NewProjectPage() {
                       }`}>{label}</button>
                   ))}
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">材料支給</label>
+                <button type="button"
+                  onClick={() => setForm({ ...form, materialSupplied: !form.materialSupplied })}
+                  className={`w-full py-2 rounded-lg text-sm font-medium border transition flex items-center justify-center gap-2 ${
+                    form.materialSupplied
+                      ? "bg-teal-600 text-white border-teal-600"
+                      : "bg-gray-700 text-gray-300 border-gray-600 hover:border-teal-500"
+                  }`}>
+                  📦 {form.materialSupplied ? "材料支給あり" : "材料支給なし"}
+                </button>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">期日</label>

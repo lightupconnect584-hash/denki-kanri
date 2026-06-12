@@ -80,6 +80,7 @@ model Project {
   preferredVisitAt   String?
   moveInDate         String?
   urgency          String    @default("LOW")
+  materialSupplied Boolean   @default(false)
   amount           Int?
   visitDate        DateTime?
   visitTime        String?

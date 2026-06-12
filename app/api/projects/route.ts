@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       smsAllowed: body.smsAllowed ?? false,
       description: body.description,
       urgency: body.urgency || "LOW",
+      materialSupplied: body.materialSupplied ?? false,
       amount: body.amount !== undefined && body.amount !== "" && body.amount !== null ? parseInt(body.amount) : null,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       assignedToId: body.assignedToId || null,

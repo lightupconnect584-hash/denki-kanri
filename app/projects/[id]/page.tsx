@@ -406,13 +406,15 @@ export default function ProjectDetailPage() {
             <span className={`text-base ${refreshing ? "animate-spin inline-block" : ""}`}>🔄</span>
           </button>
           <StatusBadge status={project.status} />
-          <Link
-            href={`/projects/${id}/print`}
+          <a
+            href={`/api/projects/${id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-xs text-gray-600 hover:text-gray-900 border border-gray-300 rounded px-2 py-1"
-            title="依頼書をPDFで保存・印刷"
+            title="依頼書をPDFで開く"
           >
             📄 依頼書
-          </Link>
+          </a>
           {role === "ADMIN" && (
             <div className="flex gap-2">
               <Link

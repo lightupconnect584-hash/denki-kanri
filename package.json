@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@fontsource/caveat": "^5.2.8",
+    "@pdf-lib/fontkit": "^1.1.1",
     "@prisma/client": "^5.22.0",
     "@types/bcryptjs": "^2.4.6",
     "@vercel/blob": "^2.3.3",
@@ -22,6 +23,7 @@
     "heic2any": "^0.0.4",
     "next": "^14.2.35",
     "next-auth": "^4.24.14",
+    "pdf-lib": "^1.17.1",
     "prisma": "5.22.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

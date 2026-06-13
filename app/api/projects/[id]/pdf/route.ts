@@ -73,7 +73,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  const font = await doc.embedFont(fontBytes, { subset: true });
+  // subset: true はモバイルPDFビューアで文字化けするため全埋め込み（フォント自体をJIS範囲に縮小済み）
+  const font = await doc.embedFont(fontBytes, { subset: false });
   const page = doc.addPage([PAGE_W, PAGE_H]);
 
   const black = rgb(0.07, 0.07, 0.07);

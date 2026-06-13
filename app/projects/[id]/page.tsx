@@ -113,6 +113,7 @@ export default function ProjectDetailPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [visitInput, setVisitInput] = useState("");
   const [visitTimeFrom, setVisitTimeFrom] = useState("");
   const [visitTimeTo, setVisitTimeTo] = useState("");
@@ -194,6 +195,35 @@ export default function ProjectDetailPage() {
     });
     fetchProject();
     setUpdating(false);
+  };
+
+  const downloadPdf = async () => {
+    setPdfLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${id}/pdf`);
+      if (!res.ok) {
+        alert("PDFの作成に失敗しました");
+        return;
+      }
+      const blob = await res.blob();
+      const filename = `依頼書_${project?.workType || project?.title || "依頼"}.pdf`;
+      const file = new File([blob], filename, { type: "application/pdf" });
+      // モバイル：共有シートで保存・共有（画面遷移しないので戻れなくなる問題を回避）
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: filename });
+          return;
+        } catch (err) {
+          if ((err as Error).name === "AbortError") return; // ユーザーがキャンセル
+        }
+      }
+      // PC等：新しいタブで開く
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const deleteProject = async () => {
@@ -406,15 +436,14 @@ export default function ProjectDetailPage() {
             <span className={`text-base ${refreshing ? "animate-spin inline-block" : ""}`}>🔄</span>
           </button>
           <StatusBadge status={project.status} />
-          <a
-            href={`/api/projects/${id}/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-gray-600 hover:text-gray-900 border border-gray-300 rounded px-2 py-1"
-            title="依頼書をPDFで開く"
+          <button
+            onClick={downloadPdf}
+            disabled={pdfLoading}
+            className="text-xs text-gray-600 hover:text-gray-900 border border-gray-300 rounded px-2 py-1 disabled:opacity-50"
+            title="依頼書をPDFで保存"
           >
-            📄 依頼書
-          </a>
+            {pdfLoading ? "⏳ 作成中..." : "📄 依頼書"}
+          </button>
           {role === "ADMIN" && (
             <div className="flex gap-2">
               <Link

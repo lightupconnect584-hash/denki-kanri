@@ -68,7 +68,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // 日本語フォント読み込み
-  const fontPath = path.join(process.cwd(), "fonts", "NotoSansJP-Subset.otf");
+  const fontPath = path.join(process.cwd(), "fonts", "NotoSansJP-Subset.ttf");
   const fontBytes = await fs.readFile(fontPath);
 
   const doc = await PDFDocument.create();

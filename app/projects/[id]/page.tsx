@@ -256,6 +256,20 @@ export default function ProjectDetailPage() {
     setUpdating(false);
   };
 
+  // 完了済の案件を追加工事のため復活させる（受注状態に戻す）
+  const reviveProject = async () => {
+    if (!confirm("この案件を復活させますか？\n追加工事のため「受注済」に戻り、担当の協力会社に通知されます。\n（これまでの完了報告・写真はそのまま残ります）")) return;
+    setUpdating(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "ACCEPTED" }),
+    });
+    router.refresh();
+    fetchProject();
+    setUpdating(false);
+  };
+
   const startInspection = async () => {
     setUpdating(true);
     await fetch(`/api/projects/${id}`, {
@@ -832,6 +846,21 @@ export default function ProjectDetailPage() {
                 ↩ 差し戻す（再報告要求）
               </button>
             </div>
+          </div>
+        )}
+
+        {/* 完了済案件の復活（管理者のみ）：追加工事に対応 */}
+        {role === "ADMIN" && ["CONFIRMED", "COMPLETED"].includes(project.status) && (
+          <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-xs font-bold text-gray-500 mb-2">管理者操作</p>
+            <p className="text-xs text-gray-500 mb-3">追加工事などで、この完了済案件を再び進行中に戻せます。</p>
+            <button
+              onClick={reviveProject}
+              disabled={updating}
+              className="w-full bg-blue-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+            >
+              🔄 追加工事のため復活する
+            </button>
           </div>
         )}
 

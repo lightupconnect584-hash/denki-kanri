@@ -54,11 +54,11 @@ export default function HelpPage() {
   }, [status, router]);
 
   if (status === "loading") {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>;
+    return <div className="min-h-full flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950">
+    <div className="min-h-full flex flex-col bg-gray-950">
       <Header />
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-5">

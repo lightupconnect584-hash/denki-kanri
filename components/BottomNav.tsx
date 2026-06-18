@@ -99,39 +99,34 @@ export default function BottomNav() {
   ];
 
   return (
-    <>
-    {/* ナビ下の非タップ背景（ホームインジケーター領域を同色で覆う） */}
-    <div
-      className="sm:hidden fixed left-0 right-0 bottom-0 z-40 bg-gray-900 pointer-events-none"
-      style={{ height: "calc(env(safe-area-inset-bottom, 34px) + 28px)" }}
-    />
     <nav
-      className="sm:hidden fixed left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 flex h-16"
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 34px) + 28px)" }}
+      className="sm:hidden shrink-0 bg-gray-900 border-t border-gray-700"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      {tabs.map((tab) => (
-        <Link
-          key={tab.href}
-          href={tab.href}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
-            tab.active ? "text-blue-400" : "text-gray-500 hover:text-gray-300"
-          }`}
-        >
-          {tab.active && (
-            <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-400 rounded-full" />
-          )}
-          <div className="relative">
-            {tab.icon}
-            {tab.badge > 0 && (
-              <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
-                {tab.badge > 9 ? "9+" : tab.badge}
-              </span>
+      <div className="flex h-16">
+        {tabs.map((tab) => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
+              tab.active ? "text-blue-400" : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            {tab.active && (
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-400 rounded-full" />
             )}
-          </div>
-          <span className="text-[10px] font-medium leading-none">{tab.label}</span>
-        </Link>
-      ))}
+            <div className="relative">
+              {tab.icon}
+              {tab.badge > 0 && (
+                <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
+                  {tab.badge > 9 ? "9+" : tab.badge}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-medium leading-none">{tab.label}</span>
+          </Link>
+        ))}
+      </div>
     </nav>
-    </>
   );
 }

@@ -59,7 +59,7 @@ export default function QuotePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-full flex flex-col">
       <Header />
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-6">

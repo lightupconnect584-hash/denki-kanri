@@ -827,7 +827,7 @@ export default function SettingsPage() {
     const ic = "w-full border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500";
 
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col">
+      <div className="min-h-full bg-gray-950 flex flex-col">
         {/* セットアップ専用ヘッダー（ナビなし） */}
         <div className="bg-gray-900 border-b border-gray-700 px-4 py-3 shrink-0">
           <p className="text-sm font-bold text-white text-center">初回設定</p>
@@ -1005,7 +1005,7 @@ export default function SettingsPage() {
   // ========== ここまでセットアップモード ==========
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950">
+    <div className="min-h-full flex flex-col bg-gray-950">
       {/* メッセージプレビューモーダル */}
       {showMsgPreview && (
         <div

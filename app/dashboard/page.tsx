@@ -638,11 +638,11 @@ export default function DashboardPage() {
   };
 
   if (status === "loading" || loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">読み込み中...</p></div>;
+    return <div className="min-h-full flex items-center justify-center"><p className="text-gray-500">読み込み中...</p></div>;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950">
+    <div className="min-h-full flex flex-col bg-gray-950">
       {/* 月末お礼モーダル */}
       {showMonthlyThanks && monthlyAdmin && (
         <div

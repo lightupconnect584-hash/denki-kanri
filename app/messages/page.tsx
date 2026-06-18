@@ -89,7 +89,7 @@ function formatDateTime(dateStr: string) {
 
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>}>
+    <Suspense fallback={<div className="min-h-full flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>}>
       <MessagesInner />
     </Suspense>
   );
@@ -245,13 +245,13 @@ function MessagesInner() {
   const isSelfChat = selectedId === myId;
 
   if (status === "loading") {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>;
+    return <div className="min-h-full flex items-center justify-center bg-gray-950"><p className="text-gray-400">読み込み中...</p></div>;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950">
+    <div className="h-full flex flex-col bg-gray-950">
       <Header />
-      <main className="flex-1 flex overflow-hidden" style={{ height: "calc(100dvh - 57px)" }}>
+      <main className="flex-1 min-h-0 flex overflow-hidden">
 
         {/* ===== 左パネル：会話一覧 ===== */}
         <div className={`

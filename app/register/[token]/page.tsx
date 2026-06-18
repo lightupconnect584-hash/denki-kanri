@@ -54,7 +54,7 @@ export default function RegisterPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-full bg-gray-950 flex items-center justify-center">
         <p className="text-gray-400">確認中...</p>
       </div>
     );
@@ -62,7 +62,7 @@ export default function RegisterPage() {
 
   if (invalid) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+      <div className="min-h-full bg-gray-950 flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-4xl mb-4">⚠️</p>
           <p className="text-white font-bold text-lg mb-2">招待リンクが無効です</p>
@@ -75,7 +75,7 @@ export default function RegisterPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+      <div className="min-h-full bg-gray-950 flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-4xl mb-4">✅</p>
           <p className="text-white font-bold text-lg mb-2">登録が完了しました</p>
@@ -92,7 +92,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-full bg-gray-950 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-sm p-8">
         <div className="text-center mb-6">
           <div className="text-3xl mb-2">⚡</div>

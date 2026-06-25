@@ -47,6 +47,7 @@ model User {
   pushSubscriptions PushSubscription[]
   sentDMs          DirectMessage[] @relation("SentDMs")
   receivedDMs      DirectMessage[] @relation("ReceivedDMs")
+  invoices         Invoice[]
 }
 
 model LoginLog {
@@ -100,6 +101,7 @@ model Project {
   inspections   Inspection[]
   quotes        Quote[]
   projectPhotos ProjectPhoto[]
+  invoices      Invoice[]
   comments      Comment[]
   activityLogs  ActivityLog[]
 }
@@ -112,6 +114,19 @@ model ProjectPhoto {
 
   project   Project @relation(fields: [projectId], references: [id])
   projectId String
+}
+
+model Invoice {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  createdAt    DateTime @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+  uploadedById String
 }
 
 model Inspection {

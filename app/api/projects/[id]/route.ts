@@ -19,6 +19,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       assignedTo: { select: { id: true, name: true, companyName: true, email: true } },
       createdBy: { select: { name: true, avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true } },
       projectPhotos: true,
+      invoices: {
+        include: { uploadedBy: { select: { name: true, companyName: true } } },
+        orderBy: { createdAt: "desc" },
+      },
       inspections: {
         include: {
           photos: true,
@@ -67,6 +71,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   await prisma.inspection.deleteMany({ where: { projectId: id } });
   await prisma.quote.deleteMany({ where: { projectId: id } });
   await prisma.projectPhoto.deleteMany({ where: { projectId: id } });
+  await prisma.invoice.deleteMany({ where: { projectId: id } });
   await prisma.project.delete({ where: { id } });
 
   return NextResponse.json({ success: true });

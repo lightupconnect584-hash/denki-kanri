@@ -17,6 +17,7 @@ interface Project {
   createdAt: string;
   dueDate: string | null;
   inspections: { workDate: string }[];
+  invoices: { id: string; filename: string; originalName: string }[];
   assignedTo: { id: string; name: string; companyName: string | null } | null;
 }
 
@@ -40,15 +41,39 @@ export default function BillingPage() {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    fetch("/api/projects")
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  const fetchProjects = () => {
+    return fetch("/api/projects")
       .then((r) => r.json())
       .then((data: Project[]) => {
         setProjects(data.filter((p) => DONE_STATUSES.includes(p.status)));
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetchProjects();
   }, [status]);
+
+  const handleInvoiceUpload = async (projectId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingId(projectId);
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        await fetch(`/api/projects/${projectId}/invoices`, { method: "POST", body: formData });
+      } catch {
+        // ignore
+      }
+    }
+    await fetchProjects();
+    setUploadingId(null);
+    e.target.value = "";
+  };
 
   const myProjects = useMemo(() => {
     if (role === "PARTNER") return projects.filter((p) => p.assignedTo?.id === userId);
@@ -223,15 +248,51 @@ export default function BillingPage() {
                 <div className="divide-y divide-gray-700">
                   {group.projects.map((p) => {
                     const dateStr = getWorkDate(p).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+                    const invoiceCount = p.invoices?.length ?? 0;
                     return (
-                      <Link key={p.id} href={`/projects/${p.id}`} className="px-3 py-2 flex items-center gap-2 hover:bg-gray-700 transition block">
-                        <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
-                          {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
+                      <div key={p.id} className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Link href={`/projects/${p.id}`} className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition">
+                            <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
+                              {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
+                            </div>
+                          </Link>
+                          <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
                         </div>
-                        <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
-                      </Link>
+                        {/* 請求書：協力会社は添付、管理者は届いた請求書を確認 */}
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          {invoiceCount > 0 ? (
+                            p.invoices.map((inv) => {
+                              const url = inv.filename.startsWith("http") ? inv.filename : `/uploads/${inv.filename}`;
+                              const isImage = !inv.originalName.toLowerCase().endsWith(".pdf");
+                              return (
+                                <a key={inv.id} href={url} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] bg-green-900/40 text-green-300 border border-green-700 rounded-full px-2 py-0.5 hover:bg-green-900/70 transition max-w-[160px]">
+                                  <span className="shrink-0">{isImage ? "🖼" : "🧾"}</span>
+                                  <span className="truncate">{inv.originalName}</span>
+                                </a>
+                              );
+                            })
+                          ) : (
+                            <span className="text-[11px] text-gray-500">請求書なし</span>
+                          )}
+                          {role === "PARTNER" && (
+                            <label className={`inline-flex items-center gap-1 text-[11px] rounded-full px-2 py-0.5 border cursor-pointer transition ${uploadingId === p.id ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-900/40 text-blue-300 border-blue-700 hover:bg-blue-900/70"}`}>
+                              <span>{uploadingId === p.id ? "送信中..." : "＋ 請求書を添付"}</span>
+                              <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                multiple
+                                className="hidden"
+                                disabled={uploadingId === p.id}
+                                onChange={(e) => handleInvoiceUpload(p.id, e)}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

@@ -326,7 +326,7 @@ export default function ProjectDetailPage() {
             const img = new window.Image();
             const url = URL.createObjectURL(file);
             img.onload = () => {
-              const MAX = 1920;
+              const MAX = 1600;
               let w = img.width, h = img.height;
               if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
               const canvas = document.createElement("canvas");
@@ -338,7 +338,7 @@ export default function ProjectDetailPage() {
                 URL.revokeObjectURL(url);
                 if (!blob) { resolve(file); return; }
                 resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
-              }, "image/jpeg", 0.82);
+              }, "image/jpeg", 0.7);
             };
             img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
             img.src = url;

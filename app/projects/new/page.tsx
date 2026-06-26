@@ -84,7 +84,7 @@ export default function NewProjectPage() {
             const img = new window.Image();
             const url = URL.createObjectURL(file);
             img.onload = () => {
-              const MAX = 1920;
+              const MAX = 1600;
               let w = img.width, h = img.height;
               if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
               const canvas = document.createElement("canvas");
@@ -96,7 +96,7 @@ export default function NewProjectPage() {
                 URL.revokeObjectURL(url);
                 if (!blob) { resolve(file); return; }
                 resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
-              }, "image/jpeg", 0.75);
+              }, "image/jpeg", 0.7);
             };
             img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("読み込み失敗")); };
             img.src = url;

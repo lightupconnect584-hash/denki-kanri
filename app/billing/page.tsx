@@ -17,8 +17,16 @@ interface Project {
   createdAt: string;
   dueDate: string | null;
   inspections: { workDate: string }[];
-  invoices: { id: string; filename: string; originalName: string }[];
   assignedTo: { id: string; name: string; companyName: string | null } | null;
+}
+
+interface MonthlyInvoice {
+  id: string;
+  yearMonth: string;
+  filename: string;
+  originalName: string;
+  createdAt: string;
+  partner: { id: string; name: string; companyName: string | null } | null;
 }
 
 const DONE_STATUSES = ["CONFIRMED", "COMPLETED"];
@@ -41,38 +49,62 @@ export default function BillingPage() {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [monthlyInvoices, setMonthlyInvoices] = useState<MonthlyInvoice[]>([]);
+  const [uploadingMonthly, setUploadingMonthly] = useState(false);
+  const [deletingMonthlyId, setDeletingMonthlyId] = useState<string | null>(null);
 
-  const fetchProjects = () => {
-    return fetch("/api/projects")
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch("/api/projects")
       .then((r) => r.json())
       .then((data: Project[]) => {
         setProjects(data.filter((p) => DONE_STATUSES.includes(p.status)));
         setLoading(false);
       });
+  }, [status]);
+
+  const fetchMonthlyInvoices = () => {
+    return fetch("/api/monthly-invoices")
+      .then((r) => r.json())
+      .then((data: MonthlyInvoice[]) => setMonthlyInvoices(Array.isArray(data) ? data : []))
+      .catch(() => {});
   };
 
   useEffect(() => {
     if (status !== "authenticated") return;
-    fetchProjects();
+    fetchMonthlyInvoices();
   }, [status]);
 
-  const handleInvoiceUpload = async (projectId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  // 月締め請求書のアップロード（協力会社）
+  const handleMonthlyUpload = async (month: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    setUploadingId(projectId);
+    setUploadingMonthly(true);
     for (const file of Array.from(files)) {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        await fetch(`/api/projects/${projectId}/invoices`, { method: "POST", body: formData });
+        formData.append("month", month);
+        await fetch("/api/monthly-invoices", { method: "POST", body: formData });
       } catch {
         // ignore
       }
     }
-    await fetchProjects();
-    setUploadingId(null);
+    await fetchMonthlyInvoices();
+    setUploadingMonthly(false);
     e.target.value = "";
+  };
+
+  const handleDeleteMonthly = async (invoiceId: string) => {
+    if (!confirm("この請求書を削除しますか？")) return;
+    setDeletingMonthlyId(invoiceId);
+    await fetch("/api/monthly-invoices", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoiceId }),
+    });
+    await fetchMonthlyInvoices();
+    setDeletingMonthlyId(null);
   };
 
   const myProjects = useMemo(() => {
@@ -174,6 +206,75 @@ export default function BillingPage() {
     return `${y}年${parseInt(mo)}月`;
   };
 
+  // 月締め請求書ブロック（指定の協力会社分）
+  const renderMonthlyInvoice = (partnerId: string) => {
+    const list = monthlyInvoices
+      .filter((mi) => mi.partner?.id === partnerId)
+      .filter((mi) => selectedMonth === "all" || mi.yearMonth === selectedMonth)
+      .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth));
+    const canUpload = role === "PARTNER" && selectedMonth !== "all";
+
+    return (
+      <div className="bg-gray-800/60 border border-amber-700/50 rounded-xl px-4 py-3 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🧾</span>
+            <span className="text-sm font-bold text-amber-300">
+              月締め請求書{selectedMonth !== "all" ? `（${monthLabel(selectedMonth)}分）` : ""}
+            </span>
+          </div>
+          {canUpload && (
+            <label className={`inline-flex items-center gap-1 text-xs rounded-lg px-3 py-1.5 border cursor-pointer transition ${uploadingMonthly ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-900/40 text-blue-300 border-blue-700 hover:bg-blue-900/70"}`}>
+              <span>{uploadingMonthly ? "送信中..." : "＋ 請求書を添付"}</span>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                multiple
+                className="hidden"
+                disabled={uploadingMonthly}
+                onChange={(e) => handleMonthlyUpload(selectedMonth, e)}
+              />
+            </label>
+          )}
+        </div>
+        {list.length > 0 ? (
+          <div className="space-y-1.5">
+            {list.map((mi) => {
+              const url = mi.filename.startsWith("http") ? mi.filename : `/uploads/${mi.filename}`;
+              const isImage = !mi.originalName.toLowerCase().endsWith(".pdf");
+              return (
+                <div key={mi.id} className="flex items-center justify-between bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2">
+                  <a href={url} target="_blank" rel="noopener noreferrer"
+                    className="text-sm text-blue-300 hover:underline flex items-center gap-2 min-w-0">
+                    <span className="shrink-0">{isImage ? "🖼" : "📄"}</span>
+                    <span className="truncate">
+                      {selectedMonth === "all" && <span className="text-amber-400 mr-1">[{monthLabel(mi.yearMonth)}]</span>}
+                      {mi.originalName}
+                    </span>
+                  </a>
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <a href={url} download={mi.originalName}
+                      className="text-xs text-green-400 border border-green-700 rounded px-2 py-0.5 hover:bg-green-900/40 transition">↓ DL</a>
+                    {(role === "ADMIN" || mi.partner?.id === userId) && (
+                      <button onClick={() => handleDeleteMonthly(mi.id)} disabled={deletingMonthlyId === mi.id}
+                        className="text-xs text-red-400 border border-red-700 rounded px-2 py-0.5 hover:bg-red-900/40 transition disabled:opacity-50">削除</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-500 py-1">
+            {role === "PARTNER"
+              ? (selectedMonth === "all" ? "月を選択して請求書を添付してください" : "この月の請求書はまだ添付されていません")
+              : "請求書はまだ届いていません"}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-full flex flex-col bg-gray-950">
       <Header />
@@ -230,6 +331,9 @@ export default function BillingPage() {
           <p className="text-sm opacity-80">{filtered.length}件</p>
         </div>
 
+        {/* 月締め請求書（協力会社：自分の分） */}
+        {role === "PARTNER" && userId && renderMonthlyInvoice(userId)}
+
         {grouped.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">💰</p>
@@ -237,62 +341,31 @@ export default function BillingPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {grouped.map(([, group]) => (
+            {grouped.map(([key, group]) => (
               <div key={group.name} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 {role === "ADMIN" && (
-                  <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between">
-                    <p className="font-medium text-gray-100 text-sm">{group.name}</p>
-                    <p className="text-sm font-bold text-blue-700">合計 ¥{group.total.toLocaleString()}</p>
-                  </div>
+                  <>
+                    <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between">
+                      <p className="font-medium text-gray-100 text-sm">{group.name}</p>
+                      <p className="text-sm font-bold text-blue-700">合計 ¥{group.total.toLocaleString()}</p>
+                    </div>
+                    {key !== "unassigned" && (
+                      <div className="px-4 pt-3">{renderMonthlyInvoice(key)}</div>
+                    )}
+                  </>
                 )}
                 <div className="divide-y divide-gray-700">
                   {group.projects.map((p) => {
                     const dateStr = getWorkDate(p).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
-                    const invoiceCount = p.invoices?.length ?? 0;
                     return (
-                      <div key={p.id} className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/projects/${p.id}`} className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition">
-                            <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
-                              {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
-                            </div>
-                          </Link>
-                          <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
+                      <Link key={p.id} href={`/projects/${p.id}`} className="px-3 py-2 flex items-center gap-2 hover:bg-gray-700 transition block">
+                        <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
+                          {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
                         </div>
-                        {/* 請求書：協力会社は添付、管理者は届いた請求書を確認 */}
-                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          {invoiceCount > 0 ? (
-                            p.invoices.map((inv) => {
-                              const url = inv.filename.startsWith("http") ? inv.filename : `/uploads/${inv.filename}`;
-                              const isImage = !inv.originalName.toLowerCase().endsWith(".pdf");
-                              return (
-                                <a key={inv.id} href={url} target="_blank" rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-[11px] bg-green-900/40 text-green-300 border border-green-700 rounded-full px-2 py-0.5 hover:bg-green-900/70 transition max-w-[160px]">
-                                  <span className="shrink-0">{isImage ? "🖼" : "🧾"}</span>
-                                  <span className="truncate">{inv.originalName}</span>
-                                </a>
-                              );
-                            })
-                          ) : (
-                            <span className="text-[11px] text-gray-500">請求書なし</span>
-                          )}
-                          {role === "PARTNER" && (
-                            <label className={`inline-flex items-center gap-1 text-[11px] rounded-full px-2 py-0.5 border cursor-pointer transition ${uploadingId === p.id ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-900/40 text-blue-300 border-blue-700 hover:bg-blue-900/70"}`}>
-                              <span>{uploadingId === p.id ? "送信中..." : "＋ 請求書を添付"}</span>
-                              <input
-                                type="file"
-                                accept="image/*,.pdf"
-                                multiple
-                                className="hidden"
-                                disabled={uploadingId === p.id}
-                                onChange={(e) => handleInvoiceUpload(p.id, e)}
-                              />
-                            </label>
-                          )}
-                        </div>
-                      </div>
+                        <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
+                      </Link>
                     );
                   })}
                 </div>

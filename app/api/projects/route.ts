@@ -18,7 +18,6 @@ export async function GET() {
       createdBy: { select: { name: true, avatarUrl: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true } },
       inspections: { include: { photos: true } },
       quotes: true,
-      invoices: { select: { id: true, filename: true, originalName: true } },
       comments: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
     },
     orderBy: { createdAt: "desc" },

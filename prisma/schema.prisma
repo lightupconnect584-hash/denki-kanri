@@ -48,6 +48,7 @@ model User {
   sentDMs          DirectMessage[] @relation("SentDMs")
   receivedDMs      DirectMessage[] @relation("ReceivedDMs")
   invoices         Invoice[]
+  monthlyInvoices  MonthlyInvoice[] @relation("PartnerMonthlyInvoices")
 }
 
 model LoginLog {
@@ -127,6 +128,18 @@ model Invoice {
 
   uploadedBy   User   @relation(fields: [uploadedById], references: [id])
   uploadedById String
+}
+
+// 月締め一括請求（協力会社が毎月1枚アップロード）
+model MonthlyInvoice {
+  id           String   @id @default(cuid())
+  yearMonth    String   // 例: "2026-06"
+  filename     String
+  originalName String
+  createdAt    DateTime @default(now())
+
+  partner   User   @relation("PartnerMonthlyInvoices", fields: [partnerId], references: [id])
+  partnerId String
 }
 
 model Inspection {

@@ -55,13 +55,6 @@ interface ProjectPhoto {
   originalName: string;
 }
 
-interface Invoice {
-  id: string;
-  filename: string;
-  originalName: string;
-  createdAt: string;
-  uploadedBy: { name: string; companyName: string | null } | null;
-}
 
 interface Comment {
   id: string;
@@ -104,7 +97,6 @@ interface Project {
   assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
   createdBy: { name: string; avatarUrl: string | null; phone: string | null; thankYouEnabled: boolean; thankYouImageUrl: string | null };
   projectPhotos: ProjectPhoto[];
-  invoices: Invoice[];
   inspections: Inspection[];
   quotes: Quote[];
   comments: Comment[];
@@ -137,9 +129,6 @@ export default function ProjectDetailPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [photoUploadError, setPhotoUploadError] = useState("");
-  const [uploadingInvoice, setUploadingInvoice] = useState(false);
-  const [deletingInvoiceId, setDeletingInvoiceId] = useState<string | null>(null);
-  const [invoiceUploadError, setInvoiceUploadError] = useState("");
 
   const role = (session?.user as { role?: string })?.role;
   const userId = (session?.user as { id?: string })?.id;
@@ -378,38 +367,6 @@ export default function ProjectDetailPage() {
     });
     fetchProject();
     setDeletingPhotoId(null);
-  };
-
-  const handleInvoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    setUploadingInvoice(true);
-    setInvoiceUploadError("");
-    for (const file of Array.from(files)) {
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch(`/api/projects/${id}/invoices`, { method: "POST", body: formData });
-        if (!res.ok) setInvoiceUploadError(`アップロード失敗 (${file.name})`);
-      } catch {
-        setInvoiceUploadError(`エラーが発生しました (${file.name})`);
-      }
-    }
-    fetchProject();
-    setUploadingInvoice(false);
-    e.target.value = "";
-  };
-
-  const handleDeleteInvoice = async (invoiceId: string) => {
-    if (!confirm("この請求書を削除しますか？")) return;
-    setDeletingInvoiceId(invoiceId);
-    await fetch(`/api/projects/${id}/invoices`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoiceId }),
-    });
-    fetchProject();
-    setDeletingInvoiceId(null);
   };
 
   const toggleReaction = async (commentId: string, emoji: string) => {
@@ -859,61 +816,6 @@ export default function ProjectDetailPage() {
             <p className="text-xs text-gray-400 text-center py-3">写真・PDFはありません</p>
           )}
         </div>
-
-        {/* 請求書（完了済の案件のみ）：協力会社がアップロード、管理者がダウンロード */}
-        {["CONFIRMED", "COMPLETED"].includes(project.status) && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-gray-800">🧾 請求書</h3>
-              {role === "PARTNER" && (
-                <label className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition ${uploadingInvoice ? "bg-gray-100 text-gray-400 border-gray-200" : "bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100"}`}>
-                  <span>{uploadingInvoice ? "アップロード中..." : "＋ 請求書を添付"}</span>
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    multiple
-                    className="hidden"
-                    disabled={uploadingInvoice}
-                    onChange={handleInvoiceUpload}
-                  />
-                </label>
-              )}
-            </div>
-            {invoiceUploadError && <p className="text-xs text-red-500 mb-2">{invoiceUploadError}</p>}
-            {project.invoices && project.invoices.length > 0 ? (
-              <div className="space-y-2">
-                {project.invoices.map((inv) => {
-                  const url = inv.filename.startsWith("http") ? inv.filename : `/uploads/${inv.filename}`;
-                  const isImage = !inv.originalName.toLowerCase().endsWith(".pdf");
-                  return (
-                    <div key={inv.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                      <a href={url} target="_blank" rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline flex items-center gap-2 min-w-0">
-                        <span className="shrink-0">{isImage ? "🖼" : "📄"}</span>
-                        <span className="truncate">{inv.originalName}</span>
-                      </a>
-                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                        <a href={url} download={inv.originalName}
-                          className="text-xs text-green-600 border border-green-300 rounded px-2 py-0.5 hover:bg-green-50 transition">
-                          ↓ DL
-                        </a>
-                        <button
-                          onClick={() => handleDeleteInvoice(inv.id)}
-                          disabled={deletingInvoiceId === inv.id}
-                          className="text-xs text-red-400 border border-red-300 rounded px-2 py-0.5 hover:bg-red-50 transition disabled:opacity-50"
-                        >削除</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-400 text-center py-3">
-                {role === "PARTNER" ? "請求書を添付するとここに表示されます" : "まだ請求書は届いていません"}
-              </p>
-            )}
-          </div>
-        )}
 
         {/* 管理者向けステータス操作 */}
         {role === "ADMIN" && ["INSPECTED", "QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status) && (

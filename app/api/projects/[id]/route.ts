@@ -122,6 +122,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.description !== undefined) updateData.description = body.description || null;
   if (body.urgency !== undefined) updateData.urgency = body.urgency;
   if (body.materialSupplied !== undefined) updateData.materialSupplied = Boolean(body.materialSupplied);
+  // 請求月の上書き（管理者のみ）
+  if (body.billingMonth !== undefined && role === "ADMIN") {
+    updateData.billingMonth = body.billingMonth || null;
+  }
   if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
   if (body.preferredContactAt !== undefined) updateData.preferredContactAt = body.preferredContactAt || null;
   if (body.preferredVisitAt !== undefined) updateData.preferredVisitAt = body.preferredVisitAt || null;

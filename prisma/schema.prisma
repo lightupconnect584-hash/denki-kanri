@@ -84,6 +84,7 @@ model Project {
   urgency          String    @default("LOW")
   materialSupplied Boolean   @default(false)
   amount           Int?
+  billingMonth     String?   // 請求月の上書き（YYYY-MM）。未設定なら作業月を使用
   visitDate        DateTime?
   visitTime        String?
   status           String    @default("PENDING")

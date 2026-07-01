@@ -16,6 +16,7 @@ interface Project {
   amount: number | null;
   createdAt: string;
   dueDate: string | null;
+  billingMonth: string | null;
   inspections: { workDate: string }[];
   assignedTo: { id: string; name: string; companyName: string | null } | null;
 }
@@ -53,15 +54,38 @@ export default function BillingPage() {
   const [uploadingMonthly, setUploadingMonthly] = useState(false);
   const [deletingMonthlyId, setDeletingMonthlyId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    fetch("/api/projects")
+  const [savingBillingId, setSavingBillingId] = useState<string | null>(null);
+
+  const fetchProjects = () => {
+    return fetch("/api/projects")
       .then((r) => r.json())
       .then((data: Project[]) => {
         setProjects(data.filter((p) => DONE_STATUSES.includes(p.status)));
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetchProjects();
   }, [status]);
+
+  // 請求月の変更（管理者）。空文字で自動（作業月）に戻す
+  const handleBillingMonthChange = async (projectId: string, month: string) => {
+    setSavingBillingId(projectId);
+    // 楽観的に反映
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, billingMonth: month || null } : p)));
+    try {
+      await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ billingMonth: month || null }),
+      });
+    } catch {
+      // ignore
+    }
+    setSavingBillingId(null);
+  };
 
   const fetchMonthlyInvoices = () => {
     return fetch("/api/monthly-invoices")
@@ -126,9 +150,19 @@ export default function BillingPage() {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-  // 月ラベル用のキー（作業日ベース）
-  const getMonthKey = (p: Project) => {
+  // 作業日ベースの月キー
+  const getWorkMonthKey = (p: Project) => {
     const d = getWorkDate(p);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  // 請求月（billingMonth優先、なければ作業月）
+  const getMonthKey = (p: Project) => p.billingMonth || getWorkMonthKey(p);
+
+  // YYYY-MM に n か月足す
+  const addMonths = (ym: string, n: number) => {
+    const [y, m] = ym.split("-").map(Number);
+    const d = new Date(y, m - 1 + n, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
 
@@ -357,15 +391,38 @@ export default function BillingPage() {
                 <div className="divide-y divide-gray-700">
                   {group.projects.map((p) => {
                     const dateStr = getWorkDate(p).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+                    const workMonth = getWorkMonthKey(p);
+                    const monthOptions = [workMonth, addMonths(workMonth, 1), addMonths(workMonth, 2)];
                     return (
-                      <Link key={p.id} href={`/projects/${p.id}`} className="px-3 py-2 flex items-center gap-2 hover:bg-gray-700 transition block">
-                        <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
-                          {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
-                        </div>
-                        <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
-                      </Link>
+                      <div key={p.id} className="px-3 py-2">
+                        <Link href={`/projects/${p.id}`} className="flex items-center gap-2 hover:opacity-80 transition">
+                          <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
+                            {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
+                          </div>
+                          <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
+                        </Link>
+                        {role === "ADMIN" && (
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <span className="text-[11px] text-gray-500 shrink-0">請求月</span>
+                            <select
+                              value={p.billingMonth || ""}
+                              disabled={savingBillingId === p.id}
+                              onChange={(e) => handleBillingMonthChange(p.id, e.target.value)}
+                              className={`text-[11px] rounded border px-1.5 py-0.5 bg-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500 ${p.billingMonth ? "border-amber-600 text-amber-300" : "border-gray-600 text-gray-300"}`}
+                            >
+                              <option value="">自動（{monthLabel(workMonth)}）</option>
+                              {monthOptions.map((m) => (
+                                <option key={m} value={m}>{monthLabel(m)}分</option>
+                              ))}
+                            </select>
+                            {p.billingMonth && p.billingMonth !== workMonth && (
+                              <span className="text-[11px] text-amber-400 shrink-0">→ {monthLabel(p.billingMonth)}に計上</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

@@ -106,7 +106,6 @@ model Project {
   invoices      Invoice[]
   comments      Comment[]
   activityLogs  ActivityLog[]
-  adminTasks    AdminTask[]
 }
 
 model ProjectPhoto {
@@ -170,18 +169,6 @@ model Photo {
 
   inspection   Inspection @relation(fields: [inspectionId], references: [id])
   inspectionId String
-}
-
-// 管理者専用チェックリスト（協力会社には非表示）
-model AdminTask {
-  id        String    @id @default(cuid())
-  label     String
-  done      Boolean   @default(false)
-  order     Int       @default(0)
-  createdAt DateTime  @default(now())
-
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String
 }
 
 model ActivityLog {

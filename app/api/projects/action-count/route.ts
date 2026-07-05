@@ -14,10 +14,8 @@ export async function GET() {
 
   const projects = await prisma.project.findMany({
     where: {
-      // 管理者は完了済でも未処理タスクが残っている可能性があるため全件対象
-      ...(role === "PARTNER"
-        ? { status: { notIn: ["CONFIRMED", "COMPLETED"] }, assignedToId: userId }
-        : {}),
+      status: { notIn: ["CONFIRMED", "COMPLETED"] },
+      ...(role === "PARTNER" ? { assignedToId: userId } : {}),
     },
     select: {
       status: true,
@@ -25,7 +23,6 @@ export async function GET() {
       updatedAt: true,
       assignedToId: true,
       quotes: { select: { status: true } },
-      ...(role === "ADMIN" ? { adminTasks: { select: { done: true } } } : {}),
     },
   });
 

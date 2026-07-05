@@ -19,7 +19,6 @@ export async function GET() {
       inspections: { include: { photos: true } },
       quotes: true,
       comments: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
-      ...(role === "ADMIN" ? { adminTasks: { select: { id: true, done: true }, orderBy: { order: "asc" as const } } } : {}),
     },
     orderBy: { createdAt: "desc" },
   });

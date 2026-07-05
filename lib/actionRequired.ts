@@ -7,7 +7,6 @@ export interface ActionCheckProject {
   assignedTo?: { id: string } | null;
   assignedToId?: string | null;
   quotes: { status: string }[];
-  adminTasks?: { done: boolean }[];
 }
 
 export interface ActionReason {
@@ -58,11 +57,6 @@ export function adminActionReason(p: ActionCheckProject): ActionReason | null {
     daysSince(p.updatedAt) >= 7
   ) {
     return { label: `見積り待ち${daysSince(p.updatedAt)}日`, color: "bg-yellow-100 text-yellow-700" };
-  }
-  // ── 管理者チェックリストの未処理（完了済でも表示） ──
-  const pendingTasks = (p.adminTasks ?? []).filter((t) => !t.done).length;
-  if (pendingTasks > 0) {
-    return { label: `未処理タスク${pendingTasks}件`, color: "bg-indigo-100 text-indigo-700" };
   }
   return null;
 }

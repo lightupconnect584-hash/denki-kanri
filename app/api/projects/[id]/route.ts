@@ -23,7 +23,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         include: { uploadedBy: { select: { name: true, companyName: true } } },
         orderBy: { createdAt: "desc" },
       },
-      ...(role === "ADMIN" ? { adminTasks: { orderBy: { order: "asc" as const } } } : {}),
       inspections: {
         include: {
           photos: true,

@@ -74,13 +74,6 @@ interface ActivityLog {
   user: { name: string; role: string } | null;
 }
 
-interface AdminTask {
-  id: string;
-  label: string;
-  done: boolean;
-  order: number;
-}
-
 interface Project {
   id: string;
   title: string;
@@ -108,7 +101,6 @@ interface Project {
   quotes: Quote[];
   comments: Comment[];
   activityLogs: ActivityLog[];
-  adminTasks?: AdminTask[];
 }
 
 export default function ProjectDetailPage() {
@@ -137,8 +129,6 @@ export default function ProjectDetailPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [photoUploadError, setPhotoUploadError] = useState("");
-  const [newTaskLabel, setNewTaskLabel] = useState("");
-  const [taskBusy, setTaskBusy] = useState(false);
 
   const role = (session?.user as { role?: string })?.role;
   const userId = (session?.user as { id?: string })?.id;
@@ -379,47 +369,6 @@ export default function ProjectDetailPage() {
     setDeletingPhotoId(null);
   };
 
-  // ── 管理者チェックリスト ──
-  const TASK_TEMPLATE = ["内容確認", "日程調整", "作業", "修理見積り", "完了報告"];
-
-  const addTasks = async (labels: string[]) => {
-    if (labels.length === 0 || taskBusy) return;
-    setTaskBusy(true);
-    await fetch(`/api/projects/${id}/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ labels }),
-    });
-    setNewTaskLabel("");
-    fetchProject();
-    setTaskBusy(false);
-  };
-
-  const toggleTask = async (task: AdminTask) => {
-    // 楽観的更新（タップの反応を速く）
-    setProject((prev) =>
-      prev
-        ? { ...prev, adminTasks: (prev.adminTasks ?? []).map((t) => (t.id === task.id ? { ...t, done: !t.done } : t)) }
-        : prev
-    );
-    await fetch(`/api/projects/${id}/tasks`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ taskId: task.id, done: !task.done }),
-    });
-  };
-
-  const deleteTask = async (taskId: string) => {
-    setProject((prev) =>
-      prev ? { ...prev, adminTasks: (prev.adminTasks ?? []).filter((t) => t.id !== taskId) } : prev
-    );
-    await fetch(`/api/projects/${id}/tasks`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ taskId }),
-    });
-  };
-
   const toggleReaction = async (commentId: string, emoji: string) => {
     if (!userId) return;
     setReactionPickerId(null);
@@ -528,77 +477,6 @@ export default function ProjectDetailPage() {
             </div>
           )}
         </div>
-
-        {/* 管理者チェックリスト（協力会社には非表示） */}
-        {role === "ADMIN" && (
-          <div className="bg-indigo-50 rounded-xl border border-indigo-200 p-4 mb-3">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold text-indigo-900">✅ 進行チェック</h3>
-              {(project.adminTasks?.length ?? 0) > 0 && (
-                <span className="text-xs font-bold text-indigo-600">
-                  {project.adminTasks!.filter((t) => t.done).length} / {project.adminTasks!.length}
-                </span>
-              )}
-            </div>
-            {(project.adminTasks?.length ?? 0) === 0 ? (
-              <button
-                onClick={() => addTasks(TASK_TEMPLATE)}
-                disabled={taskBusy}
-                className="w-full text-sm bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-700 disabled:opacity-50 transition"
-              >
-                ＋ テンプレを追加（内容確認〜完了報告）
-              </button>
-            ) : (
-              <div className="space-y-1">
-                {project.adminTasks!.map((task) => (
-                  <div key={task.id} className="flex items-center gap-2 group">
-                    <button
-                      onClick={() => toggleTask(task)}
-                      className={`flex-1 flex items-center gap-2.5 text-left rounded-lg px-2 py-2 transition ${
-                        task.done ? "opacity-60" : "hover:bg-indigo-100"
-                      }`}
-                    >
-                      <span className={`w-5 h-5 rounded border-2 flex items-center justify-center text-xs shrink-0 ${
-                        task.done ? "bg-indigo-600 border-indigo-600 text-white" : "border-indigo-300 bg-white"
-                      }`}>
-                        {task.done ? "✓" : ""}
-                      </span>
-                      <span className={`text-sm ${task.done ? "line-through text-gray-400" : "text-gray-800"}`}>
-                        {task.label}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="text-gray-300 hover:text-red-500 text-sm px-1 shrink-0"
-                      title="削除"
-                    >✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* 項目追加 */}
-            <div className="flex gap-2 mt-2">
-              <input
-                type="text"
-                value={newTaskLabel}
-                onChange={(e) => setNewTaskLabel(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                    e.preventDefault();
-                    addTasks([newTaskLabel]);
-                  }
-                }}
-                placeholder="項目を追加（例: 積水へ報告）"
-                className="flex-1 min-w-0 border border-indigo-200 rounded-lg px-3 py-1.5 text-sm bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              />
-              <button
-                onClick={() => addTasks([newTaskLabel])}
-                disabled={taskBusy || !newTaskLabel.trim()}
-                className="text-sm bg-indigo-100 text-indigo-700 border border-indigo-300 rounded-lg px-3 py-1.5 hover:bg-indigo-200 disabled:opacity-40 transition shrink-0"
-              >追加</button>
-            </div>
-          </div>
-        )}
 
         {/* 基本情報 */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3 space-y-3">

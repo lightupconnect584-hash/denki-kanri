@@ -25,7 +25,6 @@ interface Project {
   assignedTo: { id: string; name: string; companyName: string | null; color: string | null } | null;
   inspections: { id: string; workDate: string }[];
   quotes: { id: string; status: string }[];
-  adminTasks?: { id: string; done: boolean }[];
   comments: { createdAt: string }[];
   createdBy: { name: string; avatarUrl: string | null; thankYouEnabled: boolean; thankYouImageUrl: string | null; thankYouMessage: string | null };
 }
@@ -611,15 +610,6 @@ export default function DashboardPage() {
               {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
               {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">中</span>}
               {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">📦 材料支給</span>}
-              {role === "ADMIN" && (p.adminTasks?.length ?? 0) > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0 border ${
-                  p.adminTasks!.every((t) => t.done)
-                    ? "bg-green-900/50 text-green-300 border-green-700"
-                    : "bg-indigo-900/50 text-indigo-300 border-indigo-700"
-                }`}>
-                  ☑ {p.adminTasks!.filter((t) => t.done).length}/{p.adminTasks!.length}
-                </span>
-              )}
             </div>
             <p className="text-sm text-gray-400 mt-0.5 truncate">📍 {p.location}</p>
             <div className="flex items-center gap-3 mt-1 flex-wrap">

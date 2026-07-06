@@ -56,6 +56,36 @@ export default function BillingPage() {
   const [closing, setClosing] = useState(false);
   const [heldIds, setHeldIds] = useState<Set<string>>(new Set()); // 今回は締めずに次回に回す案件
   const [closeTargetMonth, setCloseTargetMonth] = useState<string>(thisMonth);
+  const [dismissedCycle, setDismissedCycle] = useState<string | null>(null);
+
+  useEffect(() => {
+    try { setDismissedCycle(localStorage.getItem("billing-close-dismissed")); } catch {}
+  }, []);
+
+  const markCycleDismissed = (cycle: string | null) => {
+    if (!cycle) return;
+    try { localStorage.setItem("billing-close-dismissed", cycle); } catch {}
+    setDismissedCycle(cycle);
+  };
+
+  // 締め時期の判定：月末3日間 → 今月分、翌月5日まで → 先月分（締め遅れ対応）。それ以外は締め案内を出さない
+  const closingCycle: string | null = (() => {
+    const d = now.getDate();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    if (d >= lastDay - 2) return thisMonth;
+    if (d <= 5) {
+      const pm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return `${pm.getFullYear()}-${String(pm.getMonth() + 1).padStart(2, "0")}`;
+    }
+    return null;
+  })();
+  // 締め時期かつ、その回をまだ締めていない場合だけ締めバーを出す
+  const showClosePrompt = closingCycle !== null && dismissedCycle !== closingCycle;
+
+  // 締め時期は、締める月の初期値をその対象月に合わせる
+  useEffect(() => {
+    if (closingCycle) setCloseTargetMonth(closingCycle);
+  }, [closingCycle]);
 
   // 未締め案件を指定月で締める（projectIds を渡すとその案件のみ）
   const UNCLOSED = "__unclosed__";
@@ -70,6 +100,7 @@ export default function BillingPage() {
     });
     await fetchProjects();
     setClosing(false);
+    markCycleDismissed(closingCycle);
     setSelectedMonth(month);
   };
 
@@ -84,6 +115,7 @@ export default function BillingPage() {
     });
     await fetchProjects();
     setClosing(false);
+    markCycleDismissed(closingCycle);
     setSelectedMonth("all");
   };
 
@@ -408,8 +440,17 @@ export default function BillingPage() {
           <p className="text-sm opacity-80">{filtered.length}件</p>
         </div>
 
-        {/* 締めバー（管理者・未締め表示時） */}
-        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && (() => {
+        {/* 締め時期外：案内だけ表示（締めボタンは月末まで出さない） */}
+        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && !showClosePrompt && (
+          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 mb-4">
+            <p className="text-xs text-gray-400">
+              🗓 締めボタンは月末（〜翌月初め）の締め時期に表示されます。未締めの案件はここに溜まっていきます。
+            </p>
+          </div>
+        )}
+
+        {/* 締めバー（管理者・未締め表示時・締め時期のみ） */}
+        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && showClosePrompt && (() => {
           const toClose = filtered.filter((p) => !heldIds.has(p.id));
           return (
             <div className="bg-amber-950/40 border border-amber-700 rounded-xl p-3 mb-4">
@@ -437,17 +478,20 @@ export default function BillingPage() {
                   {closing ? "処理中..." : `選択した ${toClose.length}件 を締める`}
                 </button>
               </div>
-              {/* 過去分の再設定：作業月ごとに一括で振り分け */}
-              <button
-                onClick={closeByWorkMonth}
-                disabled={closing}
-                className="w-full mt-2 text-xs text-amber-300 border border-amber-800 rounded-lg py-1.5 hover:bg-amber-900/40 disabled:opacity-50 transition"
-              >
-                ↧ 未締めを「作業月ごと」に一括で締める（過去分の再設定用）
-              </button>
             </div>
           );
         })()}
+
+        {/* 過去分の再設定：作業月ごとに一括で振り分け（締め時期に関係なく常時） */}
+        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && (
+          <button
+            onClick={closeByWorkMonth}
+            disabled={closing}
+            className="w-full mb-4 text-xs text-gray-400 border border-gray-700 rounded-lg py-2 hover:bg-gray-800 hover:text-amber-300 disabled:opacity-50 transition"
+          >
+            ↧ 未締めを「作業月ごと」に一括で締める（過去分の再設定用）
+          </button>
+        )}
 
         {/* 締め済み月の解除（管理者） */}
         {role === "ADMIN" && selectedMonth !== UNCLOSED && selectedMonth !== "all" && filtered.length > 0 && (

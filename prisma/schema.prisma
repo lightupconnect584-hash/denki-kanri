@@ -131,6 +131,13 @@ model Invoice {
   uploadedById String
 }
 
+// アプリ全体の設定（1行だけのシングルトン）
+model AppSetting {
+  id              String   @id @default("singleton")
+  billingCloseDay Int      @default(31) // 締め日（1〜31）。31=月末
+  updatedAt       DateTime @updatedAt
+}
+
 // 月締め一括請求（協力会社が毎月1枚アップロード）
 model MonthlyInvoice {
   id           String   @id @default(cuid())

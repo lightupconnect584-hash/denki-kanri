@@ -53,6 +53,15 @@ export default function BillingPage() {
   const [monthlyInvoices, setMonthlyInvoices] = useState<MonthlyInvoice[]>([]);
   const [uploadingMonthly, setUploadingMonthly] = useState(false);
   const [deletingMonthlyId, setDeletingMonthlyId] = useState<string | null>(null);
+  const [closeDay, setCloseDay] = useState(31); // 締め日（31=月末）
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch("/api/app-settings")
+      .then((r) => r.json())
+      .then((d) => setCloseDay(d.billingCloseDay ?? 31))
+      .catch(() => {});
+  }, [status]);
 
   const [savingBillingId, setSavingBillingId] = useState<string | null>(null);
 
@@ -150,9 +159,11 @@ export default function BillingPage() {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-  // 作業日ベースの月キー
+  // 締め日を考慮した月キー。締め日を過ぎた作業は翌月の請求期間に繰り越す
   const getWorkMonthKey = (p: Project) => {
-    const d = getWorkDate(p);
+    const wd = getWorkDate(p);
+    const d = new Date(wd.getFullYear(), wd.getMonth(), 1);
+    if (closeDay < 31 && wd.getDate() > closeDay) d.setMonth(d.getMonth() + 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
 
@@ -170,7 +181,7 @@ export default function BillingPage() {
     const set = new Set<string>();
     myProjects.forEach((p) => set.add(getMonthKey(p)));
     return Array.from(set).sort().reverse();
-  }, [myProjects]);
+  }, [myProjects, closeDay]);
 
   const partners = useMemo(() => {
     if (role !== "ADMIN") return [];
@@ -190,7 +201,7 @@ export default function BillingPage() {
       if (selectedPartner !== "all" && p.assignedTo?.id !== selectedPartner) return false;
       return true;
     });
-  }, [myProjects, selectedMonth, selectedPartner, onlyDone]);
+  }, [myProjects, selectedMonth, selectedPartner, onlyDone, closeDay]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; projects: Project[]; total: number }>();
@@ -352,6 +363,10 @@ export default function BillingPage() {
               </select>
             )}
           </div>
+          <p className="text-[11px] text-gray-500">
+            {closeDay >= 31 ? "月末締めで集計中" : `${closeDay}日締めで集計中`}
+            {role === "ADMIN" && "（設定で変更できます）"}
+          </p>
         </div>
 
         {/* 合計金額バナー */}

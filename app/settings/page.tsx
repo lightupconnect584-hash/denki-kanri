@@ -180,6 +180,10 @@ export default function SettingsPage() {
   const [storage, setStorage] = useState<{ db: { used: number; limit: number }; blob: { used: number; limit: number } } | null>(null);
   const [loadingStorage, setLoadingStorage] = useState(false);
 
+  // 締め日
+  const [closeDay, setCloseDay] = useState(31);
+  const [savingCloseDay, setSavingCloseDay] = useState(false);
+
   // 画像ストック
   const [stockImages, setStockImages] = useState<StockImage[]>([]);
   const [showStockPicker, setShowStockPicker] = useState<"season" | "thankYou" | false>(false);
@@ -218,6 +222,9 @@ export default function SettingsPage() {
         if (data.thankYouEnabled !== undefined) setThankYouEnabled(data.thankYouEnabled);
         if (data.thankYouImageUrl !== undefined) setThankYouImageUrl(data.thankYouImageUrl);
         if (data.thankYouMessage) setThankYouMsgInput(data.thankYouMessage);
+      }).catch(() => {});
+      fetch("/api/app-settings").then((r) => r.json()).then((d) => {
+        if (d.billingCloseDay) setCloseDay(d.billingCloseDay);
       }).catch(() => {});
     }
     if (role === "PARTNER") {
@@ -1101,6 +1108,42 @@ export default function SettingsPage() {
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">設定</h2>
         </div>
+
+        {/* 締め日 */}
+        {role === "ADMIN" && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 px-4 py-3 mb-3">
+            <span className="text-xs font-bold text-gray-200">📅 請求の締め日</span>
+            <p className="text-xs text-gray-400 mt-1 mb-2">
+              完了済ページで、この日を過ぎた作業は翌月分の請求として集計されます。
+            </p>
+            <div className="flex items-center gap-2">
+              <select
+                value={closeDay}
+                onChange={async (e) => {
+                  const day = Number(e.target.value);
+                  setCloseDay(day);
+                  setSavingCloseDay(true);
+                  await fetch("/api/app-settings", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ billingCloseDay: day }),
+                  }).catch(() => {});
+                  setSavingCloseDay(false);
+                }}
+                className="border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}日締め</option>
+                ))}
+                <option value={31}>月末締め</option>
+              </select>
+              {savingCloseDay && <span className="text-xs text-gray-400">保存中...</span>}
+            </div>
+            <p className="text-[11px] text-gray-500 mt-2">
+              例）20日締めの場合：6/21〜7/20の作業は「7月分」として集計されます。
+            </p>
+          </div>
+        )}
 
         {/* ストレージ残量 */}
         {role === "ADMIN" && (

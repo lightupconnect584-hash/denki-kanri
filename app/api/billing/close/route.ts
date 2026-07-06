@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { syncSalesEntryForProject } from "@/lib/salesSync";
 
 const DONE_STATUSES = ["CONFIRMED", "COMPLETED"];
 
 // POST: 未締めの完了済案件を指定月で締める（管理者のみ）
-//   body: { month: "YYYY-MM", partnerId?: string }
+//   body: { month: "YYYY-MM", projectIds?: string[], partnerId?: string } または { byWorkMonth: true }
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,6 +22,9 @@ export async function POST(req: NextRequest) {
       where: { status: { in: DONE_STATUSES }, billingMonth: null },
       select: {
         id: true,
+        title: true,
+        location: true,
+        amount: true,
         dueDate: true,
         createdAt: true,
         inspections: { select: { workDate: true } },
@@ -36,6 +40,8 @@ export async function POST(req: NextRequest) {
       }
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       await prisma.project.update({ where: { id: p.id }, data: { billingMonth: ym } });
+      // 売上集計の行も締めた月に合わせる（なければ作成）
+      await syncSalesEntryForProject(p, ym);
       closed++;
     }
     return NextResponse.json({ closed, byWorkMonth: true });
@@ -49,17 +55,23 @@ export async function POST(req: NextRequest) {
   // projectIds が指定されればその案件のみ、なければ未締め全件を締める
   const projectIds: string[] | undefined = Array.isArray(body.projectIds) ? body.projectIds : undefined;
 
-  const result = await prisma.project.updateMany({
+  const targets = await prisma.project.findMany({
     where: {
       status: { in: DONE_STATUSES },
       billingMonth: null,
       ...(projectIds ? { id: { in: projectIds } } : {}),
       ...(body.partnerId ? { assignedToId: body.partnerId } : {}),
     },
-    data: { billingMonth: month },
+    select: { id: true, title: true, location: true, amount: true },
   });
 
-  return NextResponse.json({ closed: result.count, month });
+  for (const p of targets) {
+    await prisma.project.update({ where: { id: p.id }, data: { billingMonth: month } });
+    // 売上集計の行も締めた月に移動（なければ作成）。入力済みの売上・材料費は保持
+    await syncSalesEntryForProject(p, month);
+  }
+
+  return NextResponse.json({ closed: targets.length, month });
 }
 
 // DELETE: 指定月の締めを解除して未締めに戻す（管理者のみ）

@@ -127,7 +127,7 @@ export default function SalesPage() {
     });
     if (res.ok) {
       const data = await res.json();
-      setImportMsg(data.imported > 0 ? `${data.imported}件を取り込みました` : "取り込める案件はありません（締め済みの完了案件が対象）");
+      setImportMsg(data.imported > 0 ? `${data.imported}件を取り込みました` : "未登録の完了案件はありません");
       if (data.imported > 0) await fetchData(month);
     }
     setImporting(false);
@@ -202,11 +202,13 @@ export default function SalesPage() {
             <button
               onClick={importProjects}
               disabled={importing}
-              className="w-full bg-blue-600 text-white text-sm rounded-xl py-2.5 font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+              className="w-full bg-gray-800 text-gray-300 border border-gray-600 text-sm rounded-xl py-2.5 font-medium hover:bg-gray-700 disabled:opacity-50 transition"
             >
-              {importing ? "取り込み中..." : `⬇ ${monthLabel}分の締め済み案件を取り込む`}
+              {importing ? "取り込み中..." : "⬇ 未登録の完了案件を取り込む"}
             </button>
-            {importMsg && <p className="text-xs text-gray-400 text-center mt-1.5">{importMsg}</p>}
+            <p className="text-[11px] text-gray-500 text-center mt-1">
+              {importMsg || "※ 完了時に自動で登録されます。このボタンは過去分の補完用"}
+            </p>
           </div>
         </div>
 

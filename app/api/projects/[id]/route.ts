@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { syncSalesEntryForProject, currentMonthKey } from "@/lib/salesSync";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -146,6 +147,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: whereClause,
     data: updateData,
   });
+
+  // 完了になったら売上集計に自動登録（今の月に仮置き。月末の締めで最終調整）
+  if (["CONFIRMED", "COMPLETED"].includes(body.status)) {
+    await syncSalesEntryForProject(
+      { id: project.id, title: project.title, location: project.location, amount: project.amount },
+      currentMonthKey()
+    );
+  }
 
   // 金額変更ログ
   if (body.amount !== undefined && role === "ADMIN") {

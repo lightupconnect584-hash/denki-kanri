@@ -121,7 +121,6 @@ export default function ProjectDetailPage() {
   const [savingVisit, setSavingVisit] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
-  const [isComposingComment, setIsComposingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [reactionPickerId, setReactionPickerId] = useState<string | null>(null);
   const REACTION_EMOJIS = ["👍", "✅", "😄", "🙏", "💪"];
@@ -1204,11 +1203,8 @@ export default function ProjectDetailPage() {
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              onCompositionStart={() => setIsComposingComment(true)}
-              onCompositionEnd={() => setIsComposingComment(false)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !isComposingComment) { e.preventDefault(); sendComment(); } }}
               rows={2}
-              placeholder="コメントを入力… (Enterで送信・Shift+Enterで改行)"
+              placeholder="コメントを入力…"
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
             <button

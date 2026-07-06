@@ -133,6 +133,23 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(msg);
 }
 
+// DELETE /api/messages → { messageId } 自分が送ったメッセージを取り消す
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const myId = (session.user as { id: string }).id;
+  const { messageId } = await req.json();
+  if (!messageId) return NextResponse.json({ error: "messageId required" }, { status: 400 });
+
+  const msg = await prisma.directMessage.findUnique({ where: { id: messageId } });
+  if (!msg) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (msg.fromId !== myId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  await prisma.directMessage.delete({ where: { id: messageId } });
+  return NextResponse.json({ ok: true });
+}
+
 // PATCH /api/messages?userId=xxx → 既読にする
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);

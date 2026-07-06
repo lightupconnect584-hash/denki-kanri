@@ -225,6 +225,21 @@ function MessagesInner() {
     }
   };
 
+  const deleteMessage = async (messageId: string) => {
+    if (!confirm("このメッセージを取り消しますか？")) return;
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    try {
+      await fetch("/api/messages", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId }),
+      });
+      fetchThreads();
+    } catch {
+      if (selectedId) fetchMessages(selectedId, false);
+    }
+  };
+
   const startNewChat = (partnerId: string) => {
     setSelectedId(partnerId);
     setShowNewChat(false);
@@ -460,9 +475,20 @@ function MessagesInner() {
                             >
                               {renderWithLinks(msg.content, isMine)}
                             </div>
-                            <span className="text-xs text-gray-500 px-1">
-                              {formatDateTime(msg.createdAt)}
-                              {isMine && msg.readAt && " · 既読"}
+                            <span className="text-xs text-gray-500 px-1 flex items-center gap-2">
+                              <span>
+                                {formatDateTime(msg.createdAt)}
+                                {isMine && !isSelfChat && msg.readAt && " · 既読"}
+                              </span>
+                              {isMine && (
+                                <button
+                                  onClick={() => deleteMessage(msg.id)}
+                                  className="text-gray-500 hover:text-red-400 transition"
+                                  title="送信取消"
+                                >
+                                  取消
+                                </button>
+                              )}
                             </span>
                           </div>
                         </div>

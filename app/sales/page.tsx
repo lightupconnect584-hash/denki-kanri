@@ -186,49 +186,48 @@ export default function SalesPage() {
   return (
     <div className="min-h-full flex flex-col bg-gray-950">
       <Header />
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 sm:py-6">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
-          <h2 className="text-lg font-bold text-white flex-1">売上集計</h2>
-        </div>
-
-        {/* 月切り替え */}
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <button onClick={() => shiftMonth(-1)} className="text-gray-400 hover:text-white text-xl px-3 py-1">‹</button>
-          <p className="text-base font-bold text-white w-32 text-center">{monthLabel}</p>
-          <button onClick={() => shiftMonth(1)} className="text-gray-400 hover:text-white text-xl px-3 py-1">›</button>
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 sm:py-6">
+        {/* ヘッダー行：タイトル・月切替・取り込み（PCでは1行に） */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
+            <h2 className="text-lg font-bold text-white">売上集計</h2>
+          </div>
+          <div className="flex items-center justify-center gap-4 lg:mx-auto">
+            <button onClick={() => shiftMonth(-1)} className="text-gray-400 hover:text-white text-xl px-3 py-1">‹</button>
+            <p className="text-lg font-bold text-white w-36 text-center">{monthLabel}</p>
+            <button onClick={() => shiftMonth(1)} className="text-gray-400 hover:text-white text-xl px-3 py-1">›</button>
+          </div>
+          <div className="lg:w-80">
+            <button
+              onClick={importProjects}
+              disabled={importing}
+              className="w-full bg-blue-600 text-white text-sm rounded-xl py-2.5 font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+            >
+              {importing ? "取り込み中..." : `⬇ ${monthLabel}分の締め済み案件を取り込む`}
+            </button>
+            {importMsg && <p className="text-xs text-gray-400 text-center mt-1.5">{importMsg}</p>}
+          </div>
         </div>
 
         {/* サマリー */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-center">
-            <p className="text-xs text-gray-400 mb-0.5">収益</p>
-            <p className="text-base font-bold text-white">¥{fmt(totals.revenue)}</p>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-5">
+          <div className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 sm:py-4 text-center">
+            <p className="text-xs sm:text-sm text-gray-400 mb-0.5">収益</p>
+            <p className="text-base sm:text-2xl font-bold text-white">¥{fmt(totals.revenue)}</p>
           </div>
-          <div className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-center">
-            <p className="text-xs text-gray-400 mb-0.5">経費</p>
-            <p className="text-base font-bold text-white">¥{fmt(totals.cost)}</p>
+          <div className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 sm:py-4 text-center">
+            <p className="text-xs sm:text-sm text-gray-400 mb-0.5">経費</p>
+            <p className="text-base sm:text-2xl font-bold text-white">¥{fmt(totals.cost)}</p>
           </div>
-          <div className={`rounded-xl px-3 py-3 text-center border ${totals.profit >= 0 ? "bg-emerald-900/40 border-emerald-700" : "bg-red-900/40 border-red-700"}`}>
-            <p className="text-xs text-gray-400 mb-0.5">利益</p>
-            <p className={`text-base font-bold ${totals.profit >= 0 ? "text-emerald-300" : "text-red-300"}`}>¥{fmt(totals.profit)}</p>
+          <div className={`rounded-xl px-3 py-3 sm:py-4 text-center border ${totals.profit >= 0 ? "bg-emerald-900/40 border-emerald-700" : "bg-red-900/40 border-red-700"}`}>
+            <p className="text-xs sm:text-sm text-gray-400 mb-0.5">利益</p>
+            <p className={`text-base sm:text-2xl font-bold ${totals.profit >= 0 ? "text-emerald-300" : "text-red-300"}`}>¥{fmt(totals.profit)}</p>
           </div>
         </div>
 
-        {/* 取り込み */}
-        <div className="mb-4">
-          <button
-            onClick={importProjects}
-            disabled={importing}
-            className="w-full bg-blue-600 text-white text-sm rounded-xl py-2.5 font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-          >
-            {importing ? "取り込み中..." : `⬇ ${monthLabel}分の締め済み案件を取り込む`}
-          </button>
-          {importMsg && <p className="text-xs text-gray-400 text-center mt-1.5">{importMsg}</p>}
-        </div>
-
-        {/* カテゴリ別明細 */}
-        <div className="space-y-4">
+        {/* カテゴリ別明細（PCでは2列） */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
           {CATEGORY_DEFS.map(({ key, name }) => {
             const rows = entries.filter((e) => e.category === key);
             const sub = {
@@ -247,7 +246,7 @@ export default function SalesPage() {
                 {rows.length > 0 && (
                   <>
                     {/* 列見出し */}
-                    <div className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] gap-1 px-3 pt-2 pb-1 text-[10px] text-gray-500">
+                    <div className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] sm:grid-cols-[1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-3 pt-2 pb-1 text-[10px] text-gray-500">
                       <span>建物名・内容</span>
                       <span className="text-right">売上</span>
                       <span className="text-right">材料費</span>
@@ -259,13 +258,13 @@ export default function SalesPage() {
                       {rows.map((e) => {
                         const profit = e.sales - e.material - e.outsource;
                         return (
-                          <div key={e.id} className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] gap-1 items-center px-3 py-1.5">
+                          <div key={e.id} className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] sm:grid-cols-[1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 items-center px-3 py-1.5">
                             <input
                               value={e.label}
                               onChange={(ev) => setEntries((prev) => prev.map((x) => (x.id === e.id ? { ...x, label: ev.target.value } : x)))}
                               onBlur={(ev) => patchEntry(e.id, { label: ev.target.value })}
                               placeholder="建物名"
-                              className="min-w-0 bg-transparent text-xs text-gray-100 border-b border-transparent focus:border-blue-500 focus:outline-none py-1"
+                              className="min-w-0 bg-transparent text-xs sm:text-sm text-gray-100 border-b border-transparent focus:border-blue-500 focus:outline-none py-1"
                             />
                             {(["sales", "material", "outsource"] as const).map((f) => (
                               <input
@@ -279,10 +278,10 @@ export default function SalesPage() {
                                 }}
                                 onBlur={(ev) => patchEntry(e.id, { [f]: Number(numClean(ev.target.value)) || 0 })}
                                 placeholder="0"
-                                className="min-w-0 bg-gray-900/60 text-xs text-gray-100 text-right rounded px-1.5 py-1 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                                className="min-w-0 bg-gray-900/60 text-xs sm:text-sm text-gray-100 text-right rounded px-1.5 py-1 border border-gray-700 focus:border-blue-500 focus:outline-none"
                               />
                             ))}
-                            <span className={`text-xs text-right font-medium ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            <span className={`text-xs sm:text-sm text-right font-medium ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                               {fmt(profit)}
                             </span>
                             <button onClick={() => deleteEntry(e.id)} className="text-gray-600 hover:text-red-500 text-xs">✕</button>
@@ -291,7 +290,7 @@ export default function SalesPage() {
                       })}
                     </div>
                     {/* 小計 */}
-                    <div className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] gap-1 px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs font-bold">
+                    <div className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] sm:grid-cols-[1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs sm:text-sm font-bold">
                       <span className="text-gray-400">小計</span>
                       <span className="text-right text-gray-100">{fmt(sub.sales)}</span>
                       <span className="text-right text-gray-300">{fmt(sub.material)}</span>
@@ -313,7 +312,7 @@ export default function SalesPage() {
           })}
 
           {/* 経費一覧（毎月共通） */}
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden xl:col-span-2">
             <button
               onClick={() => setShowExpenses((v) => !v)}
               className="w-full px-4 py-2.5 bg-gray-800/50 flex items-center justify-between hover:bg-gray-700/50 transition"
@@ -332,7 +331,7 @@ export default function SalesPage() {
                         value={e.label}
                         onChange={(ev) => setExpenses((prev) => prev.map((x) => (x.id === e.id ? { ...x, label: ev.target.value } : x)))}
                         onBlur={(ev) => patchExpense(e.id, { label: ev.target.value })}
-                        className="flex-1 min-w-0 bg-transparent text-xs text-gray-100 border-b border-transparent focus:border-blue-500 focus:outline-none py-1"
+                        className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm text-gray-100 border-b border-transparent focus:border-blue-500 focus:outline-none py-1"
                       />
                       <input
                         type="text"
@@ -344,7 +343,7 @@ export default function SalesPage() {
                         }}
                         onBlur={(ev) => patchExpense(e.id, { amount: Number(numClean(ev.target.value)) || 0 })}
                         placeholder="0"
-                        className="w-24 bg-gray-900/60 text-xs text-gray-100 text-right rounded px-1.5 py-1 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                        className="w-24 bg-gray-900/60 text-xs sm:text-sm text-gray-100 text-right rounded px-1.5 py-1 border border-gray-700 focus:border-blue-500 focus:outline-none"
                       />
                       <button onClick={() => deleteExpense(e.id)} className="text-gray-600 hover:text-red-500 text-xs">✕</button>
                     </div>
@@ -355,7 +354,7 @@ export default function SalesPage() {
                     value={newExpLabel}
                     onChange={(e) => setNewExpLabel(e.target.value)}
                     placeholder="項目名（例: ガソリン代）"
-                    className="flex-1 min-w-0 bg-gray-900/60 text-xs text-gray-100 rounded px-2 py-1.5 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                    className="flex-1 min-w-0 bg-gray-900/60 text-xs sm:text-sm text-gray-100 rounded px-2 py-1.5 border border-gray-700 focus:border-blue-500 focus:outline-none"
                   />
                   <input
                     type="text"
@@ -363,7 +362,7 @@ export default function SalesPage() {
                     value={newExpAmount}
                     onChange={(e) => setNewExpAmount(numClean(e.target.value))}
                     placeholder="金額"
-                    className="w-24 bg-gray-900/60 text-xs text-gray-100 text-right rounded px-2 py-1.5 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                    className="w-24 bg-gray-900/60 text-xs sm:text-sm text-gray-100 text-right rounded px-2 py-1.5 border border-gray-700 focus:border-blue-500 focus:outline-none"
                   />
                   <button
                     onClick={addExpense}

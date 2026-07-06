@@ -39,7 +39,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [selectedMonth, setSelectedMonth] = useState<string>(thisMonth);
+  const [selectedMonth, setSelectedMonth] = useState<string>("__unclosed__"); // 初期は未締め
   const [selectedPartner, setSelectedPartner] = useState<string>("all");
   const onlyDone = true;
 
@@ -53,17 +53,38 @@ export default function BillingPage() {
   const [monthlyInvoices, setMonthlyInvoices] = useState<MonthlyInvoice[]>([]);
   const [uploadingMonthly, setUploadingMonthly] = useState(false);
   const [deletingMonthlyId, setDeletingMonthlyId] = useState<string | null>(null);
-  const [closeDay, setCloseDay] = useState(31); // 締め日（31=月末）
+  const [closing, setClosing] = useState(false);
+  const [heldIds, setHeldIds] = useState<Set<string>>(new Set()); // 今回は締めずに次回に回す案件
+  const [closeTargetMonth, setCloseTargetMonth] = useState<string>(thisMonth);
 
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    fetch("/api/app-settings")
-      .then((r) => r.json())
-      .then((d) => setCloseDay(d.billingCloseDay ?? 31))
-      .catch(() => {});
-  }, [status]);
+  // 未締め案件を指定月で締める（projectIds を渡すとその案件のみ）
+  const UNCLOSED = "__unclosed__";
+  const closeMonth = async (month: string, projectIds: string[]) => {
+    if (projectIds.length === 0) return;
+    if (!confirm(`選択した ${projectIds.length}件 を「${monthLabel(month)}分」として締めますか？`)) return;
+    setClosing(true);
+    await fetch("/api/billing/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month, projectIds }),
+    });
+    await fetchProjects();
+    setClosing(false);
+    setSelectedMonth(month);
+  };
 
-  const [savingBillingId, setSavingBillingId] = useState<string | null>(null);
+  const reopenMonth = async (month: string) => {
+    if (!confirm(`「${monthLabel(month)}分」の締めを解除して未締めに戻しますか？`)) return;
+    setClosing(true);
+    await fetch("/api/billing/close", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month }),
+    });
+    await fetchProjects();
+    setClosing(false);
+    setSelectedMonth(UNCLOSED);
+  };
 
   const fetchProjects = () => {
     return fetch("/api/projects")
@@ -78,23 +99,6 @@ export default function BillingPage() {
     if (status !== "authenticated") return;
     fetchProjects();
   }, [status]);
-
-  // 請求月の変更（管理者）。空文字で自動（作業月）に戻す
-  const handleBillingMonthChange = async (projectId: string, month: string) => {
-    setSavingBillingId(projectId);
-    // 楽観的に反映
-    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, billingMonth: month || null } : p)));
-    try {
-      await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billingMonth: month || null }),
-      });
-    } catch {
-      // ignore
-    }
-    setSavingBillingId(null);
-  };
 
   const fetchMonthlyInvoices = () => {
     return fetch("/api/monthly-invoices")
@@ -159,16 +163,8 @@ export default function BillingPage() {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-  // 締め日を考慮した月キー。締め日を過ぎた作業は翌月の請求期間に繰り越す
-  const getWorkMonthKey = (p: Project) => {
-    const wd = getWorkDate(p);
-    const d = new Date(wd.getFullYear(), wd.getMonth(), 1);
-    if (closeDay < 31 && wd.getDate() > closeDay) d.setMonth(d.getMonth() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  };
-
-  // 請求月（billingMonth優先、なければ作業月）
-  const getMonthKey = (p: Project) => p.billingMonth || getWorkMonthKey(p);
+  // 締め済みならその月、未締めなら UNCLOSED
+  const getMonthKey = (p: Project) => p.billingMonth || UNCLOSED;
 
   // YYYY-MM に n か月足す
   const addMonths = (ym: string, n: number) => {
@@ -177,11 +173,18 @@ export default function BillingPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
 
+  // 締め済みの月一覧（未締めは除く）
   const months = useMemo(() => {
     const set = new Set<string>();
-    myProjects.forEach((p) => set.add(getMonthKey(p)));
+    myProjects.forEach((p) => { if (p.billingMonth) set.add(p.billingMonth); });
     return Array.from(set).sort().reverse();
-  }, [myProjects, closeDay]);
+  }, [myProjects]);
+
+  // 未締めの件数（フィルターのラベル用）
+  const unclosedCount = useMemo(
+    () => myProjects.filter((p) => !p.billingMonth).length,
+    [myProjects]
+  );
 
   const partners = useMemo(() => {
     if (role !== "ADMIN") return [];
@@ -201,7 +204,7 @@ export default function BillingPage() {
       if (selectedPartner !== "all" && p.assignedTo?.id !== selectedPartner) return false;
       return true;
     });
-  }, [myProjects, selectedMonth, selectedPartner, onlyDone, closeDay]);
+  }, [myProjects, selectedMonth, selectedPartner, onlyDone]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; projects: Project[]; total: number }>();
@@ -247,6 +250,8 @@ export default function BillingPage() {
   }
 
   const monthLabel = (m: string) => {
+    if (m === UNCLOSED) return "未締め";
+    if (m === "all") return "全期間";
     const [y, mo] = m.split("-");
     return `${y}年${parseInt(mo)}月`;
   };
@@ -345,9 +350,10 @@ export default function BillingPage() {
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="flex-1 min-w-0 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">全期間</option>
+              <option value={UNCLOSED}>未締め{unclosedCount > 0 ? `（${unclosedCount}件）` : ""}</option>
+              <option value="all">全期間（締め済み）</option>
               {months.map((m) => (
-                <option key={m} value={m}>{monthLabel(m)}</option>
+                <option key={m} value={m}>{monthLabel(m)}分</option>
               ))}
             </select>
             {role === "ADMIN" && (
@@ -363,10 +369,6 @@ export default function BillingPage() {
               </select>
             )}
           </div>
-          <p className="text-[11px] text-gray-500">
-            {closeDay >= 31 ? "月末締めで集計中" : `${closeDay}日締めで集計中`}
-            {role === "ADMIN" && "（設定で変更できます）"}
-          </p>
         </div>
 
         {/* 合計金額バナー */}
@@ -379,6 +381,49 @@ export default function BillingPage() {
           </div>
           <p className="text-sm opacity-80">{filtered.length}件</p>
         </div>
+
+        {/* 締めバー（管理者・未締め表示時） */}
+        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && (() => {
+          const toClose = filtered.filter((p) => !heldIds.has(p.id));
+          return (
+            <div className="bg-amber-950/40 border border-amber-700 rounded-xl p-3 mb-4">
+              <p className="text-xs text-amber-200 mb-2">
+                締める月を選んで確定します。チェックを外した案件は今回締めず、次回に回ります。
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={closeTargetMonth}
+                  onChange={(e) => setCloseTargetMonth(e.target.value)}
+                  className="border border-amber-700 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  {[addMonths(thisMonth, -1), thisMonth, addMonths(thisMonth, 1)].map((m) => (
+                    <option key={m} value={m}>{monthLabel(m)}分</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => closeMonth(closeTargetMonth, toClose.map((p) => p.id))}
+                  disabled={closing || toClose.length === 0}
+                  className="flex-1 min-w-0 bg-amber-600 text-white text-sm rounded-lg py-2 font-bold hover:bg-amber-700 disabled:opacity-50 transition"
+                >
+                  {closing ? "処理中..." : `選択した ${toClose.length}件 を締める`}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* 締め済み月の解除（管理者） */}
+        {role === "ADMIN" && selectedMonth !== UNCLOSED && selectedMonth !== "all" && filtered.length > 0 && (
+          <div className="flex justify-end mb-3">
+            <button
+              onClick={() => reopenMonth(selectedMonth)}
+              disabled={closing}
+              className="text-xs text-gray-400 border border-gray-600 rounded-lg px-3 py-1.5 hover:bg-gray-800 hover:text-amber-300 disabled:opacity-50 transition"
+            >
+              ↩ {monthLabel(selectedMonth)}分の締めを解除
+            </button>
+          </div>
+        )}
 
         {/* 月締め請求書（協力会社：自分の分） */}
         {role === "PARTNER" && userId && renderMonthlyInvoice(userId)}
@@ -406,11 +451,28 @@ export default function BillingPage() {
                 <div className="divide-y divide-gray-700">
                   {group.projects.map((p) => {
                     const dateStr = getWorkDate(p).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
-                    const workMonth = getWorkMonthKey(p);
-                    const monthOptions = [workMonth, addMonths(workMonth, 1), addMonths(workMonth, 2)];
+                    const isUnclosedView = selectedMonth === UNCLOSED;
+                    const willClose = role === "ADMIN" && isUnclosedView && !heldIds.has(p.id);
                     return (
-                      <div key={p.id} className="px-3 py-2">
-                        <Link href={`/projects/${p.id}`} className="flex items-center gap-2 hover:opacity-80 transition">
+                      <div key={p.id} className="px-3 py-2 flex items-center gap-2">
+                        {/* 未締め表示（管理者）：締める対象のチェック */}
+                        {role === "ADMIN" && isUnclosedView && (
+                          <input
+                            type="checkbox"
+                            checked={!heldIds.has(p.id)}
+                            onChange={() =>
+                              setHeldIds((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(p.id)) next.delete(p.id);
+                                else next.add(p.id);
+                                return next;
+                              })
+                            }
+                            className="w-4 h-4 shrink-0 accent-amber-500"
+                            title={willClose ? "締める対象" : "今回は締めない"}
+                          />
+                        )}
+                        <Link href={`/projects/${p.id}`} className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition">
                           <p className="text-xs text-gray-400 shrink-0 w-10">{dateStr}</p>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
@@ -418,25 +480,6 @@ export default function BillingPage() {
                           </div>
                           <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
                         </Link>
-                        {role === "ADMIN" && (
-                          <div className="flex items-center gap-1.5 mt-1.5">
-                            <span className="text-[11px] text-gray-500 shrink-0">請求月</span>
-                            <select
-                              value={p.billingMonth || ""}
-                              disabled={savingBillingId === p.id}
-                              onChange={(e) => handleBillingMonthChange(p.id, e.target.value)}
-                              className={`text-[11px] rounded border px-1.5 py-0.5 bg-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500 ${p.billingMonth ? "border-amber-600 text-amber-300" : "border-gray-600 text-gray-300"}`}
-                            >
-                              <option value="">自動（{monthLabel(workMonth)}）</option>
-                              {monthOptions.map((m) => (
-                                <option key={m} value={m}>{monthLabel(m)}分</option>
-                              ))}
-                            </select>
-                            {p.billingMonth && p.billingMonth !== workMonth && (
-                              <span className="text-[11px] text-amber-400 shrink-0">→ {monthLabel(p.billingMonth)}に計上</span>
-                            )}
-                          </div>
-                        )}
                       </div>
                     );
                   })}

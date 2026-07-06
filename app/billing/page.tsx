@@ -73,6 +73,20 @@ export default function BillingPage() {
     setSelectedMonth(month);
   };
 
+  // 未締めを作業月ごとに一括で締める（過去データの再設定用）
+  const closeByWorkMonth = async () => {
+    if (!confirm("未締めの案件を、それぞれの作業月で一括で締めますか？\n（過去分をまとめて振り分け直せます）")) return;
+    setClosing(true);
+    await fetch("/api/billing/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ byWorkMonth: true }),
+    });
+    await fetchProjects();
+    setClosing(false);
+    setSelectedMonth("all");
+  };
+
   const reopenMonth = async (month: string) => {
     if (!confirm(`「${monthLabel(month)}分」の締めを解除して未締めに戻しますか？`)) return;
     setClosing(true);
@@ -163,6 +177,11 @@ export default function BillingPage() {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
+  const workMonthKey = (p: Project) => {
+    const d = getWorkDate(p);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
   // 締め済みならその月、未締めなら UNCLOSED
   const getMonthKey = (p: Project) => p.billingMonth || UNCLOSED;
 
@@ -185,6 +204,13 @@ export default function BillingPage() {
     () => myProjects.filter((p) => !p.billingMonth).length,
     [myProjects]
   );
+
+  // 締める月の候補：先月〜来月＋未締め案件の作業月（過去分の再設定用）を新しい順に
+  const closeTargetOptions = useMemo(() => {
+    const set = new Set<string>([addMonths(thisMonth, -1), thisMonth, addMonths(thisMonth, 1)]);
+    myProjects.forEach((p) => { if (!p.billingMonth) set.add(workMonthKey(p)); });
+    return Array.from(set).sort().reverse();
+  }, [myProjects, thisMonth]);
 
   const partners = useMemo(() => {
     if (role !== "ADMIN") return [];
@@ -396,8 +422,11 @@ export default function BillingPage() {
                   onChange={(e) => setCloseTargetMonth(e.target.value)}
                   className="border border-amber-700 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
-                  {[addMonths(thisMonth, -1), thisMonth, addMonths(thisMonth, 1)].map((m) => (
-                    <option key={m} value={m}>{monthLabel(m)}分</option>
+                  {closeTargetOptions.map((m) => (
+                    <option key={m} value={m}>
+                      {monthLabel(m)}分
+                      {m === addMonths(thisMonth, -1) ? "（先月）" : m === thisMonth ? "（今月）" : ""}
+                    </option>
                   ))}
                 </select>
                 <button
@@ -408,6 +437,14 @@ export default function BillingPage() {
                   {closing ? "処理中..." : `選択した ${toClose.length}件 を締める`}
                 </button>
               </div>
+              {/* 過去分の再設定：作業月ごとに一括で振り分け */}
+              <button
+                onClick={closeByWorkMonth}
+                disabled={closing}
+                className="w-full mt-2 text-xs text-amber-300 border border-amber-800 rounded-lg py-1.5 hover:bg-amber-900/40 disabled:opacity-50 transition"
+              >
+                ↧ 未締めを「作業月ごと」に一括で締める（過去分の再設定用）
+              </button>
             </div>
           );
         })()}

@@ -14,6 +14,33 @@ export async function POST(req: NextRequest) {
   if (role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
+
+  // 作業月で一括締め：未締めの各案件を、その作業月（最新の完了報告日、なければ期日/作成日）で締める
+  if (body.byWorkMonth) {
+    const targets = await prisma.project.findMany({
+      where: { status: { in: DONE_STATUSES }, billingMonth: null },
+      select: {
+        id: true,
+        dueDate: true,
+        createdAt: true,
+        inspections: { select: { workDate: true } },
+      },
+    });
+    let closed = 0;
+    for (const p of targets) {
+      let d: Date;
+      if (p.inspections.length > 0) {
+        d = p.inspections.reduce((a, b) => (a > b.workDate ? a : b.workDate), p.inspections[0].workDate);
+      } else {
+        d = p.dueDate ?? p.createdAt;
+      }
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      await prisma.project.update({ where: { id: p.id }, data: { billingMonth: ym } });
+      closed++;
+    }
+    return NextResponse.json({ closed, byWorkMonth: true });
+  }
+
   const month = String(body.month || "");
   if (!/^\d{4}-\d{2}$/.test(month)) {
     return NextResponse.json({ error: "月が不正です" }, { status: 400 });

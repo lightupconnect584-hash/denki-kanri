@@ -30,6 +30,7 @@ export const config = {
     "/billing",
     "/replacement-models",
     "/estimate",
+    "/sales",
     "/messages",
     "/users",
     "/help",

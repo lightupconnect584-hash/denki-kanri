@@ -131,6 +131,29 @@ model Invoice {
   uploadedById String
 }
 
+// 月次売上の明細行（アプリ内売上集計）
+model SalesEntry {
+  id        String   @id @default(cuid())
+  yearMonth String   // 例: "2026-06"
+  category  String   @default("SEKISUI_KITA") // SEKISUI_KITA / SEKISUI_SAITAMA / PERSONAL / OTHER
+  label     String   @default("") // 建物名・内容
+  sales     Int      @default(0)  // 売上
+  material  Int      @default(0)  // 材料費
+  outsource Int      @default(0)  // 外注工費
+  projectId String?  @unique      // 完了案件から取り込んだ場合の元案件
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// 毎月の経費マスタ（全月共通で計上）
+model ExpenseItem {
+  id        String   @id @default(cuid())
+  label     String
+  amount    Int      @default(0)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
 // 月締め一括請求（協力会社が毎月1枚アップロード）
 model MonthlyInvoice {
   id           String   @id @default(cuid())

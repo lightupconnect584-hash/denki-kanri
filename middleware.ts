@@ -26,7 +26,6 @@ export const config = {
   matcher: [
     "/dashboard",
     "/projects/:path*",
-    "/calendar",
     "/billing",
     "/replacement-models",
     "/estimate",

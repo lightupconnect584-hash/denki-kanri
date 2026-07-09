@@ -868,7 +868,7 @@ export default function SettingsPage() {
                     onChange={(e) => setBasicInfo(p => ({ ...p, companyName: e.target.value }))}
                     placeholder="例：株式会社〇〇電設 / 山田電気工事"
                     className={ic} />
-                  <p className="text-xs text-gray-500 mt-1">依頼一覧・カレンダーに表示される名前です</p>
+                  <p className="text-xs text-gray-500 mt-1">依頼一覧に表示される名前です</p>
                 </div>
 
                 {/* 住所 */}
@@ -953,7 +953,7 @@ export default function SettingsPage() {
               ) : (
                 <>
                   <p className="text-xs text-gray-400 mb-3">
-                    カレンダーや依頼一覧で表示される色です。<br />
+                    依頼一覧で表示される色です。<br />
                     他社が使用中の同系色は表示されません。一度選んだら変更できません。
                   </p>
                   {availableColors.length === 0 ? (
@@ -1585,7 +1585,7 @@ export default function SettingsPage() {
                       placeholder="例：株式会社〇〇電設 / 山田電気工事"
                       className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                     />
-                    <p className="text-xs text-gray-500 mt-1">協力会社名として依頼一覧・カレンダーに表示されます</p>
+                    <p className="text-xs text-gray-500 mt-1">協力会社名として依頼一覧に表示されます</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1">
@@ -1724,7 +1724,7 @@ export default function SettingsPage() {
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    <p className="text-xs text-gray-400">カレンダーや依頼一覧で表示される色です。他社が使用中の同系色は選べません。一度選んだら変更できません。</p>
+                    <p className="text-xs text-gray-400">依頼一覧で表示される色です。他社が使用中の同系色は選べません。一度選んだら変更できません。</p>
                     {availableColors.length === 0 ? (
                       <p className="text-xs text-red-400">現在選択できる色がありません。管理者にお問い合わせください。</p>
                     ) : (

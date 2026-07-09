@@ -326,7 +326,7 @@ export default function UsersPage() {
       {/* カラーピッカー */}
       {colorPickerId === u.id && (
         <div className="border border-gray-200 bg-gray-50 rounded-xl p-3 space-y-2">
-          <p className="text-xs font-medium text-gray-600">カレンダー表示カラーを選択</p>
+          <p className="text-xs font-medium text-gray-600">表示カラーを選択</p>
           <div className="flex gap-2 flex-wrap">
             {PRESET_COLORS.map((c) => (
               <button

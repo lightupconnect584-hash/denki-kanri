@@ -90,8 +90,6 @@ interface Project {
   urgency: string;
   materialSupplied: boolean;
   amount: number | null;
-  visitDate: string | null;
-  visitTime: string | null;
   status: string;
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
@@ -115,10 +113,6 @@ export default function ProjectDetailPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [updating, setUpdating] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [visitInput, setVisitInput] = useState("");
-  const [visitTimeFrom, setVisitTimeFrom] = useState("");
-  const [visitTimeTo, setVisitTimeTo] = useState("");
-  const [savingVisit, setSavingVisit] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
@@ -150,21 +144,6 @@ export default function ProjectDetailPage() {
         if (!data) return;
         if (data.error) { window.location.href = "/dashboard"; return; }
         setProject(data);
-        // visitDateを日付のみ（YYYY-MM-DD）に変換してセット
-        if (data.visitDate) {
-          const d = new Date(data.visitDate);
-          const pad = (n: number) => String(n).padStart(2, "0");
-          setVisitInput(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
-        } else {
-          setVisitInput("");
-        }
-        if (data.visitTime) {
-          const m = data.visitTime.match(/^(\d+)時〜(\d+)時$/);
-          if (m) { setVisitTimeFrom(m[1]); setVisitTimeTo(m[2]); }
-          else { const m2 = data.visitTime.match(/^(\d+)/); if (m2) { setVisitTimeFrom(m2[1]); setVisitTimeTo(""); } }
-        } else {
-          setVisitTimeFrom(""); setVisitTimeTo("");
-        }
         setLoading(false);
         setRefreshing(false);
         setLastUpdated(new Date());
@@ -392,21 +371,6 @@ export default function ProjectDetailPage() {
     });
   };
 
-  const saveVisitDate = async () => {
-    setSavingVisit(true);
-    const dateToSave = visitInput ? new Date(`${visitInput}T09:00:00`).toISOString() : null;
-    const visitTime = visitTimeFrom && visitTimeTo
-      ? `${visitTimeFrom}時〜${visitTimeTo}時`
-      : visitTimeFrom ? `${visitTimeFrom}時〜` : null;
-    await fetch(`/api/projects/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitDate: dateToSave, visitTime }),
-    });
-    fetchProject();
-    setSavingVisit(false);
-  };
-
   if (loading || !project) {
     return (
       <div className="min-h-full flex items-center justify-center">
@@ -417,21 +381,6 @@ export default function ProjectDetailPage() {
 
   const isAssigned = project.assignedTo?.id === userId;
   const canInspect = role === "PARTNER" && isAssigned;
-
-  // 訪問予定日のラベル
-  const getVisitLabel = (dateStr: string | null) => {
-    if (!dateStr) return null;
-    const visit = new Date(dateStr);
-    const now = new Date();
-    const diffDays = Math.ceil((visit.setHours(0,0,0,0) - now.setHours(0,0,0,0)) / 86400000);
-    if (diffDays < 0) return { text: "訪問済み", color: "bg-gray-100 text-gray-500" };
-    if (diffDays === 0) return { text: "今日", color: "bg-red-100 text-red-700" };
-    if (diffDays === 1) return { text: "明日", color: "bg-orange-100 text-orange-700" };
-    if (diffDays <= 3) return { text: `${diffDays}日後`, color: "bg-yellow-100 text-yellow-700" };
-    return { text: `${diffDays}日後`, color: "bg-blue-50 text-blue-600" };
-  };
-
-  const visitLabel = getVisitLabel(project.visitDate);
 
   return (
     <div className="min-h-full flex flex-col">
@@ -616,99 +565,6 @@ export default function ProjectDetailPage() {
             </div>
           </div>
         </div>
-
-        {/* 訪問予定日 */}
-        {!(role === "PARTNER" && ["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status)) && (
-        <div className={`rounded-xl border p-5 mb-4 ${!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? "bg-amber-50 border-amber-300" : "bg-white border-gray-200"}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-sm font-bold text-gray-800">📅 訪問予定日</h3>
-            {!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
-              <span className="text-xs bg-amber-100 text-amber-700 border border-amber-300 px-2 py-0.5 rounded-full font-medium">未設定</span>
-            )}
-          </div>
-          {!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
-            <p className="text-xs text-amber-700 mb-3">作業日が決まったら設定してください。管理者が日程を把握するために使います。</p>
-          )}
-          {project.visitDate && visitLabel && (
-            <div className="flex items-center gap-2 mb-3 flex-wrap">
-              <p className="text-sm font-medium text-gray-800">
-                {new Date(project.visitDate).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" })}
-              </p>
-              {project.visitTime && (
-                <span className="text-sm font-medium text-blue-700">{project.visitTime}</span>
-              )}
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${visitLabel.color}`}>
-                {visitLabel.text}
-              </span>
-            </div>
-          )}
-          {!project.visitDate && !(role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status)) && (
-            <p className="text-sm text-gray-400 mb-3">未設定</p>
-          )}
-          {/* 担当協力会社のみ・PENDING or ACCEPTED中は編集可 */}
-          {role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? (
-            <>
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={visitInput}
-                  onChange={(e) => setVisitInput(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={saveVisitDate}
-                  disabled={savingVisit}
-                  className="bg-blue-600 text-white text-sm px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition whitespace-nowrap"
-                >
-                  {savingVisit ? "保存中" : "保存"}
-                </button>
-                {project.visitDate && (
-                  <button
-                    onClick={() => { setVisitInput(""); setVisitTimeFrom(""); setVisitTimeTo(""); }}
-                    className="text-gray-400 hover:text-red-500 text-sm px-2"
-                    title="クリア"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-gray-500 shrink-0">時間帯</span>
-                <select
-                  value={visitTimeFrom}
-                  onChange={(e) => setVisitTimeFrom(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">--</option>
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <option key={i} value={String(i)}>{i}時</option>
-                  ))}
-                </select>
-                <span className="text-gray-400">〜</span>
-                <select
-                  value={visitTimeTo}
-                  onChange={(e) => setVisitTimeTo(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">--</option>
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <option key={i} value={String(i)}>{i}時</option>
-                  ))}
-                </select>
-                {(visitTimeFrom || visitTimeTo) && (
-                  <span className="text-xs text-blue-700 font-medium">
-                    {visitTimeFrom && visitTimeTo ? `${visitTimeFrom}時〜${visitTimeTo}時` : visitTimeFrom ? `${visitTimeFrom}時〜` : ""}
-                  </span>
-                )}
-              </div>
-            </>
-          ) : role === "PARTNER" && isAssigned && !["PENDING", "ACCEPTED"].includes(project.status) ? (
-            <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
-              🔒 完了報告後は訪問予定日を変更できません
-            </p>
-          ) : null}
-        </div>
-        )}
 
         {/* 現場写真・PDF */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">

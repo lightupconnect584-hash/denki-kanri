@@ -100,15 +100,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (role === "ADMIN" && body.assignedToId) updateData.notifyPartnerAt = new Date();
   }
 
-  // 訪問予定日・時間帯は担当協力会社のみ変更可
-  if (body.visitDate !== undefined || body.visitTime !== undefined) {
-    const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true } });
-    if (role === "PARTNER" && project?.assignedToId === userId && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
-      if (body.visitDate !== undefined) updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
-      if (body.visitTime !== undefined) updateData.visitTime = body.visitTime || null;
-    }
-    // 管理者は visitDate / visitTime を変更不可（無視）
-  }
   // 編集フィールド（管理者が内容を変更した場合 → 協力会社に通知）
   const contentFields = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate", "preferredContactAt", "preferredVisitAt", "materialSupplied"];
   const contentEdited = role === "ADMIN" && contentFields.some(f => body[f] !== undefined);

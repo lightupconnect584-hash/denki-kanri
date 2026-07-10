@@ -49,11 +49,16 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [extractMsg, setExtractMsg] = useState("");
+  const [dragOver, setDragOver] = useState(false);
 
-  const handleExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
+  const runExtract = async (file: File) => {
     if (!file) return;
+    // PDF・画像のみ受け付け
+    const ok = file.type === "application/pdf" || file.type.startsWith("image/") || file.name.toLowerCase().endsWith(".pdf");
+    if (!ok) {
+      setExtractMsg("PDFまたは画像を指定してください");
+      return;
+    }
     setExtracting(true);
     setExtractMsg("");
     try {
@@ -85,6 +90,32 @@ export default function NewProjectPage() {
       setExtractMsg("読み取りに失敗しました");
     } finally {
       setExtracting(false);
+    }
+  };
+
+  const handleExtract = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) runExtract(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (extracting) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) runExtract(file);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (extracting) return;
+    const item = Array.from(e.clipboardData.items).find(
+      (it) => it.type === "application/pdf" || it.type.startsWith("image/")
+    );
+    const file = item?.getAsFile();
+    if (file) {
+      e.preventDefault();
+      runExtract(file);
     }
   };
 
@@ -196,11 +227,19 @@ export default function NewProjectPage() {
         </div>
 
         {/* PDF/写真から自動入力（AI読み取り） */}
-        <div className="bg-gradient-to-br from-blue-900/40 to-indigo-900/30 rounded-xl border border-blue-700/60 p-4 mb-4">
+        <div
+          className={`rounded-xl border p-4 mb-4 transition ${dragOver ? "bg-blue-800/50 border-blue-400 border-dashed" : "bg-gradient-to-br from-blue-900/40 to-indigo-900/30 border-blue-700/60"}`}
+          onDragOver={(e) => { e.preventDefault(); if (!extracting) setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onPaste={handlePaste}
+        >
           <p className="text-sm font-bold text-blue-200 mb-1">📄 依頼書から自動入力</p>
-          <p className="text-xs text-blue-300/80 mb-3">依頼元のPDF・写真を選ぶと、AIが物件名・住所・入居者名などを読み取って下の項目に入れます（金額など不要な情報は取り込みません）。</p>
+          <p className="text-xs text-blue-300/80 mb-3">
+            PDF・写真をここに<span className="font-bold text-blue-200">ドラッグ&ドロップ</span>、または<span className="font-bold text-blue-200">貼り付け（⌘/Ctrl+V）</span>すると、AIが物件名・住所などを読み取って下の項目に入れます（金額など不要な情報は取り込みません）。
+          </p>
           <label className={`block w-full text-center text-sm rounded-lg py-2.5 font-medium border cursor-pointer transition ${extracting ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"}`}>
-            {extracting ? "読み取り中… 少々お待ちください" : "＋ PDF・写真を読み取る"}
+            {extracting ? "読み取り中… 少々お待ちください" : dragOver ? "ここにドロップ" : "＋ ファイルを選ぶ / ドラッグ / 貼り付け"}
             <input
               type="file"
               accept="application/pdf,image/*"

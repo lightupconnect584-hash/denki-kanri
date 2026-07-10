@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
       preferredVisitAt: body.preferredVisitAt || null,
       moveInDate: body.moveInDate || null,
       receivedAt: body.receivedAt || null,
+      parkingInfo: body.parkingInfo || null,
       createdById: userId,
       status: "PENDING",
       notifyPartnerAt: new Date(),

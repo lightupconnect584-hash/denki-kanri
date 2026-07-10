@@ -38,6 +38,7 @@ export default function NewProjectPage() {
     materialSupplied: false,
     amount: "",
     dueDate: "",
+    parkingInfo: "",
     assignedToId: "",
     preferredContactAt: "",
     preferredVisitAt: "",
@@ -539,10 +540,10 @@ export default function NewProjectPage() {
                 </button>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">期日</label>
-                <input type="date" value={form.dueDate}
-                  onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                  className={inputClass} />
+                <label className="block text-sm font-medium text-gray-300 mb-1">駐車場空き区画 <span className="text-gray-500 font-normal text-xs">（任意）</span></label>
+                <input type="text" value={form.parkingInfo}
+                  onChange={(e) => setForm({ ...form, parkingInfo: e.target.value })}
+                  className={inputClass} placeholder="例: 12番・来客用" maxLength={30} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">担当協力会社 *</label>

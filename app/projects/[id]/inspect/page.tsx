@@ -150,14 +150,14 @@ export default function InspectPage() {
     router.push(`/projects/${id}`);
   };
 
-  const fieldClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none";
+  const fieldClass = "w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none";
 
   return (
-    <div className="min-h-full flex flex-col bg-gray-100">
+    <div className="min-h-full flex flex-col bg-gray-900 [color-scheme:dark]">
       <Header />
       <main className="flex-1 max-w-lg lg:max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-white">
+          <button onClick={() => router.back()} className="text-gray-500 hover:text-white">
             ←
           </button>
           <h2 className="text-lg font-bold text-white">完了報告</h2>
@@ -165,16 +165,16 @@ export default function InspectPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
           {/* 点検結果 */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">作業結果 *</label>
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
+            <label className="block text-sm font-bold text-gray-200 mb-3">作業結果 *</label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setResult("OK")}
                 className={`py-4 rounded-xl border-2 text-sm font-medium transition ${
                   result === "OK"
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-200 text-gray-600 hover:border-green-300"
+                    ? "border-green-500 bg-green-900/30 text-green-300"
+                    : "border-gray-700 text-gray-300 hover:border-green-700"
                 }`}
               >
                 ✅ 問題なし
@@ -184,8 +184,8 @@ export default function InspectPage() {
                 onClick={() => setResult("REPAIR_NEEDED")}
                 className={`py-4 rounded-xl border-2 text-sm font-medium transition ${
                   result === "REPAIR_NEEDED"
-                    ? "border-red-500 bg-red-50 text-red-700"
-                    : "border-gray-200 text-gray-600 hover:border-red-300"
+                    ? "border-red-500 bg-red-900/30 text-red-300"
+                    : "border-gray-700 text-gray-300 hover:border-red-700"
                 }`}
               >
                 🔧 修理が必要
@@ -194,13 +194,13 @@ export default function InspectPage() {
           </div>
 
           {/* 作業日（複数日対応） */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-bold text-gray-700">作業日 *</label>
+              <label className="text-sm font-bold text-gray-200">作業日 *</label>
               <button
                 type="button"
                 onClick={addWorkDate}
-                className="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition"
+                className="text-xs text-blue-400 border border-blue-700 rounded px-2 py-1 hover:bg-blue-900/40 transition"
               >
                 ＋ 日付を追加
               </button>
@@ -212,34 +212,34 @@ export default function InspectPage() {
                     type="date"
                     value={d}
                     onChange={(e) => setWorkDate(i, e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   {workDates.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeWorkDate(i)}
-                      className="text-gray-400 hover:text-red-500 text-sm px-2"
+                      className="text-gray-500 hover:text-red-500 text-sm px-2"
                     >✕</button>
                   )}
                 </div>
               ))}
             </div>
             {workDates.filter(Boolean).length > 1 && (
-              <p className="text-xs text-gray-500 mt-2">
-                最終日（完了日）: <span className="font-medium text-gray-700">{new Date(finalWorkDate).toLocaleDateString("ja-JP")}</span>
+              <p className="text-xs text-gray-400 mt-2">
+                最終日（完了日）: <span className="font-medium text-gray-200">{new Date(finalWorkDate).toLocaleDateString("ja-JP")}</span>
               </p>
             )}
           </div>
 
           {/* 詳細内容（4セクション） */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-            <p className="text-sm font-bold text-gray-700">詳細内容 *</p>
-            <p className="text-xs text-gray-400 -mt-2">状況・原因・対応は必須入力です</p>
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 space-y-4">
+            <p className="text-sm font-bold text-gray-200">詳細内容 *</p>
+            <p className="text-xs text-gray-500 -mt-2">状況・原因・対応は必須入力です</p>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
                 状況 <span className="text-red-500">*</span>
-                <span className="font-normal text-gray-400 ml-1">例：漏電による共用ブレーカー落ち</span>
+                <span className="font-normal text-gray-500 ml-1">例：漏電による共用ブレーカー落ち</span>
               </label>
               <textarea
                 rows={2}
@@ -251,9 +251,9 @@ export default function InspectPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
                 原因 <span className="text-red-500">*</span>
-                <span className="font-normal text-gray-400 ml-1">例：漏電箇所を具体的に</span>
+                <span className="font-normal text-gray-500 ml-1">例：漏電箇所を具体的に</span>
               </label>
               <textarea
                 rows={2}
@@ -265,9 +265,9 @@ export default function InspectPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
                 対応 <span className="text-red-500">*</span>
-                <span className="font-normal text-gray-400 ml-1">例：漏電箇所を切り離して復旧させた</span>
+                <span className="font-normal text-gray-500 ml-1">例：漏電箇所を切り離して復旧させた</span>
               </label>
               <textarea
                 rows={2}
@@ -279,9 +279,9 @@ export default function InspectPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
                 その他
-                <span className="font-normal text-gray-400 ml-1">気になったことなど（任意）</span>
+                <span className="font-normal text-gray-500 ml-1">気になったことなど（任意）</span>
               </label>
               <textarea
                 rows={2}
@@ -294,10 +294,10 @@ export default function InspectPage() {
           </div>
 
           {/* 写真（3セクション） */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 space-y-5">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-gray-700">作業写真</p>
-              <p className="text-xs text-gray-400">合計 {photos.length} / {MAX_PHOTOS_TOTAL}枚</p>
+              <p className="text-sm font-bold text-gray-200">作業写真</p>
+              <p className="text-xs text-gray-500">合計 {photos.length} / {MAX_PHOTOS_TOTAL}枚</p>
             </div>
             {(["before", "during", "after", "other"] as const).map((cat) => {
               const labels = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
@@ -305,13 +305,13 @@ export default function InspectPage() {
               const isFull = photos.length >= MAX_PHOTOS_TOTAL;
               return (
                 <div key={cat}>
-                  <p className="text-xs font-semibold text-gray-600 mb-2">{labels[cat]}</p>
+                  <p className="text-xs font-semibold text-gray-300 mb-2">{labels[cat]}</p>
                   <label
-                    className={`flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl py-3 transition ${isFull ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50" : uploading === cat ? "border-blue-400 bg-blue-50 cursor-pointer" : "border-gray-300 hover:border-blue-400 hover:bg-blue-50 cursor-pointer"}`}
+                    className={`flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl py-3 transition ${isFull ? "border-gray-700 bg-gray-700/40 cursor-not-allowed opacity-50" : uploading === cat ? "border-blue-400 bg-blue-900/40 cursor-pointer" : "border-gray-600 hover:border-blue-400 hover:bg-blue-900/40 cursor-pointer"}`}
                     onClick={(e) => { if (isFull || uploading !== null) e.preventDefault(); }}
                   >
                     <span className="text-xl">📷</span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-gray-300">
                       {uploading === cat ? "アップロード中..." : isFull ? "上限に達しました（合計8枚）" : "写真を選択（複数可）"}
                     </span>
                     <input
@@ -332,7 +332,7 @@ export default function InspectPage() {
                           <button
                             type="button"
                             onClick={() => removePhoto(photo.filename)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
+                            className="absolute top-1 right-1 bg-red-900/300 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
                           >×</button>
                         </div>
                       ))}

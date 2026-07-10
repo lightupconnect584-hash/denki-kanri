@@ -9,7 +9,7 @@ function renderWithLinks(text: string) {
   return parts.map((part, i) =>
     /^https?:\/\//.test(part) ? (
       <a key={i} href={part} target="_blank" rel="noopener noreferrer"
-        className="underline text-blue-600 hover:text-blue-800 break-all">
+        className="underline text-blue-400 hover:text-blue-300 break-all">
         {part}
       </a>
     ) : (
@@ -88,6 +88,7 @@ interface Project {
   preferredVisitAt: string | null;
   moveInDate: string | null;
   receivedAt: string | null;
+  parkingInfo: string | null;
   urgency: string;
   materialSupplied: boolean;
   amount: number | null;
@@ -374,8 +375,8 @@ export default function ProjectDetailPage() {
 
   if (loading || !project) {
     return (
-      <div className="min-h-full flex items-center justify-center bg-gray-100">
-        <p className="text-gray-500">読み込み中...</p>
+      <div className="min-h-full flex items-center justify-center bg-gray-900">
+        <p className="text-gray-400">読み込み中...</p>
       </div>
     );
   }
@@ -384,17 +385,17 @@ export default function ProjectDetailPage() {
   const canInspect = role === "PARTNER" && isAssigned;
 
   return (
-    <div className="min-h-full flex flex-col bg-gray-100">
+    <div className="min-h-full flex flex-col bg-gray-900 [color-scheme:dark]">
       <Header />
       <main className="flex-1 max-w-2xl lg:max-w-6xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">
+          <button onClick={() => router.back()} className="text-gray-500 hover:text-white text-lg">
             ←
           </button>
           <button
             onClick={() => fetchProject(true)}
             disabled={refreshing}
-            className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40 shrink-0 ml-auto"
+            className="text-gray-500 hover:text-blue-400 transition disabled:opacity-40 shrink-0 ml-auto"
             title="更新"
           >
             <span className={`text-base ${refreshing ? "animate-spin inline-block" : ""}`}>🔄</span>
@@ -403,7 +404,7 @@ export default function ProjectDetailPage() {
           <button
             onClick={downloadPdf}
             disabled={pdfLoading}
-            className="text-xs text-gray-600 hover:text-gray-900 border border-gray-300 rounded px-2 py-1 disabled:opacity-50"
+            className="text-xs text-gray-300 hover:text-gray-100 border border-gray-600 rounded px-2 py-1 disabled:opacity-50"
             title="依頼書をPDFで保存"
           >
             {pdfLoading ? "⏳ 作成中..." : "📄 依頼書"}
@@ -412,14 +413,14 @@ export default function ProjectDetailPage() {
             <div className="flex gap-2">
               <Link
                 href={`/projects/${id}/edit`}
-                className="text-xs text-blue-500 hover:text-blue-700 border border-blue-300 rounded px-2 py-1"
+                className="text-xs text-blue-400 hover:text-blue-300 border border-blue-700 rounded px-2 py-1"
               >
                 編集
               </Link>
               <button
                 onClick={deleteProject}
                 disabled={updating}
-                className="text-xs text-red-500 hover:text-red-700 border border-red-300 rounded px-2 py-1 disabled:opacity-50"
+                className="text-xs text-red-500 hover:text-red-300 border border-red-700 rounded px-2 py-1 disabled:opacity-50"
               >
                 削除
               </button>
@@ -431,61 +432,61 @@ export default function ProjectDetailPage() {
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-6 lg:items-start">
         <div className="min-w-0">
         {/* 基本情報 */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3 space-y-3">
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3 space-y-3">
           <div>
-            <h2 className="text-base font-bold text-gray-800 leading-snug">{project.title}</h2>
+            <h2 className="text-base font-bold text-gray-100 leading-snug">{project.title}</h2>
             {project.materialSupplied && (
-              <span className="inline-block mt-1.5 text-xs bg-teal-100 text-teal-700 border border-teal-300 px-2 py-0.5 rounded-full font-bold">
+              <span className="inline-block mt-1.5 text-xs bg-teal-900/40 text-teal-300 border border-teal-700 px-2 py-0.5 rounded-full font-bold">
                 📦 材料支給あり
               </span>
             )}
           </div>
           <div>
-            <p className="text-xs text-gray-500">住所</p>
-            <p className="text-sm font-medium text-gray-800">📍 {project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</p>
+            <p className="text-xs text-gray-400">住所</p>
+            <p className="text-sm font-medium text-gray-100">📍 {project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</p>
           </div>
           {project.receivedAt && (
             <div>
-              <p className="text-xs text-gray-500">受付日時</p>
-              <p className="text-sm text-gray-700">{project.receivedAt}</p>
+              <p className="text-xs text-gray-400">受付日時</p>
+              <p className="text-sm text-gray-200">{project.receivedAt}</p>
             </div>
           )}
           {project.preferredContactAt && (
             <div>
-              <p className="text-xs text-gray-500">連絡希望日時</p>
-              <p className="text-sm text-gray-700">{project.preferredContactAt}</p>
+              <p className="text-xs text-gray-400">連絡希望日時</p>
+              <p className="text-sm text-gray-200">{project.preferredContactAt}</p>
             </div>
           )}
           {project.preferredVisitAt && (
             <div>
-              <p className="text-xs text-gray-500">訪問希望日時</p>
-              <p className="text-sm text-gray-700">{project.preferredVisitAt}</p>
+              <p className="text-xs text-gray-400">訪問希望日時</p>
+              <p className="text-sm text-gray-200">{project.preferredVisitAt}</p>
             </div>
           )}
           {project.moveInDate && (
             <div>
-              <p className="text-xs text-gray-500">入居開始日</p>
-              <p className="text-sm text-gray-700">{project.moveInDate}</p>
+              <p className="text-xs text-gray-400">入居開始日</p>
+              <p className="text-sm text-gray-200">{project.moveInDate}</p>
             </div>
           )}
           {project.contractorName && (
             <div>
-              <p className="text-xs text-gray-500">折り返し先名カナ</p>
-              <p className="text-sm text-gray-700">{project.contractorName}</p>
+              <p className="text-xs text-gray-400">折り返し先名カナ</p>
+              <p className="text-sm text-gray-200">{project.contractorName}</p>
             </div>
           )}
           {project.contractorPhone && (
             <div>
-              <p className="text-xs text-gray-500">折り返し先電話番号</p>
+              <p className="text-xs text-gray-400">折り返し先電話番号</p>
               <div className="flex items-center gap-3 flex-wrap">
                 <a
                   href={`tel:${project.contractorPhone.replace(/[^0-9+]/g, "")}`}
-                  className="text-sm font-medium text-blue-600 hover:underline whitespace-nowrap"
+                  className="text-sm font-medium text-blue-400 hover:underline whitespace-nowrap"
                 >
                   📞 {project.contractorPhone}
                 </a>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  project.smsAllowed ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+                  project.smsAllowed ? "bg-blue-900/50 text-blue-300" : "bg-gray-700 text-gray-400"
                 }`}>
                   SMS {project.smsAllowed ? "可" : "不可"}
                 </span>
@@ -494,31 +495,31 @@ export default function ProjectDetailPage() {
           )}
           {project.workType && (
             <div>
-              <p className="text-xs text-gray-500">依頼名</p>
-              <p className="text-sm text-gray-700 font-medium">{project.workType}</p>
+              <p className="text-xs text-gray-400">依頼名</p>
+              <p className="text-sm text-gray-200 font-medium">{project.workType}</p>
             </div>
           )}
           {project.description && (
             <div>
-              <p className="text-xs text-gray-500">依頼内容</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-hidden">{project.description}</p>
+              <p className="text-xs text-gray-400">依頼内容</p>
+              <p className="text-sm text-gray-200 whitespace-pre-wrap break-words overflow-hidden">{project.description}</p>
             </div>
           )}
           <div>
-            <p className="text-xs text-gray-500">緊急度</p>
+            <p className="text-xs text-gray-400">緊急度</p>
             <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${
               project.urgency === "HIGH"
-                ? "bg-red-100 text-red-700"
+                ? "bg-red-900/40 text-red-300"
                 : project.urgency === "MEDIUM"
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-green-100 text-green-700"
+                ? "bg-yellow-900/40 text-yellow-300"
+                : "bg-green-900/40 text-green-300"
             }`}>
               {project.urgency === "HIGH" ? "高" : project.urgency === "MEDIUM" ? "中" : "低"}
             </span>
           </div>
           {project.amount != null && (
             <div>
-              <p className="text-xs text-gray-500">金額【税別】</p>
+              <p className="text-xs text-gray-400">金額【税別】</p>
               {(() => {
                 const changes = project.activityLogs.filter((l) => l.action === "AMOUNT_CHANGED");
                 const prevAmounts = changes
@@ -529,58 +530,58 @@ export default function ProjectDetailPage() {
                 return (
                   <div className="flex items-baseline gap-2 flex-wrap">
                     {prevAmounts.map((s) => (
-                      <span key={s} className="text-sm text-gray-400 line-through">{s}</span>
+                      <span key={s} className="text-sm text-gray-500 line-through">{s}</span>
                     ))}
-                    <span className={`text-sm font-medium ${hasChange ? "text-orange-700" : "text-gray-800"}`}>
+                    <span className={`text-sm font-medium ${hasChange ? "text-orange-300" : "text-gray-100"}`}>
                       ¥{project.amount.toLocaleString()}
                     </span>
                     {hasChange && (
-                      <span className="text-xs text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">変更済</span>
+                      <span className="text-xs text-orange-500 bg-orange-900/30 border border-orange-800 px-1.5 py-0.5 rounded">変更済</span>
                     )}
                   </div>
                 );
               })()}
             </div>
           )}
-          {project.dueDate && (
+          {project.parkingInfo && (
             <div>
-              <p className="text-xs text-gray-500">期日</p>
-              <p className="text-sm text-gray-700">{new Date(project.dueDate).toLocaleDateString("ja-JP")}</p>
+              <p className="text-xs text-gray-400">駐車場空き区画</p>
+              <p className="text-sm text-gray-200">🅿️ {project.parkingInfo}</p>
             </div>
           )}
           {project.assignedTo && (
             <div>
-              <p className="text-xs text-gray-500">担当協力会社</p>
-              <p className="text-sm text-gray-700">
+              <p className="text-xs text-gray-400">担当協力会社</p>
+              <p className="text-sm text-gray-200">
                 {project.assignedTo.companyName || project.assignedTo.name}
               </p>
             </div>
           )}
           <div>
-            <p className="text-xs text-gray-500">依頼者</p>
+            <p className="text-xs text-gray-400">依頼者</p>
             <div className="flex items-center gap-2 mt-1">
               {project.createdBy.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={project.createdBy.avatarUrl.startsWith("http") ? project.createdBy.avatarUrl : `/uploads/${project.createdBy.avatarUrl}`}
                   alt={project.createdBy.name}
-                  className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                  className="w-6 h-6 rounded-full object-cover border border-gray-700"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 border border-gray-200">
+                <div className="w-6 h-6 rounded-full bg-blue-900/50 flex items-center justify-center text-xs font-bold text-blue-400 border border-gray-700">
                   {project.createdBy.name[0]?.toUpperCase()}
                 </div>
               )}
-              <p className="text-sm text-gray-700">{project.createdBy.name}</p>
+              <p className="text-sm text-gray-200">{project.createdBy.name}</p>
             </div>
           </div>
         </div>
 
         {/* 現場写真・PDF */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-gray-800">現場写真・PDF</h3>
-            <label className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition ${uploadingPhoto ? "bg-gray-100 text-gray-400 border-gray-200" : "bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100"}`}>
+            <h3 className="text-sm font-bold text-gray-100">現場写真・PDF</h3>
+            <label className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition ${uploadingPhoto ? "bg-gray-700 text-gray-500 border-gray-700" : "bg-blue-900/40 text-blue-400 border-blue-700 hover:bg-blue-900/50"}`}>
               <span>{uploadingPhoto ? "アップロード中..." : "＋ 追加"}</span>
               <input
                 type="file"
@@ -610,7 +611,7 @@ export default function ProjectDetailPage() {
                               <img
                                 src={url}
                                 alt={photo.originalName}
-                                className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition"
+                                className="w-full h-24 object-cover rounded-lg border border-gray-700 hover:opacity-80 transition"
                               />
                             </a>
                             {role === "ADMIN" && (
@@ -623,7 +624,7 @@ export default function ProjectDetailPage() {
                                 <button
                                   onClick={() => handleDeleteProjectPhoto(photo.id)}
                                   disabled={deletingPhotoId === photo.id}
-                                  className="bg-red-500 text-white text-xs rounded px-1.5 py-0.5 hover:bg-red-600 disabled:opacity-50"
+                                  className="bg-red-900/300 text-white text-xs rounded px-1.5 py-0.5 hover:bg-red-600 disabled:opacity-50"
                                 >×</button>
                               </div>
                             )}
@@ -637,22 +638,22 @@ export default function ProjectDetailPage() {
                       {pdfs.map((pdf) => {
                         const url = pdf.filename.startsWith("http") ? pdf.filename : `/uploads/${pdf.filename}`;
                         return (
-                          <div key={pdf.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                          <div key={pdf.id} className="flex items-center justify-between bg-gray-700/40 border border-gray-700 rounded-lg px-3 py-2">
                             <a href={url} target="_blank" rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:underline flex items-center gap-2 min-w-0">
+                              className="text-sm text-blue-400 hover:underline flex items-center gap-2 min-w-0">
                               <span className="shrink-0">📄</span>
                               <span className="truncate">{pdf.originalName}</span>
                             </a>
                             {role === "ADMIN" && (
                               <div className="flex items-center gap-1.5 shrink-0 ml-2">
                                 <a href={url} download={pdf.originalName}
-                                  className="text-xs text-green-600 border border-green-300 rounded px-2 py-0.5 hover:bg-green-50 transition">
+                                  className="text-xs text-green-400 border border-green-700 rounded px-2 py-0.5 hover:bg-green-900/30 transition">
                                   ↓ DL
                                 </a>
                                 <button
                                   onClick={() => handleDeleteProjectPhoto(pdf.id)}
                                   disabled={deletingPhotoId === pdf.id}
-                                  className="text-xs text-red-400 border border-red-300 rounded px-2 py-0.5 hover:bg-red-50 transition disabled:opacity-50"
+                                  className="text-xs text-red-400 border border-red-700 rounded px-2 py-0.5 hover:bg-red-900/30 transition disabled:opacity-50"
                                 >削除</button>
                               </div>
                             )}
@@ -667,7 +668,7 @@ export default function ProjectDetailPage() {
                         const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
                         return (
                           <a key={photo.id} href={url} download={photo.originalName}
-                            className="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition">
+                            className="text-xs text-blue-400 border border-blue-700 rounded px-2 py-1 hover:bg-blue-900/40 transition">
                             ↓ {photo.originalName}
                           </a>
                         );
@@ -678,20 +679,20 @@ export default function ProjectDetailPage() {
               );
             })()
           ) : (
-            <p className="text-xs text-gray-400 text-center py-3">写真・PDFはありません</p>
+            <p className="text-xs text-gray-500 text-center py-3">写真・PDFはありません</p>
           )}
         </div>
 
         {/* 管理者向けステータス操作 */}
         {role === "ADMIN" && ["INSPECTED", "QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status) && (
-          <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-            <p className="text-xs font-bold text-gray-500 mb-3">管理者操作</p>
+          <div className="mb-4 bg-gray-800 rounded-xl border border-gray-700 p-4 space-y-2">
+            <p className="text-xs font-bold text-gray-400 mb-3">管理者操作</p>
             <div className="flex flex-wrap gap-2">
               {project.status === "INSPECTED" && (
                 <button
                   onClick={() => changeStatus("QUOTE_REQUESTED")}
                   disabled={updating}
-                  className="flex-1 min-w-0 bg-orange-500 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-orange-600 disabled:opacity-50 transition"
+                  className="flex-1 min-w-0 bg-orange-900/300 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-orange-600 disabled:opacity-50 transition"
                 >
                   📋 見積依頼する
                 </button>
@@ -707,7 +708,7 @@ export default function ProjectDetailPage() {
               <button
                 onClick={() => changeStatus("REWORK")}
                 disabled={updating}
-                className="flex-1 min-w-0 bg-gray-200 text-gray-600 text-sm rounded-lg py-2.5 font-medium hover:bg-red-100 hover:text-red-600 disabled:opacity-50 transition"
+                className="flex-1 min-w-0 bg-gray-600 text-gray-300 text-sm rounded-lg py-2.5 font-medium hover:bg-red-900/40 hover:text-red-400 disabled:opacity-50 transition"
               >
                 ↩ 差し戻す（再報告要求）
               </button>
@@ -717,9 +718,9 @@ export default function ProjectDetailPage() {
 
         {/* 完了済案件の復活（管理者のみ）：追加工事に対応 */}
         {role === "ADMIN" && ["CONFIRMED", "COMPLETED"].includes(project.status) && (
-          <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs font-bold text-gray-500 mb-2">管理者操作</p>
-            <p className="text-xs text-gray-500 mb-3">追加工事などで、この完了済案件を再び進行中に戻せます。</p>
+          <div className="mb-4 bg-gray-800 rounded-xl border border-gray-700 p-4">
+            <p className="text-xs font-bold text-gray-400 mb-2">管理者操作</p>
+            <p className="text-xs text-gray-400 mb-3">追加工事などで、この完了済案件を再び進行中に戻せます。</p>
             <button
               onClick={reviveProject}
               disabled={updating}
@@ -735,13 +736,13 @@ export default function ProjectDetailPage() {
           <div className="mb-4 space-y-3">
             {/* PENDING：受注 or 差し戻し */}
             {project.status === "PENDING" && (
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs text-gray-500 mb-3 text-center">この依頼を受けますか？</p>
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-4">
+                <p className="text-xs text-gray-400 mb-3 text-center">この依頼を受けますか？</p>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => changeStatus("REJECTED")}
                     disabled={updating}
-                    className="bg-gray-100 text-gray-600 border border-gray-300 rounded-xl py-3 text-sm font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-300 disabled:opacity-50 transition"
+                    className="bg-gray-700 text-gray-300 border border-gray-600 rounded-xl py-3 text-sm font-medium hover:bg-red-900/30 hover:text-red-400 hover:border-red-700 disabled:opacity-50 transition"
                   >
                     ✕ 辞退する
                   </button>
@@ -766,11 +767,11 @@ export default function ProjectDetailPage() {
             )}
             {/* REWORK：再報告 */}
             {project.status === "REWORK" && (
-              <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
-                <p className="text-xs text-amber-700 font-medium mb-3 text-center">⚠ 管理者から内容の確認・修正を求められています</p>
+              <div className="bg-amber-900/30 border border-amber-700 rounded-xl p-4">
+                <p className="text-xs text-amber-300 font-medium mb-3 text-center">⚠ 管理者から内容の確認・修正を求められています</p>
                 <Link
                   href={`/projects/${id}/inspect`}
-                  className="block w-full bg-amber-500 text-white rounded-xl py-3 text-sm font-medium hover:bg-amber-600 transition text-center"
+                  className="block w-full bg-amber-900/300 text-white rounded-xl py-3 text-sm font-medium hover:bg-amber-600 transition text-center"
                 >
                   📋 再報告する
                 </Link>
@@ -779,7 +780,7 @@ export default function ProjectDetailPage() {
             {["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status) && (
               <Link
                 href={`/projects/${id}/quote`}
-                className="block w-full bg-orange-500 text-white rounded-xl py-3 text-sm font-medium hover:bg-orange-600 transition text-center"
+                className="block w-full bg-orange-900/300 text-white rounded-xl py-3 text-sm font-medium hover:bg-orange-600 transition text-center"
               >
                 見積もりを提出する
               </Link>
@@ -789,46 +790,46 @@ export default function ProjectDetailPage() {
 
         {/* 完了報告 */}
         {project.inspections.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-            <h3 className="text-sm font-bold text-gray-800 mb-3">完了報告</h3>
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3">
+            <h3 className="text-sm font-bold text-gray-100 mb-3">完了報告</h3>
             {project.inspections.map((insp) => (
               <div key={insp.id} className="space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={`text-xs px-2 py-1 rounded-full font-medium ${
                       insp.result === "REPAIR_NEEDED"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-green-100 text-green-700"
+                        ? "bg-red-900/40 text-red-300"
+                        : "bg-green-900/40 text-green-300"
                     }`}
                   >
                     {insp.result === "REPAIR_NEEDED" ? "修理が必要" : "問題なし"}
                   </span>
-                  <span className="text-xs text-gray-600 font-medium">
+                  <span className="text-xs text-gray-300 font-medium">
                     🔧 作業日: {
                       insp.workDates.length > 1
                         ? insp.workDates.sort().map((d) => new Date(d).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })).join("・") + `（最終: ${new Date(insp.workDate).toLocaleDateString("ja-JP")}）`
                         : new Date(insp.workDate).toLocaleDateString("ja-JP")
                     }
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500">
                     {insp.inspector.companyName || insp.inspector.name}
                   </span>
                 </div>
                 {insp.notes && (
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-200 whitespace-pre-wrap bg-gray-700/40 rounded-lg p-3">
                     {insp.notes}
                   </p>
                 )}
                 {insp.photos.length > 0 && (
                   <div className="space-y-3">
-                    <p className="text-xs text-gray-500">作業写真 ({insp.photos.length}枚)</p>
+                    <p className="text-xs text-gray-400">作業写真 ({insp.photos.length}枚)</p>
                     {(["before", "during", "after", "other"] as const).map((cat) => {
                       const labels: Record<string, string> = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
                       const catPhotos = insp.photos.filter((p) => (p.category || "before") === cat);
                       if (catPhotos.length === 0) return null;
                       return (
                         <div key={cat}>
-                          <p className="text-xs font-semibold text-gray-500 mb-1">{labels[cat]}</p>
+                          <p className="text-xs font-semibold text-gray-400 mb-1">{labels[cat]}</p>
                           <div className="grid grid-cols-3 gap-2">
                             {catPhotos.map((photo) => {
                               const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
@@ -836,7 +837,7 @@ export default function ProjectDetailPage() {
                                 <div key={photo.id} className="relative group">
                                   <a href={url} target="_blank" rel="noopener noreferrer">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={url} alt={photo.originalName} className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition" />
+                                    <img src={url} alt={photo.originalName} className="w-full h-24 object-cover rounded-lg border border-gray-700 hover:opacity-80 transition" />
                                   </a>
                                   {role === "ADMIN" && (
                                     <a href={url} download={photo.originalName} className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition">↓</a>
@@ -857,7 +858,7 @@ export default function ProjectDetailPage() {
                               key={photo.id}
                               href={url}
                               download={photo.originalName}
-                              className="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition"
+                              className="text-xs text-blue-400 border border-blue-700 rounded px-2 py-1 hover:bg-blue-900/40 transition"
                             >
                               ↓ {photo.originalName}
                             </a>
@@ -874,20 +875,20 @@ export default function ProjectDetailPage() {
 
         {/* 見積もり */}
         {project.quotes.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-bold text-gray-800 mb-3">見積もり</h3>
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
+            <h3 className="text-sm font-bold text-gray-100 mb-3">見積もり</h3>
             {project.quotes.map((quote) => (
               <div key={quote.id} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-800">
+                  <span className="text-sm font-medium text-gray-100">
                     {quote.amount ? `¥${quote.amount.toLocaleString()}` : "金額未記入"}
                   </span>
-                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700">
+                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-900/40 text-green-300">
                     提出済み
                   </span>
                 </div>
                 {quote.notes && (
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-300 whitespace-pre-wrap bg-gray-700/40 rounded-lg p-3">
                     {quote.notes}
                   </p>
                 )}
@@ -897,7 +898,7 @@ export default function ProjectDetailPage() {
                       href={quote.filename}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                      className="text-xs text-blue-400 hover:underline flex items-center gap-1"
                     >
                       📎 見積書を開く
                     </a>
@@ -905,14 +906,14 @@ export default function ProjectDetailPage() {
                       <a
                         href={quote.filename}
                         download
-                        className="text-xs text-green-600 border border-green-300 rounded px-2 py-0.5 hover:bg-green-50 transition"
+                        className="text-xs text-green-400 border border-green-700 rounded px-2 py-0.5 hover:bg-green-900/30 transition"
                       >
                         ↓ ダウンロード
                       </a>
                     )}
                   </div>
                 )}
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   {new Date(quote.createdAt).toLocaleDateString("ja-JP")} /{" "}
                   {quote.submittedBy.companyName || quote.submittedBy.name}
                 </p>
@@ -929,12 +930,12 @@ export default function ProjectDetailPage() {
         {role === "PARTNER" && project.createdBy.phone && (
           <div className="mt-4 flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
             <div>
-              <p className="text-xs text-gray-400">通常の連絡はチャットをご利用ください</p>
-              <p className="text-xs text-gray-500 mt-0.5">緊急の場合のみ電話でご連絡ください</p>
+              <p className="text-xs text-gray-500">通常の連絡はチャットをご利用ください</p>
+              <p className="text-xs text-gray-400 mt-0.5">緊急の場合のみ電話でご連絡ください</p>
             </div>
             <a
               href={`tel:${project.createdBy.phone.replace(/[^0-9+]/g, "")}`}
-              className="shrink-0 ml-3 inline-flex items-center gap-1.5 bg-gray-700 border border-gray-600 text-gray-300 text-xs font-medium px-3 py-2 rounded-lg hover:bg-gray-600 transition"
+              className="shrink-0 ml-3 inline-flex items-center gap-1.5 bg-gray-700 border border-gray-600 text-gray-500 text-xs font-medium px-3 py-2 rounded-lg hover:bg-gray-600 transition"
             >
               📞 急ぎの確認
             </a>
@@ -942,19 +943,19 @@ export default function ProjectDetailPage() {
         )}
 
         {/* コメント */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mt-4">
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 mt-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-gray-800">💬 相談・確認チャット</h3>
+            <h3 className="text-sm font-bold text-gray-100">💬 相談・確認チャット</h3>
             <div className="flex items-center gap-2">
               {lastUpdated && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-500">
                   {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} 更新
                 </span>
               )}
               <button
                 onClick={() => fetchProject(true)}
                 disabled={refreshing}
-                className="text-gray-400 hover:text-blue-500 transition disabled:opacity-40 text-sm"
+                className="text-gray-500 hover:text-blue-400 transition disabled:opacity-40 text-sm"
                 title="コメントを更新"
               >
                 <span className={refreshing ? "animate-spin inline-block" : ""}>🔄</span>
@@ -962,10 +963,10 @@ export default function ProjectDetailPage() {
             </div>
           </div>
           {project.comments.length === 0 && (
-            <div className="mb-3 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 space-y-1.5">
-              <p className="text-xs font-semibold text-blue-700">💬 このチャットを活用してください</p>
-              <p className="text-xs text-blue-600">質問・確認・連絡はここに残してください。</p>
-              <ul className="text-xs text-blue-500 space-y-0.5 pl-3 list-disc">
+            <div className="mb-3 rounded-xl bg-blue-900/40 border border-blue-800 px-4 py-3 space-y-1.5">
+              <p className="text-xs font-semibold text-blue-300">💬 このチャットを活用してください</p>
+              <p className="text-xs text-blue-400">質問・確認・連絡はここに残してください。</p>
+              <ul className="text-xs text-blue-400 space-y-0.5 pl-3 list-disc">
                 {role === "PARTNER" ? (
                   <>
                     <li>作業日の調整や遅延の連絡</li>
@@ -996,17 +997,17 @@ export default function ProjectDetailPage() {
                     {/* アバター */}
                     {avatarSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={avatarSrc} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-gray-200 shrink-0" />
+                      <img src={avatarSrc} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-gray-700 shrink-0" />
                     ) : (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${isAdmin ? "bg-blue-100 text-blue-600 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${isAdmin ? "bg-blue-900/50 text-blue-400 border-blue-700" : "bg-gray-700 text-gray-300 border-gray-700"}`}>
                         {displayName[0]?.toUpperCase()}
                       </div>
                     )}
                     <div className={`flex flex-col max-w-[75%] ${isAdmin ? "items-start" : "items-end"}`}>
                       <div className={`rounded-xl px-3 py-2 text-sm ${
                         isAdmin
-                          ? "bg-blue-50 text-gray-800 rounded-tl-none"
-                          : "bg-gray-100 text-gray-800 rounded-tr-none"
+                          ? "bg-blue-900/40 text-gray-100 rounded-tl-none"
+                          : "bg-gray-700 text-gray-100 rounded-tr-none"
                       }`}>
                         <p className="whitespace-pre-wrap break-words">{renderWithLinks(c.content)}</p>
                       </div>
@@ -1023,8 +1024,8 @@ export default function ProjectDetailPage() {
                             onClick={() => toggleReaction(c.id, emoji)}
                             className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full border transition ${
                               users.includes(userId ?? "")
-                                ? "bg-blue-100 border-blue-300 text-blue-700"
-                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                ? "bg-blue-900/50 border-blue-700 text-blue-300"
+                                : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700/40"
                             }`}
                           >
                             {emoji} <span>{users.length}</span>
@@ -1032,10 +1033,10 @@ export default function ProjectDetailPage() {
                         ))}
                         <button
                           onClick={() => setReactionPickerId(reactionPickerId === c.id ? null : c.id)}
-                          className="text-xs text-gray-300 hover:text-gray-500 px-1 transition"
+                          className="text-xs text-gray-500 hover:text-gray-400 px-1 transition"
                         >＋</button>
                         {reactionPickerId === c.id && (
-                          <div className={`absolute bottom-7 z-10 bg-white border border-gray-200 rounded-xl shadow-lg px-2 py-1.5 flex gap-1 ${isAdmin ? "left-0" : "right-0"}`}>
+                          <div className={`absolute bottom-7 z-10 bg-gray-800 border border-gray-700 rounded-xl shadow-lg px-2 py-1.5 flex gap-1 ${isAdmin ? "left-0" : "right-0"}`}>
                             {REACTION_EMOJIS.map((e) => (
                               <button key={e} onClick={() => toggleReaction(c.id, e)} className="text-xl hover:scale-125 transition-transform">
                                 {e}
@@ -1045,7 +1046,7 @@ export default function ProjectDetailPage() {
                         )}
                       </div>
                       <div className={`flex items-center gap-2 mt-0.5 px-1 ${isAdmin ? "flex-row" : "flex-row-reverse"}`}>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-500">
                           {displayName} · {new Date(c.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
                         {isMine && c.readAt && (
@@ -1055,7 +1056,7 @@ export default function ProjectDetailPage() {
                           <button
                             onClick={() => deleteComment(c.id)}
                             disabled={deletingCommentId === c.id}
-                            className="text-xs text-gray-300 hover:text-red-400 transition disabled:opacity-40"
+                            className="text-xs text-gray-500 hover:text-red-400 transition disabled:opacity-40"
                             title="送信取消"
                           >
                             {deletingCommentId === c.id ? "…" : "取消"}
@@ -1074,7 +1075,7 @@ export default function ProjectDetailPage() {
               onChange={(e) => setCommentText(e.target.value)}
               rows={2}
               placeholder="コメントを入力…"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="flex-1 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
             <button
               onClick={sendComment}
@@ -1094,13 +1095,13 @@ export default function ProjectDetailPage() {
           <div className="mt-4">
             <button
               onClick={() => setShowLog(!showLog)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 rounded-xl text-sm text-gray-300 hover:bg-gray-700 transition"
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 rounded-xl text-sm text-gray-500 hover:bg-gray-700 transition"
             >
               <span>🕐 活動履歴 ({project.activityLogs.length}件)</span>
               <span>{showLog ? "▲ 閉じる" : "▼ 表示する"}</span>
             </button>
             {showLog && (
-              <div className="mt-2 bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+              <div className="mt-2 bg-gray-800 rounded-xl border border-gray-700 divide-y divide-gray-700">
                 {project.activityLogs.map((log) => {
                   const actionLabel: Record<string, string> = {
                     CREATED: "依頼作成",
@@ -1115,19 +1116,19 @@ export default function ProjectDetailPage() {
                   return (
                     <div key={log.id} className="px-4 py-3 flex items-start gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-700">
+                        <p className="text-xs font-medium text-gray-200">
                           {actionLabel[log.action] || log.action}
                         </p>
                         {log.detail && (
-                          <p className="text-xs text-gray-500 mt-0.5">{log.detail}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{log.detail}</p>
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-500">
                           {new Date(log.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
                         {log.user && (
-                          <p className="text-xs text-gray-400">{log.user.name}</p>
+                          <p className="text-xs text-gray-500">{log.user.name}</p>
                         )}
                       </div>
                     </div>

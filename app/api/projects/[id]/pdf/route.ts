@@ -117,7 +117,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     ["入居開始日", project.moveInDate || ""],
     ["緊急度", urgencyLabel(project.urgency)],
     ["材料支給", project.materialSupplied ? "あり" : "なし"],
-    ["期日", fmtDate(project.dueDate)],
+    ["駐車場空き区画", project.parkingInfo || ""],
     ["担当", project.assignedTo ? project.assignedTo.companyName || project.assignedTo.name : ""],
   ];
 

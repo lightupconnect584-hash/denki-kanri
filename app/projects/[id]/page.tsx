@@ -374,7 +374,7 @@ export default function ProjectDetailPage() {
 
   if (loading || !project) {
     return (
-      <div className="min-h-full flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center bg-gray-100">
         <p className="text-gray-500">読み込み中...</p>
       </div>
     );
@@ -384,7 +384,7 @@ export default function ProjectDetailPage() {
   const canInspect = role === "PARTNER" && isAssigned;
 
   return (
-    <div className="min-h-full flex flex-col">
+    <div className="min-h-full flex flex-col bg-gray-100">
       <Header />
       <main className="flex-1 max-w-2xl lg:max-w-6xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-4">

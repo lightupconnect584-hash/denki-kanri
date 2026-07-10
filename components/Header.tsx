@@ -97,7 +97,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-gray-900 border-b border-gray-700 px-3 py-2 flex items-center justify-between">
+      <header className="bg-gray-950 border-b border-gray-800 px-3 py-2 flex items-center justify-between">
         {/* ロゴ */}
         <Link href="/dashboard" className="flex items-center shrink-0">
           <Image src="/logo.png" alt="logo" width={300} height={150} className="h-9 sm:h-12 w-auto" />
@@ -140,7 +140,7 @@ export default function Header() {
           ) : notifStatus === "denied" ? (
             <span className="text-xs text-gray-500 px-1" title="通知ブロック中（ブラウザ設定から変更）">🔕</span>
           ) : (
-            <button onClick={subscribePush} className="text-xs text-yellow-400 border border-yellow-600 rounded px-2 py-1 hover:bg-yellow-900 transition animate-pulse">
+            <button onClick={subscribePush} className="text-xs text-yellow-400 border border-yellow-600 rounded px-2 py-1 hover:bg-yellow-900 transition">
               🔔 通知をON
             </button>
           )}

@@ -616,7 +616,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-full flex flex-col bg-gray-950">
+    <div className="min-h-full flex flex-col bg-gray-900">
       {/* 月末お礼モーダル */}
       {showMonthlyThanks && monthlyAdmin && (
         <div

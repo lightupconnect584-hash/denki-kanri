@@ -413,7 +413,7 @@ export default function UsersPage() {
   );
 
   return (
-    <div className="min-h-full flex flex-col">
+    <div className="min-h-full flex flex-col bg-gray-100">
       <Header />
       <main className="flex-1 max-w-lg lg:max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-6">

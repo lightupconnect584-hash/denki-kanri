@@ -100,7 +100,7 @@ export default function EditProjectPage() {
 
   if (loading) {
     return (
-      <div className="min-h-full flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center bg-gray-100">
         <p className="text-gray-500">読み込み中...</p>
       </div>
     );
@@ -109,7 +109,7 @@ export default function EditProjectPage() {
   const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   return (
-    <div className="min-h-full flex flex-col">
+    <div className="min-h-full flex flex-col bg-gray-100">
       <Header />
       <main className="flex-1 max-w-lg lg:max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-6">

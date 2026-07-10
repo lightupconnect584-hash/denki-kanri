@@ -89,7 +89,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="sm:hidden shrink-0 bg-gray-900 border-t border-gray-700"
+      className="sm:hidden shrink-0 bg-gray-950 border-t border-gray-800"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 34px) + 16px)" }}
     >
       <div className="flex h-16">

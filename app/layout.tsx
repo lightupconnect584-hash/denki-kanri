@@ -27,7 +27,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon.png" />
         <link rel="icon" href="/icon.png" />
       </head>
-      <body className="h-dvh flex flex-col overflow-hidden bg-gray-950">
+      <body className="h-dvh flex flex-col overflow-hidden bg-gray-900">
         <SessionProvider>
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             {children}

@@ -307,7 +307,7 @@ export default function NewProjectPage() {
   const inputClass = "w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500";
 
   return (
-    <div className="min-h-full flex flex-col bg-gray-950">
+    <div className="min-h-full flex flex-col bg-gray-900">
       <Header />
       <main className="flex-1 max-w-lg lg:max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-6">

@@ -31,6 +31,11 @@ export default function InspectPage() {
   const [situation, setSituation] = useState("");
   const [cause, setCause] = useState("");
   const [response, setResponse] = useState("");
+  const [materials, setMaterials] = useState("");
+  const [insulation, setInsulation] = useState("");
+  const [clamp, setClamp] = useState("");
+  const [repairProposal, setRepairProposal] = useState("");
+  const [needQuote, setNeedQuote] = useState(false);
   const [other, setOther] = useState("");
 
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
@@ -125,8 +130,20 @@ export default function InspectPage() {
   };
 
   // 4セクションを1つの文字列に結合
-  const buildNotes = () =>
-    `【状況】\n${situation.trim()}\n\n【原因】\n${cause.trim()}\n\n【対応】\n${response.trim()}${other.trim() ? `\n\n【その他】\n${other.trim()}` : ""}`;
+  const buildNotes = () => {
+    const parts = [
+      `【状況】\n${situation.trim()}`,
+      `【原因】\n${cause.trim()}`,
+      `【実施内容】\n${response.trim()}`,
+    ];
+    if (materials.trim()) parts.push(`【使用部材】\n${materials.trim()}`);
+    if (insulation.trim()) parts.push(`【絶縁抵抗値】${insulation.trim()}`);
+    if (clamp.trim()) parts.push(`【クランプ値】${clamp.trim()}`);
+    if (repairProposal.trim()) parts.push(`【修理提案】\n${repairProposal.trim()}`);
+    if (needQuote) parts.push(`【見積り】見積り必要`);
+    if (other.trim()) parts.push(`【その他】\n${other.trim()}`);
+    return parts.join("\n\n");
+  };
 
   const canSubmit = !!result && !!finalWorkDate && situation.trim() && cause.trim() && response.trim();
 
@@ -266,16 +283,83 @@ export default function InspectPage() {
 
             <div>
               <label className="block text-xs font-semibold text-gray-300 mb-1">
-                対応 <span className="text-red-500">*</span>
+                実施内容 <span className="text-red-500">*</span>
                 <span className="font-normal text-gray-500 ml-1">例：漏電箇所を切り離して復旧させた</span>
               </label>
               <textarea
                 rows={2}
                 value={response}
                 onChange={(e) => setResponse(e.target.value)}
-                placeholder="実施した対応内容"
+                placeholder="実施した作業内容"
                 className={fieldClass}
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
+                使用部材
+                <span className="font-normal text-gray-500 ml-1">交換・使用した部品（任意）</span>
+              </label>
+              <textarea
+                rows={2}
+                value={materials}
+                onChange={(e) => setMaterials(e.target.value)}
+                placeholder="例: 漏電ブレーカー BJS3031N ×1"
+                className={fieldClass}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-300 mb-1">絶縁抵抗値<span className="font-normal text-gray-500 ml-1">（任意）</span></label>
+                <input
+                  type="text"
+                  value={insulation}
+                  onChange={(e) => setInsulation(e.target.value)}
+                  placeholder="例: 0.5MΩ以上"
+                  className={fieldClass}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-300 mb-1">クランプ値<span className="font-normal text-gray-500 ml-1">（任意）</span></label>
+                <input
+                  type="text"
+                  value={clamp}
+                  onChange={(e) => setClamp(e.target.value)}
+                  placeholder="例: 3.2A"
+                  className={fieldClass}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
+                修理提案
+                <span className="font-normal text-gray-500 ml-1">今後必要な修理・推奨事項（任意）</span>
+              </label>
+              <textarea
+                rows={2}
+                value={repairProposal}
+                onChange={(e) => setRepairProposal(e.target.value)}
+                placeholder="例: 経年劣化のため分電盤の交換を推奨"
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">見積り</label>
+              <div className="flex gap-2">
+                <button type="button"
+                  onClick={() => setNeedQuote(false)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition ${
+                    !needQuote ? "bg-gray-600 text-white border-gray-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-gray-400"
+                  }`}>不要</button>
+                <button type="button"
+                  onClick={() => setNeedQuote(true)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition ${
+                    needQuote ? "bg-orange-600 text-white border-orange-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-orange-400"
+                  }`}>見積り必要</button>
+              </div>
             </div>
 
             <div>

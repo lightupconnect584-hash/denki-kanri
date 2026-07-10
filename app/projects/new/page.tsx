@@ -71,14 +71,12 @@ export default function NewProjectPage() {
         title: d.title || prev.title,
         location: d.location || prev.location,
         roomNumber: d.roomNumber || prev.roomNumber,
-        workType: d.workType || prev.workType,
         contractorName: d.contractorName || prev.contractorName,
         contractorPhone: d.contractorPhone || prev.contractorPhone,
-        description: d.description || prev.description,
         moveInDate: d.moveInDate || prev.moveInDate,
         preferredContactAt: d.preferredContactAt || prev.preferredContactAt,
       }));
-      const filled = ["title", "location", "roomNumber", "workType", "contractorName", "contractorPhone", "description"].filter((k) => d[k]).length;
+      const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone"].filter((k) => d[k]).length;
       setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
     } catch {
       setExtractMsg("読み取りに失敗しました");

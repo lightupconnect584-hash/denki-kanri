@@ -50,16 +50,14 @@ export async function POST(req: NextRequest) {
       title: { type: "string", description: "物件名・建物名（例: ブリリアントヴィレッジ）。不明なら空文字" },
       location: { type: "string", description: "住所（市区町村＋番地）。不明なら空文字" },
       roomNumber: { type: "string", description: "部屋番号・号室。不明なら空文字" },
-      workType: { type: "string", description: "依頼名・作業種別（例: エアコン修理、漏電調査）。不明なら空文字" },
       contractorName: { type: "string", description: "入居者名・契約者名。不明なら空文字" },
       contractorPhone: { type: "string", description: "連絡先電話番号。不明なら空文字" },
-      description: { type: "string", description: "依頼内容・不具合の詳細。不明なら空文字" },
       moveInDate: { type: "string", description: "入居開始日（あれば。文字列そのまま）。不明なら空文字" },
       preferredContactAt: { type: "string", description: "連絡希望日時（あれば）。不明なら空文字" },
     },
     required: [
-      "title", "location", "roomNumber", "workType",
-      "contractorName", "contractorPhone", "description",
+      "title", "location", "roomNumber",
+      "contractorName", "contractorPhone",
       "moveInDate", "preferredContactAt",
     ],
   };

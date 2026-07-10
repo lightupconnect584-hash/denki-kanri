@@ -99,12 +99,28 @@ export default function NewProjectPage() {
     if (file) runExtract(file);
   };
 
+  const extractFileFromDrop = (dt: DataTransfer): File | null => {
+    // files が空でも items 経由で取れる場合がある
+    if (dt.files && dt.files.length > 0) return dt.files[0];
+    if (dt.items) {
+      for (const it of Array.from(dt.items)) {
+        if (it.kind === "file") {
+          const f = it.getAsFile();
+          if (f) return f;
+        }
+      }
+    }
+    return null;
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
     if (extracting) return;
-    const file = e.dataTransfer.files?.[0];
+    const file = extractFileFromDrop(e.dataTransfer);
     if (file) runExtract(file);
+    else setExtractMsg("このドラッグ元からはファイルを取得できませんでした。ダウンロードするか「ファイルを選ぶ」を使ってください");
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -125,6 +141,31 @@ export default function NewProjectPage() {
     if (status === "unauthenticated") router.push("/login");
     if (status === "authenticated" && role !== "ADMIN") router.push("/dashboard");
   }, [status, role, router]);
+
+  // ページ外にドロップしてもブラウザがPDFを開かないようにする（ドロップ範囲を実質ページ全体に）
+  useEffect(() => {
+    const onOver = (e: DragEvent) => { e.preventDefault(); };
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      if (extracting) return;
+      const dt = e.dataTransfer;
+      if (!dt) return;
+      let file: File | null = dt.files && dt.files.length > 0 ? dt.files[0] : null;
+      if (!file && dt.items) {
+        for (const it of Array.from(dt.items)) {
+          if (it.kind === "file") { const f = it.getAsFile(); if (f) { file = f; break; } }
+        }
+      }
+      if (file) runExtract(file);
+    };
+    window.addEventListener("dragover", onOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onOver);
+      window.removeEventListener("drop", onDrop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extracting]);
 
   useEffect(() => {
     if (status === "authenticated") {

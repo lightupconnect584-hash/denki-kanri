@@ -34,6 +34,7 @@ interface Inspection {
   workDate: string;
   workDates: string[];
   notes: string | null;
+  polishedReport: string | null;
   createdAt: string;
   inspector: { name: string; companyName: string | null };
   photos: Photo[];
@@ -124,6 +125,50 @@ export default function ProjectDetailPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [photoUploadError, setPhotoUploadError] = useState("");
+  const [polishingId, setPolishingId] = useState<string | null>(null);
+  const [editingPolishId, setEditingPolishId] = useState<string | null>(null);
+  const [polishText, setPolishText] = useState("");
+  const [copiedPolishId, setCopiedPolishId] = useState<string | null>(null);
+
+  // 完了報告をAIで積水向けに清書
+  const generatePolish = async (inspectionId: string) => {
+    setPolishingId(inspectionId);
+    try {
+      const res = await fetch(`/api/projects/${id}/polish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(j.error || "清書に失敗しました");
+        return;
+      }
+      fetchProject();
+    } finally {
+      setPolishingId(null);
+    }
+  };
+
+  const copyPolish = async (text: string, inspectionId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPolishId(inspectionId);
+      setTimeout(() => setCopiedPolishId(null), 1500);
+    } catch {
+      alert("コピーに失敗しました");
+    }
+  };
+
+  const savePolish = async (inspectionId: string) => {
+    await fetch(`/api/projects/${id}/polish`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inspectionId, text: polishText }),
+    });
+    setEditingPolishId(null);
+    fetchProject();
+  };
 
   const role = (session?.user as { role?: string })?.role;
   const userId = (session?.user as { id?: string })?.id;
@@ -819,6 +864,59 @@ export default function ProjectDetailPage() {
                   <p className="text-sm text-gray-200 whitespace-pre-wrap bg-gray-700/40 rounded-lg p-3">
                     {insp.notes}
                   </p>
+                )}
+                {/* AI清書（積水向け・管理者のみ） */}
+                {role === "ADMIN" && insp.notes && (
+                  <div className="bg-indigo-900/30 border border-indigo-700/60 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-xs font-bold text-indigo-300">✨ 積水向け清書</p>
+                      <div className="flex gap-1.5">
+                        {insp.polishedReport && editingPolishId !== insp.id && (
+                          <>
+                            <button
+                              onClick={() => copyPolish(insp.polishedReport!, insp.id)}
+                              className="text-xs bg-indigo-600 text-white rounded px-2.5 py-1 hover:bg-indigo-700 transition"
+                            >
+                              {copiedPolishId === insp.id ? "✓ コピーしました" : "📋 コピー"}
+                            </button>
+                            <button
+                              onClick={() => { setEditingPolishId(insp.id); setPolishText(insp.polishedReport!); }}
+                              className="text-xs text-indigo-300 border border-indigo-700 rounded px-2 py-1 hover:bg-indigo-900/50 transition"
+                            >
+                              編集
+                            </button>
+                          </>
+                        )}
+                        {editingPolishId !== insp.id && (
+                          <button
+                            onClick={() => generatePolish(insp.id)}
+                            disabled={polishingId === insp.id}
+                            className="text-xs text-indigo-300 border border-indigo-700 rounded px-2 py-1 hover:bg-indigo-900/50 disabled:opacity-50 transition"
+                          >
+                            {polishingId === insp.id ? "清書中…" : insp.polishedReport ? "再生成" : "✨ 清書を作成"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {editingPolishId === insp.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={polishText}
+                          onChange={(e) => setPolishText(e.target.value)}
+                          rows={10}
+                          className="w-full bg-gray-900/60 border border-indigo-700 rounded-lg p-3 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={() => setEditingPolishId(null)} className="text-xs text-gray-400 px-2 py-1 hover:text-gray-200">キャンセル</button>
+                          <button onClick={() => savePolish(insp.id)} className="text-xs bg-indigo-600 text-white rounded px-3 py-1 hover:bg-indigo-700 transition">保存</button>
+                        </div>
+                      </div>
+                    ) : insp.polishedReport ? (
+                      <p className="text-sm text-gray-100 whitespace-pre-wrap bg-gray-900/50 rounded-lg p-3">{insp.polishedReport}</p>
+                    ) : (
+                      <p className="text-xs text-indigo-300/70">協力会社の報告をAIが積水ハウス向けの報告文に清書します。作成後はコピーしてそのまま送れます。</p>
+                    )}
+                  </div>
                 )}
                 {insp.photos.length > 0 && (
                   <div className="space-y-3">

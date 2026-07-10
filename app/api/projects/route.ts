@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
       preferredContactAt: body.preferredContactAt || null,
       preferredVisitAt: body.preferredVisitAt || null,
       moveInDate: body.moveInDate || null,
+      receivedAt: body.receivedAt || null,
       createdById: userId,
       status: "PENDING",
       notifyPartnerAt: new Date(),

@@ -81,6 +81,7 @@ model Project {
   preferredContactAt String?
   preferredVisitAt   String?
   moveInDate         String?
+  receivedAt         String?
   urgency          String    @default("LOW")
   materialSupplied Boolean   @default(false)
   amount           Int?

@@ -106,9 +106,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // 表の行データ
   const rows: [string, string][] = [
     ["物件名", project.title || ""],
+    ["受付日時", project.receivedAt || ""],
     ["依頼名", project.workType || ""],
-    ["入居者名", project.contractorName || ""],
-    ["連絡先", project.contractorPhone || ""],
+    ["折り返し先名カナ", project.contractorName || ""],
+    ["折り返し先電話番号", project.contractorPhone || ""],
     ["ショートメールでの連絡", project.smsAllowed ? "可" : "不可"],
     ["住所", `${project.location}${project.roomNumber ? `　${project.roomNumber}` : ""}`],
     ["連絡希望日時", project.preferredContactAt || ""],

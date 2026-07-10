@@ -38,6 +38,7 @@ export default function EditProjectPage() {
     preferredContactAt: "",
     preferredVisitAt: "",
     moveInDate: "",
+    receivedAt: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,6 +74,7 @@ export default function EditProjectPage() {
             preferredContactAt: data.preferredContactAt || "",
             preferredVisitAt: data.preferredVisitAt || "",
             moveInDate: data.moveInDate || "",
+            receivedAt: data.receivedAt || "",
           });
           setLoading(false);
         });
@@ -176,14 +178,21 @@ export default function EditProjectPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">契約者名</label>
-            <input type="text" value={form.contractorName}
-              onChange={(e) => setForm({ ...form, contractorName: e.target.value })}
-              className={inputClass} />
+            <label className="block text-sm font-medium text-gray-700 mb-1">受付日時</label>
+            <input type="text" value={form.receivedAt}
+              onChange={(e) => setForm({ ...form, receivedAt: e.target.value })}
+              className={inputClass} placeholder="例: 7/10 10:30" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">契約者連絡先</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">折り返し先名カナ</label>
+            <input type="text" value={form.contractorName}
+              onChange={(e) => setForm({ ...form, contractorName: e.target.value })}
+              className={inputClass} placeholder="例: ヤマダ タロウ" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">折り返し先電話番号</label>
             <input type="tel" value={form.contractorPhone}
               onChange={(e) => setForm({ ...form, contractorPhone: e.target.value })}
               className={inputClass} />

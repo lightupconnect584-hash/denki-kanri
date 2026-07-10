@@ -42,6 +42,7 @@ export default function NewProjectPage() {
     preferredContactAt: "",
     preferredVisitAt: "",
     moveInDate: "",
+    receivedAt: "",
   });
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -75,8 +76,10 @@ export default function NewProjectPage() {
         contractorPhone: d.contractorPhone || prev.contractorPhone,
         moveInDate: d.moveInDate || prev.moveInDate,
         preferredContactAt: d.preferredContactAt || prev.preferredContactAt,
+        receivedAt: d.receivedAt || prev.receivedAt,
+        smsAllowed: typeof d.smsAllowed === "boolean" ? d.smsAllowed : prev.smsAllowed,
       }));
-      const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone"].filter((k) => d[k]).length;
+      const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt"].filter((k) => d[k]).length;
       setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
     } catch {
       setExtractMsg("読み取りに失敗しました");
@@ -244,15 +247,21 @@ export default function NewProjectPage() {
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">契約者情報</p>
             </div>
             <div className="p-4 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">受付日時 <span className="text-gray-500 font-normal text-xs">（任意）</span></label>
+                <input type="text" value={form.receivedAt}
+                  onChange={(e) => setForm({ ...form, receivedAt: e.target.value })}
+                  className={inputClass} placeholder="例: 7/10 10:30" maxLength={20} />
+              </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">契約者名</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">折り返し先名カナ</label>
                   <input type="text" value={form.contractorName}
                     onChange={(e) => setForm({ ...form, contractorName: e.target.value })}
-                    className={inputClass} placeholder="例: 山田 太郎" />
+                    className={inputClass} placeholder="例: ヤマダ タロウ" />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">連絡先</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">折り返し先電話番号</label>
                   <input type="tel" value={form.contractorPhone}
                     onChange={(e) => setForm({ ...form, contractorPhone: e.target.value })}
                     className={inputClass} placeholder="090-1234-5678" />

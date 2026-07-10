@@ -87,6 +87,7 @@ interface Project {
   preferredContactAt: string | null;
   preferredVisitAt: string | null;
   moveInDate: string | null;
+  receivedAt: string | null;
   urgency: string;
   materialSupplied: boolean;
   amount: number | null;
@@ -440,6 +441,12 @@ export default function ProjectDetailPage() {
             <p className="text-xs text-gray-500">住所</p>
             <p className="text-sm font-medium text-gray-800">📍 {project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</p>
           </div>
+          {project.receivedAt && (
+            <div>
+              <p className="text-xs text-gray-500">受付日時</p>
+              <p className="text-sm text-gray-700">{project.receivedAt}</p>
+            </div>
+          )}
           {project.preferredContactAt && (
             <div>
               <p className="text-xs text-gray-500">連絡希望日時</p>
@@ -460,13 +467,13 @@ export default function ProjectDetailPage() {
           )}
           {project.contractorName && (
             <div>
-              <p className="text-xs text-gray-500">契約者名</p>
+              <p className="text-xs text-gray-500">折り返し先名カナ</p>
               <p className="text-sm text-gray-700">{project.contractorName}</p>
             </div>
           )}
           {project.contractorPhone && (
             <div>
-              <p className="text-xs text-gray-500">契約者連絡先</p>
+              <p className="text-xs text-gray-500">折り返し先電話番号</p>
               <div className="flex items-center gap-3 flex-wrap">
                 <a
                   href={`tel:${project.contractorPhone.replace(/[^0-9+]/g, "")}`}

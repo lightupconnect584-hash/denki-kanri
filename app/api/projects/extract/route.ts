@@ -50,15 +50,17 @@ export async function POST(req: NextRequest) {
       title: { type: "string", description: "物件名・建物名（例: ブリリアントヴィレッジ）。不明なら空文字" },
       location: { type: "string", description: "住所（市区町村＋番地）。不明なら空文字" },
       roomNumber: { type: "string", description: "部屋番号・号室。不明なら空文字" },
-      contractorName: { type: "string", description: "入居者名・契約者名。不明なら空文字" },
-      contractorPhone: { type: "string", description: "連絡先電話番号。不明なら空文字" },
+      contractorName: { type: "string", description: "折り返し先名（カナ）。入居者・連絡担当者の氏名カナ。不明なら空文字" },
+      contractorPhone: { type: "string", description: "折り返し先電話番号。不明なら空文字" },
       moveInDate: { type: "string", description: "入居開始日（あれば。文字列そのまま）。不明なら空文字" },
       preferredContactAt: { type: "string", description: "連絡希望日時（あれば）。不明なら空文字" },
+      receivedAt: { type: "string", description: "受付日時（依頼を受け付けた日時。文字列そのまま）。不明なら空文字" },
+      smsAllowed: { type: "boolean", description: "ショートメッセージ（SMS）での連絡が可能か。可・OK等の記載があればtrue、不可・記載なしはfalse" },
     },
     required: [
       "title", "location", "roomNumber",
       "contractorName", "contractorPhone",
-      "moveInDate", "preferredContactAt",
+      "moveInDate", "preferredContactAt", "receivedAt", "smsAllowed",
     ],
   };
 

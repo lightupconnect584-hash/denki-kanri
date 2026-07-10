@@ -749,8 +749,8 @@ export default function DashboardPage() {
               </button>
             )}
 {role === "ADMIN" && (
-              <Link href="/projects/new" className="bg-blue-600 text-white text-sm px-3 sm:px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
-                <span>＋</span><span className="hidden sm:inline ml-1">新規依頼</span>
+              <Link href="/projects/new" className="sm:hidden bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
+                <span>＋</span>
               </Link>
             )}
           </div>

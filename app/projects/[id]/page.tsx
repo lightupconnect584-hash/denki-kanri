@@ -386,7 +386,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-full flex flex-col">
       <Header />
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-2xl lg:max-w-6xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">
             ←
@@ -427,6 +427,9 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
+        {/* PC: 左=情報 / 右=チャット の2カラム。モバイルは従来順のまま */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-6 lg:items-start">
+        <div className="min-w-0">
         {/* 基本情報 */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3 space-y-3">
           <div>
@@ -919,6 +922,9 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
+        </div>
+
+        <div className="min-w-0 lg:sticky lg:top-4">
         {/* 急ぎの電話（チャット上） */}
         {role === "PARTNER" && project.createdBy.phone && (
           <div className="mt-4 flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
@@ -1080,6 +1086,9 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
+        </div>
+
+        <div className="min-w-0 lg:col-start-1">
         {/* 活動ログ */}
         {project.activityLogs.length > 0 && (
           <div className="mt-4">
@@ -1128,6 +1137,8 @@ export default function ProjectDetailPage() {
             )}
           </div>
         )}
+        </div>
+        </div>
       </main>
     </div>
   );

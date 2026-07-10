@@ -1097,7 +1097,7 @@ export default function SettingsPage() {
         </div>
       )}
       <Header />
-      <main className="flex-1 max-w-md mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-md lg:max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">設定</h2>
@@ -1153,6 +1153,12 @@ export default function SettingsPage() {
         {/* 交換機種表リンク */}
         <Link href="/replacement-models" className="bg-gray-800 rounded-xl border border-gray-700 mb-3 flex items-center justify-between px-4 py-3.5 hover:bg-gray-700 transition block">
           <span className="text-sm font-bold text-gray-100">🔌 交換機種表</span>
+          <span className="text-gray-400 text-xs">→</span>
+        </Link>
+
+        {/* 使い方ガイド */}
+        <Link href="/help" className="bg-gray-800 rounded-xl border border-gray-700 mb-3 flex items-center justify-between px-4 py-3.5 hover:bg-gray-700 transition block">
+          <span className="text-sm font-bold text-gray-100">❓ 使い方ガイド</span>
           <span className="text-gray-400 text-xs">→</span>
         </Link>
 

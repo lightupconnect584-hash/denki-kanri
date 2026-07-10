@@ -1008,7 +1008,7 @@ export default function DashboardPage() {
                 <p>{search || filterStatus || filterUrgency || filterRegion ? "条件に一致する依頼がありません" : "進行中の依頼がありません"}</p>
               </div>
             ) : (
-              <div className="space-y-2.5">{sortedActive.map(renderProject)}</div>
+              <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{sortedActive.map(renderProject)}</div>
             )}
 
             {/* 差し戻しゾーン */}

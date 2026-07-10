@@ -281,7 +281,7 @@ export default function ReplacementModelsPage() {
   return (
     <div className="min-h-full flex flex-col bg-gray-950">
       <Header />
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-2xl lg:max-w-4xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
           <h2 className="text-lg font-bold text-white flex-1">交換機種表</h2>

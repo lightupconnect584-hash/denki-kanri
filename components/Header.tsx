@@ -3,11 +3,13 @@
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 // dmUnread はBottomNavで管理するため、Headerでのfetchは不要
 
 export default function Header() {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const role = (session?.user as { role?: string })?.role;
   const avatarUrl = (session?.user as { avatarUrl?: string })?.avatarUrl;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -102,27 +104,52 @@ export default function Header() {
         </Link>
 
         {/* デスクトップナビ */}
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-1.5">
+          {(() => {
+            const navLink = (href: string, label: string, active: boolean) => (
+              <Link
+                key={href}
+                href={href}
+                className={`text-sm rounded-lg px-3 py-1.5 transition font-medium ${
+                  active ? "bg-gray-700 text-white" : "text-gray-300 hover:text-white hover:bg-gray-800"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+            return (
+              <>
+                {navLink("/dashboard", "依頼", pathname === "/dashboard" || (pathname.startsWith("/projects") && pathname !== "/projects/new"))}
+                {navLink("/messages", "チャット", pathname === "/messages")}
+                {navLink("/billing", "完了済", pathname === "/billing")}
+                {role === "ADMIN" && navLink("/sales", "売上", pathname === "/sales")}
+              </>
+            );
+          })()}
+          {role === "ADMIN" && (
+            <Link
+              href="/projects/new"
+              className="text-sm bg-blue-600 text-white rounded-lg px-3.5 py-1.5 font-bold hover:bg-blue-700 transition ml-1"
+            >
+              ＋ 新規依頼
+            </Link>
+          )}
+          <span className="w-px h-5 bg-gray-700 mx-1.5" />
           {notifStatus === "granted" ? (
-            <span className="text-xs text-green-400 border border-green-700 rounded px-2 py-1">🔔 通知ON</span>
+            <span className="text-xs text-green-400 px-1" title="通知ON">🔔</span>
           ) : notifStatus === "denied" ? (
-            <span className="text-xs text-gray-500 border border-gray-700 rounded px-2 py-1" title="ブラウザの設定から通知を許可してください">🔕 通知ブロック中</span>
+            <span className="text-xs text-gray-500 px-1" title="通知ブロック中（ブラウザ設定から変更）">🔕</span>
           ) : (
             <button onClick={subscribePush} className="text-xs text-yellow-400 border border-yellow-600 rounded px-2 py-1 hover:bg-yellow-900 transition animate-pulse">
               🔔 通知をON
             </button>
           )}
-          <Link href="/messages" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">
-            💬 メッセージ
-          </Link>
-          <Link href="/billing" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">完了済依頼</Link>
-          <Link href="/help" className="text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-2 py-1">使い方</Link>
-          <Link href="/settings" className="flex items-center gap-1.5 hover:opacity-80 transition ml-1">
+          <Link href="/settings" className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition ${pathname === "/settings" ? "bg-gray-700" : "hover:bg-gray-800"}`} title="設定">
             <Avatar />
             <span className="text-xs text-gray-300 max-w-[80px] truncate">{session?.user?.name}</span>
           </Link>
-          <button onClick={() => signOut({ callbackUrl: "/login" })} className="text-xs text-gray-400 hover:text-red-400 transition pl-1">
-            ログアウト
+          <button onClick={() => signOut({ callbackUrl: "/login" })} className="text-xs text-gray-400 hover:text-red-400 transition pl-1" title="ログアウト">
+            ⏻
           </button>
         </div>
 

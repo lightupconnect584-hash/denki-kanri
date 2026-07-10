@@ -415,7 +415,7 @@ export default function UsersPage() {
   return (
     <div className="min-h-full flex flex-col">
       <Header />
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-lg lg:max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-white">ユーザー管理</h2>
           <button

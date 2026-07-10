@@ -59,7 +59,7 @@ export default function HelpPage() {
   return (
     <div className="min-h-full flex flex-col bg-gray-950">
       <Header />
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-2xl lg:max-w-3xl mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
           <div className="flex-1">

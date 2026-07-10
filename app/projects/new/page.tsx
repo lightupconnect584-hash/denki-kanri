@@ -51,6 +51,25 @@ export default function NewProjectPage() {
   const [extractMsg, setExtractMsg] = useState("");
   const [dragOver, setDragOver] = useState(false);
 
+  // 読み取り結果をフォームに反映（空文字は既存値を残す）
+  const applyExtracted = (d: Record<string, unknown>) => {
+    const s = (v: unknown) => (typeof v === "string" ? v : "");
+    setForm((prev) => ({
+      ...prev,
+      title: s(d.title) || prev.title,
+      location: s(d.location) || prev.location,
+      roomNumber: s(d.roomNumber) || prev.roomNumber,
+      contractorName: s(d.contractorName) || prev.contractorName,
+      contractorPhone: s(d.contractorPhone) || prev.contractorPhone,
+      moveInDate: s(d.moveInDate) || prev.moveInDate,
+      preferredContactAt: s(d.preferredContactAt) || prev.preferredContactAt,
+      receivedAt: s(d.receivedAt) || prev.receivedAt,
+      smsAllowed: typeof d.smsAllowed === "boolean" ? d.smsAllowed : prev.smsAllowed,
+    }));
+    const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt"].filter((k) => s(d[k])).length;
+    setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
+  };
+
   const runExtract = async (file: File) => {
     if (!file) return;
     // PDF・画像のみ受け付け
@@ -70,22 +89,30 @@ export default function NewProjectPage() {
         setExtractMsg(json.error || "読み取りに失敗しました");
         return;
       }
-      const d = json.data || {};
-      // 読み取れた項目だけ上書き（空文字は既存値を残す）
-      setForm((prev) => ({
-        ...prev,
-        title: d.title || prev.title,
-        location: d.location || prev.location,
-        roomNumber: d.roomNumber || prev.roomNumber,
-        contractorName: d.contractorName || prev.contractorName,
-        contractorPhone: d.contractorPhone || prev.contractorPhone,
-        moveInDate: d.moveInDate || prev.moveInDate,
-        preferredContactAt: d.preferredContactAt || prev.preferredContactAt,
-        receivedAt: d.receivedAt || prev.receivedAt,
-        smsAllowed: typeof d.smsAllowed === "boolean" ? d.smsAllowed : prev.smsAllowed,
-      }));
-      const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt"].filter((k) => d[k]).length;
-      setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
+      applyExtracted(json.data || {});
+    } catch {
+      setExtractMsg("読み取りに失敗しました");
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  // URL（リンク）から読み取り
+  const runExtractUrl = async (url: string) => {
+    setExtracting(true);
+    setExtractMsg("");
+    try {
+      const res = await fetch("/api/projects/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setExtractMsg((json.error || "読み取りに失敗しました") + "（リンクからは取得できないことがあります。画面をコピーして貼り付けてください）");
+        return;
+      }
+      applyExtracted(json.data || {});
     } catch {
       setExtractMsg("読み取りに失敗しました");
     } finally {
@@ -119,8 +146,11 @@ export default function NewProjectPage() {
     setDragOver(false);
     if (extracting) return;
     const file = extractFileFromDrop(e.dataTransfer);
-    if (file) runExtract(file);
-    else setExtractMsg("このドラッグ元からはファイルを取得できませんでした。ダウンロードするか「ファイルを選ぶ」を使ってください");
+    if (file) { runExtract(file); return; }
+    // ファイルが取れない場合はURL（リンク）を試す
+    const url = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain");
+    if (/^https?:\/\//.test(url)) { runExtractUrl(url.split("\n")[0].trim()); return; }
+    setExtractMsg("このドラッグ元からはファイルを取得できませんでした。画面をコピーして貼り付ける（⌘/Ctrl+V）か「ファイルを選ぶ」を使ってください");
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -156,13 +186,31 @@ export default function NewProjectPage() {
           if (it.kind === "file") { const f = it.getAsFile(); if (f) { file = f; break; } }
         }
       }
-      if (file) runExtract(file);
+      if (file) { runExtract(file); return; }
+      const url = dt.getData("text/uri-list") || dt.getData("text/plain");
+      if (/^https?:\/\//.test(url)) runExtractUrl(url.split("\n")[0].trim());
+    };
+    // ページのどこで貼り付けても読み取る（入力欄にフォーカス中は除く）
+    const onPaste = (e: ClipboardEvent) => {
+      if (extracting) return;
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const it of Array.from(items)) {
+        if (it.kind === "file" && (it.type === "application/pdf" || it.type.startsWith("image/"))) {
+          const f = it.getAsFile();
+          if (f) { e.preventDefault(); runExtract(f); return; }
+        }
+      }
     };
     window.addEventListener("dragover", onOver);
     window.addEventListener("drop", onDrop);
+    window.addEventListener("paste", onPaste);
     return () => {
       window.removeEventListener("dragover", onOver);
       window.removeEventListener("drop", onDrop);
+      window.removeEventListener("paste", onPaste);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extracting]);
@@ -277,7 +325,9 @@ export default function NewProjectPage() {
         >
           <p className="text-sm font-bold text-blue-200 mb-1">📄 依頼書から自動入力</p>
           <p className="text-xs text-blue-300/80 mb-3">
-            PDF・写真をここに<span className="font-bold text-blue-200">ドラッグ&ドロップ</span>、または<span className="font-bold text-blue-200">貼り付け（⌘/Ctrl+V）</span>すると、AIが物件名・住所などを読み取って下の項目に入れます（金額など不要な情報は取り込みません）。
+            依頼書を<span className="font-bold text-blue-200">ドラッグ&ドロップ</span>／<span className="font-bold text-blue-200">貼り付け（⌘/Ctrl+V）</span>／ファイル選択のいずれかで、AIが物件名・住所などを自動入力します。
+            <br />
+            <span className="text-blue-300">💡 ドラッグできない時は、依頼書を画面に出して<span className="font-bold text-blue-200">スクショをコピー→この画面で貼り付け</span>が確実です（Macは ⌘⇧4＋Ctrl、Winは Win＋Shift＋S）。</span>
           </p>
           <label className={`block w-full text-center text-sm rounded-lg py-2.5 font-medium border cursor-pointer transition ${extracting ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"}`}>
             {extracting ? "読み取り中… 少々お待ちください" : dragOver ? "ここにドロップ" : "＋ ファイルを選ぶ / ドラッグ / 貼り付け"}

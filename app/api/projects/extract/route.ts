@@ -18,13 +18,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "AI機能が未設定です" }, { status: 500 });
   }
 
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  if (!file) return NextResponse.json({ error: "ファイルがありません" }, { status: 400 });
+  const contentType = req.headers.get("content-type") || "";
+  let bytes: Buffer;
+  let fileType = "";
+  let fileName = "";
 
-  const bytes = Buffer.from(await file.arrayBuffer());
+  if (contentType.includes("application/json")) {
+    // URLドロップ：サーバー側で取得
+    const body = await req.json().catch(() => ({}));
+    const url = String(body.url || "");
+    if (!/^https?:\/\//.test(url)) {
+      return NextResponse.json({ error: "URLが不正です" }, { status: 400 });
+    }
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return NextResponse.json({ error: "URLからファイルを取得できませんでした" }, { status: 400 });
+      fileType = r.headers.get("content-type") || "";
+      bytes = Buffer.from(await r.arrayBuffer());
+      fileName = url.split("?")[0];
+    } catch {
+      return NextResponse.json({ error: "URLからファイルを取得できませんでした" }, { status: 400 });
+    }
+    if (!fileType.includes("pdf") && !fileType.startsWith("image/") && !fileName.toLowerCase().endsWith(".pdf")) {
+      return NextResponse.json({ error: "PDF・画像のURLではありません" }, { status: 400 });
+    }
+  } else {
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    if (!file) return NextResponse.json({ error: "ファイルがありません" }, { status: 400 });
+    bytes = Buffer.from(await file.arrayBuffer());
+    fileType = file.type;
+    fileName = file.name;
+  }
+
   const base64 = bytes.toString("base64");
-  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  const isPdf = fileType === "application/pdf" || fileType.includes("pdf") || fileName.toLowerCase().endsWith(".pdf");
 
   // 抽出対象のドキュメント（PDF or 画像）ブロック
   const docBlock = isPdf
@@ -36,7 +64,7 @@ export async function POST(req: NextRequest) {
         type: "image" as const,
         source: {
           type: "base64" as const,
-          media_type: (file.type || "image/jpeg") as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+          media_type: (fileType || "image/jpeg") as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
           data: base64,
         },
       };

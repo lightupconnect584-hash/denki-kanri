@@ -46,6 +46,46 @@ export default function NewProjectPage() {
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractMsg, setExtractMsg] = useState("");
+
+  const handleExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setExtracting(true);
+    setExtractMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/projects/extract", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) {
+        setExtractMsg(json.error || "読み取りに失敗しました");
+        return;
+      }
+      const d = json.data || {};
+      // 読み取れた項目だけ上書き（空文字は既存値を残す）
+      setForm((prev) => ({
+        ...prev,
+        title: d.title || prev.title,
+        location: d.location || prev.location,
+        roomNumber: d.roomNumber || prev.roomNumber,
+        workType: d.workType || prev.workType,
+        contractorName: d.contractorName || prev.contractorName,
+        contractorPhone: d.contractorPhone || prev.contractorPhone,
+        description: d.description || prev.description,
+        moveInDate: d.moveInDate || prev.moveInDate,
+        preferredContactAt: d.preferredContactAt || prev.preferredContactAt,
+      }));
+      const filled = ["title", "location", "roomNumber", "workType", "contractorName", "contractorPhone", "description"].filter((k) => d[k]).length;
+      setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
+    } catch {
+      setExtractMsg("読み取りに失敗しました");
+    } finally {
+      setExtracting(false);
+    }
+  };
 
   const role = (session?.user as { role?: string })?.role;
 
@@ -152,6 +192,23 @@ export default function NewProjectPage() {
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">新規依頼登録</h2>
+        </div>
+
+        {/* PDF/写真から自動入力（AI読み取り） */}
+        <div className="bg-gradient-to-br from-blue-900/40 to-indigo-900/30 rounded-xl border border-blue-700/60 p-4 mb-4">
+          <p className="text-sm font-bold text-blue-200 mb-1">📄 依頼書から自動入力</p>
+          <p className="text-xs text-blue-300/80 mb-3">依頼元のPDF・写真を選ぶと、AIが物件名・住所・入居者名などを読み取って下の項目に入れます（金額など不要な情報は取り込みません）。</p>
+          <label className={`block w-full text-center text-sm rounded-lg py-2.5 font-medium border cursor-pointer transition ${extracting ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"}`}>
+            {extracting ? "読み取り中… 少々お待ちください" : "＋ PDF・写真を読み取る"}
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              className="hidden"
+              disabled={extracting}
+              onChange={handleExtract}
+            />
+          </label>
+          {extractMsg && <p className="text-xs mt-2 text-center text-blue-200">{extractMsg}</p>}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>

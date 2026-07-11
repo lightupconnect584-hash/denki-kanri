@@ -1,9 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Header from "@/components/Header";
+
+// Web Speech API の型（ブラウザ依存のため最小限定義）
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: { resultIndex: number; results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } } }) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: { error?: string }) => void) | null;
+};
 
 interface UploadedPhoto {
   filename: string;
@@ -40,6 +52,81 @@ export default function InspectPage() {
 
   const [scoring, setScoring] = useState(false);
   const [scoreResult, setScoreResult] = useState<{ score: number; missing: string[] } | null>(null);
+
+  // ── 音声入力 ──
+  const [transcript, setTranscript] = useState("");
+  const [listening, setListening] = useState(false);
+  const [distributing, setDistributing] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+    setSpeechSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+
+  const toggleListening = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = "ja-JP";
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.onresult = (event) => {
+      let added = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) added += event.results[i][0].transcript;
+      }
+      if (added) setTranscript((prev) => (prev ? prev + " " : "") + added);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recognitionRef.current = rec;
+    setListening(true);
+    rec.start();
+  };
+
+  // 話した内容をAIで各項目に振り分け
+  const distributeVoice = async () => {
+    if (!transcript.trim()) return;
+    if (listening) recognitionRef.current?.stop();
+    setDistributing(true);
+    try {
+      const res = await fetch("/api/report-voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "振り分けに失敗しました");
+        return;
+      }
+      const d = json.data || {};
+      const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+      // 空でない項目だけ反映（既に入力済みの欄には追記）
+      const merge = (prev: string, add: string) => (add ? (prev.trim() ? prev + "\n" + add : add) : prev);
+      if (s(d.situation)) setSituation((p) => merge(p, s(d.situation)));
+      if (s(d.cause)) setCause((p) => merge(p, s(d.cause)));
+      if (s(d.response)) setResponse((p) => merge(p, s(d.response)));
+      if (s(d.materials)) setMaterials((p) => merge(p, s(d.materials)));
+      if (s(d.insulation)) setInsulation((p) => p || s(d.insulation));
+      if (s(d.clamp)) setClamp((p) => p || s(d.clamp));
+      if (s(d.repairProposal)) setRepairProposal((p) => merge(p, s(d.repairProposal)));
+      if (s(d.other)) setOther((p) => merge(p, s(d.other)));
+      if (d.needQuote === true) setNeedQuote(true);
+      setTranscript("");
+    } catch {
+      alert("振り分けに失敗しました");
+    } finally {
+      setDistributing(false);
+    }
+  };
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [uploading, setUploading] = useState<"before" | "during" | "after" | "other" | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -274,6 +361,46 @@ export default function InspectPage() {
                 最終日（完了日）: <span className="font-medium text-gray-200">{new Date(finalWorkDate).toLocaleDateString("ja-JP")}</span>
               </p>
             )}
+          </div>
+
+          {/* 音声でまとめて報告（AIが項目に振り分け） */}
+          <div className="bg-indigo-900/30 border border-indigo-700/60 rounded-xl p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-bold text-indigo-300">🎤 音声でまとめて報告</p>
+              {speechSupported && (
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`text-xs rounded-lg px-3 py-1.5 font-medium transition ${
+                    listening
+                      ? "bg-red-600 text-white animate-none"
+                      : "bg-indigo-600 text-white hover:bg-indigo-700"
+                  }`}
+                >
+                  {listening ? "⏹ 停止" : "🎤 話す"}
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-indigo-300/70">
+              状況・原因・やった作業・部材・測定値などを<span className="font-bold text-indigo-200">まとめて話すだけ</span>でOK。AIが下の項目に振り分けます。
+              {!speechSupported && "（キーボードのマイク🎤で下の欄に話してください）"}
+            </p>
+            <textarea
+              rows={3}
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              placeholder={speechSupported ? "「🎤 話す」を押して話すか、ここに直接入力（キーボードのマイクでも可）" : "ここをタップしてキーボードのマイク🎤で話してください"}
+              className={fieldClass}
+            />
+            {listening && <p className="text-xs text-red-400">● 聞き取り中… 話し終わったら「⏹ 停止」を押してください</p>}
+            <button
+              type="button"
+              onClick={distributeVoice}
+              disabled={distributing || !transcript.trim()}
+              className="w-full bg-indigo-600 text-white text-sm rounded-lg py-2 font-medium hover:bg-indigo-700 disabled:opacity-50 transition"
+            >
+              {distributing ? "振り分け中…" : "⬇ AIで各項目に振り分ける"}
+            </button>
           </div>
 
           {/* 詳細内容（4セクション） */}

@@ -18,7 +18,7 @@ interface Project {
   status: string;
   amount: number | null;
   dueDate: string | null;
-
+  visitDate: string | null;
   updatedAt: string;
   notifyAdminAt: string | null;
   notifyPartnerAt: string | null;
@@ -58,7 +58,7 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterUrgency, setFilterUrgency] = useState("");
-  const [sortMode, setSortMode] = useState<"urgency" | "status" | "region">("status");
+  const [sortMode, setSortMode] = useState<"visit" | "urgency" | "status" | "region">("visit");
   const [filterRegion, setFilterRegion] = useState("");
   const [filterPartner, setFilterPartner] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -346,6 +346,13 @@ export default function DashboardPage() {
     if (aU !== bU) return aU - bU;
     if (sortMode === "urgency") return URGENCY_ORDER[a.urgency] - URGENCY_ORDER[b.urgency];
     if (sortMode === "region") return a.location.localeCompare(b.location, "ja");
+    if (sortMode === "visit") {
+      const aV = a.visitDate ? new Date(a.visitDate).getTime() : null;
+      const bV = b.visitDate ? new Date(b.visitDate).getTime() : null;
+      if (aV && bV) return aV - bV;
+      if (aV) return -1;
+      if (bV) return 1;
+    }
     return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
   });
 
@@ -355,6 +362,19 @@ export default function DashboardPage() {
   const actionItems = projects
     .map((p) => ({ project: p, reason: actionReason(role, p) }))
     .filter((x): x is { project: Project; reason: NonNullable<ReturnType<typeof actionReason>> } => x.reason !== null);
+
+  const getVisitBadge = (visitDate: string | null) => {
+    if (!visitDate) return null;
+    const visit = new Date(visitDate);
+    const now = new Date();
+    const diffDays = Math.ceil((new Date(visit).setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 86400000);
+    const dateStr = visit.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
+    if (diffDays < 0) return null;
+    if (diffDays === 0) return { text: `今日 ${dateStr}`, color: "bg-red-900/50 text-red-300 border border-red-700" };
+    if (diffDays === 1) return { text: `明日 ${dateStr}`, color: "bg-orange-900/40 text-orange-300 border border-orange-700" };
+    if (diffDays <= 3) return { text: dateStr, color: "bg-yellow-900/40 text-yellow-300 border border-yellow-700" };
+    return { text: dateStr, color: "bg-blue-900/30 text-blue-400 border border-blue-800" };
+  };
 
   const abbrevAddr = (addr: string) => addr.replace(/[0-9].*$/, "").trim();
 
@@ -569,6 +589,7 @@ export default function DashboardPage() {
   };
 
   const renderProject = (p: Project) => {
+    const visitBadge = getVisitBadge(p.visitDate);
     const unread = isUnread(p);
     const partnerColor = p.assignedTo?.color;
     return (
@@ -602,6 +623,11 @@ export default function DashboardPage() {
                 </p>
               )}
             </div>
+            {visitBadge && (
+              <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium ${visitBadge.color}`}>
+                {visitBadge.text}
+              </span>
+            )}
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <StatusBadge status={p.status} />
@@ -878,6 +904,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-500 mb-1.5">並び替え</p>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
+                        { key: "visit", label: "訪問日順" },
                         { key: "urgency", label: "緊急度順" },
                         { key: "status", label: "状態順" },
                         { key: "region", label: "地域順" },
@@ -951,7 +978,8 @@ export default function DashboardPage() {
                   <p className="text-xs text-gray-500 mb-1.5">並び替え</p>
                   <div className="grid grid-cols-2 gap-1.5">
                     {[
-                      { key: "urgency", label: "緊急度順" },
+                      { key: "visit", label: "訪問日順" },
+                        { key: "urgency", label: "緊急度順" },
                       { key: "status", label: "状態順" },
                       { key: "region", label: "地域順" },
                     ].map(({ key, label }) => (

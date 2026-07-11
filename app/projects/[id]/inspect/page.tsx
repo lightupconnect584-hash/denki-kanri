@@ -38,6 +38,8 @@ export default function InspectPage() {
   const [needQuote, setNeedQuote] = useState(false);
   const [other, setOther] = useState("");
 
+  const [scoring, setScoring] = useState(false);
+  const [scoreResult, setScoreResult] = useState<{ score: number; missing: string[] } | null>(null);
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [uploading, setUploading] = useState<"before" | "during" | "after" | "other" | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -146,6 +148,32 @@ export default function InspectPage() {
   };
 
   const canSubmit = !!result && !!finalWorkDate && situation.trim() && cause.trim() && response.trim();
+
+  // 送信前のAIチェック（報告品質の採点）
+  const checkScore = async () => {
+    setScoring(true);
+    setScoreResult(null);
+    try {
+      const res = await fetch("/api/report-score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          situation, cause, response, materials, insulation, clamp, repairProposal, needQuote,
+          photos: {
+            before: photos.filter((p) => p.category === "before").length,
+            during: photos.filter((p) => p.category === "during").length,
+            after: photos.filter((p) => p.category === "after").length,
+          },
+        }),
+      });
+      if (res.ok) setScoreResult(await res.json());
+      else alert("採点に失敗しました");
+    } catch {
+      alert("採点に失敗しました");
+    } finally {
+      setScoring(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -426,6 +454,43 @@ export default function InspectPage() {
               );
             })}
             {uploadError && <p className="text-xs text-red-500 break-all">{uploadError}</p>}
+          </div>
+
+          {/* AIチェック（報告品質の採点） */}
+          <div className="bg-indigo-900/30 border border-indigo-700/60 rounded-xl p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-bold text-indigo-300">🤖 送信前のAIチェック</p>
+              <button
+                type="button"
+                onClick={checkScore}
+                disabled={scoring || !canSubmit}
+                className="text-xs bg-indigo-600 text-white rounded-lg px-3 py-1.5 hover:bg-indigo-700 disabled:opacity-50 transition"
+              >
+                {scoring ? "採点中…" : "報告を採点する"}
+              </button>
+            </div>
+            {scoreResult ? (
+              <div className="space-y-1.5">
+                <p className={`text-2xl font-bold ${scoreResult.score >= 90 ? "text-green-400" : scoreResult.score >= 70 ? "text-yellow-300" : "text-red-400"}`}>
+                  報告品質 {scoreResult.score}点
+                  {scoreResult.score >= 90 && <span className="text-sm ml-2">🎉</span>}
+                </p>
+                {scoreResult.missing.length > 0 ? (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">不足</p>
+                    <ul className="space-y-0.5">
+                      {scoreResult.missing.map((m, i) => (
+                        <li key={i} className="text-xs text-amber-300">・{m}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-xs text-green-400">不足はありません。このまま送信できます</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-indigo-300/70">入力内容をAIが100点満点で採点し、不足項目をお知らせします（採点しなくても送信できます）</p>
+            )}
           </div>
 
           <button

@@ -135,6 +135,7 @@ export default function ProjectDetailPage() {
   const [editingPolishId, setEditingPolishId] = useState<string | null>(null);
   const [polishText, setPolishText] = useState("");
   const [copiedPolishId, setCopiedPolishId] = useState<string | null>(null);
+  const [polishWarnings, setPolishWarnings] = useState<Record<string, string[]>>({});
 
   // 完了報告をAIで積水向けに清書
   const generatePolish = async (inspectionId: string) => {
@@ -150,6 +151,8 @@ export default function ProjectDetailPage() {
         alert(j.error || "清書に失敗しました");
         return;
       }
+      const j = await res.json();
+      setPolishWarnings((prev) => ({ ...prev, [inspectionId]: j.uncertainties || [] }));
       fetchProject();
     } finally {
       setPolishingId(null);
@@ -1056,7 +1059,19 @@ export default function ProjectDetailPage() {
                         </div>
                       </div>
                     ) : insp.polishedReport ? (
-                      <p className="text-sm text-gray-100 whitespace-pre-wrap bg-gray-900/50 rounded-lg p-3">{insp.polishedReport}</p>
+                      <>
+                        <p className="text-sm text-gray-100 whitespace-pre-wrap bg-gray-900/50 rounded-lg p-3">{insp.polishedReport}</p>
+                        {(polishWarnings[insp.id]?.length ?? 0) > 0 && (
+                          <div className="bg-amber-900/30 border border-amber-700/60 rounded-lg p-2.5">
+                            <p className="text-xs font-bold text-amber-300 mb-1">⚠ 入力内容から判断できなかった事項（送信前に確認）</p>
+                            <ul className="space-y-0.5">
+                              {polishWarnings[insp.id].map((u, i) => (
+                                <li key={i} className="text-xs text-amber-200">・{u}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <p className="text-xs text-indigo-300/70">協力会社の報告をAIが積水ハウス向けの報告文に清書します。作成後はコピーしてそのまま送れます。</p>
                     )}

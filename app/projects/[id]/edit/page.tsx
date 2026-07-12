@@ -32,6 +32,7 @@ export default function EditProjectPage() {
     description: "",
     urgency: "LOW",
     materialSupplied: false,
+    simpleReport: false,
     amount: "",
     dueDate: "",
     assignedToId: "",
@@ -77,6 +78,7 @@ export default function EditProjectPage() {
             moveInDate: data.moveInDate || "",
             receivedAt: data.receivedAt || "",
             parkingInfo: data.parkingInfo || "",
+            simpleReport: data.simpleReport ?? false,
           });
           setLoading(false);
         });
@@ -295,6 +297,19 @@ export default function EditProjectPage() {
                   : "bg-gray-800 text-gray-300 border-gray-600 hover:border-teal-400"
               }`}>
               📦 {form.materialSupplied ? "材料支給あり" : "材料支給なし"}
+            </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-200 mb-1.5">完了報告のタイプ</label>
+            <button type="button"
+              onClick={() => setForm({ ...form, simpleReport: !form.simpleReport })}
+              className={`w-full py-2 rounded-lg text-sm font-medium border transition flex items-center justify-center gap-2 ${
+                form.simpleReport
+                  ? "bg-emerald-600 text-white border-emerald-600"
+                  : "bg-gray-700 text-gray-300 border-gray-600 hover:border-emerald-500"
+              }`}>
+              {form.simpleReport ? "📝 簡易報告でOK（定型作業）" : "📋 詳細報告（状況・原因まで）"}
             </button>
           </div>
 

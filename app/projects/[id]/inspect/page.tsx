@@ -65,6 +65,24 @@ export default function InspectPage() {
     setSpeechSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
   }, []);
 
+  // 案件情報（簡易報告かどうか・依頼名）
+  const [simpleReport, setSimpleReport] = useState(false);
+  const [projectWorkType, setProjectWorkType] = useState("");
+  const [forceDetailed, setForceDetailed] = useState(false);
+  const isSimple = simpleReport && !forceDetailed;
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch(`/api/projects/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setSimpleReport(data.simpleReport ?? false);
+        setProjectWorkType(data.workType || "");
+      })
+      .catch(() => {});
+  }, [status, id]);
+
   const toggleListening = () => {
     if (listening) {
       recognitionRef.current?.stop();
@@ -220,11 +238,11 @@ export default function InspectPage() {
 
   // 4セクションを1つの文字列に結合
   const buildNotes = () => {
-    const parts = [
-      `【状況】\n${situation.trim()}`,
-      `【原因】\n${cause.trim()}`,
-      `【実施内容】\n${response.trim()}`,
-    ];
+    const parts: string[] = [];
+    if (isSimple) parts.push("【簡易報告】定型作業");
+    if (situation.trim()) parts.push(`【状況】\n${situation.trim()}`);
+    if (cause.trim()) parts.push(`【原因】\n${cause.trim()}`);
+    if (response.trim()) parts.push(`【実施内容】\n${response.trim()}`);
     if (materials.trim()) parts.push(`【使用部材】\n${materials.trim()}`);
     if (insulation.trim()) parts.push(`【絶縁抵抗値】${insulation.trim()}`);
     if (clamp.trim()) parts.push(`【クランプ値】${clamp.trim()}`);
@@ -234,7 +252,9 @@ export default function InspectPage() {
     return parts.join("\n\n");
   };
 
-  const canSubmit = !!result && !!finalWorkDate && situation.trim() && cause.trim() && response.trim();
+  const canSubmit = isSimple
+    ? !!result && !!finalWorkDate && !!response.trim() && photos.length > 0
+    : !!result && !!finalWorkDate && !!situation.trim() && !!cause.trim() && !!response.trim();
 
   // 送信前のAIチェック（報告品質の採点）
   const checkScore = async () => {
@@ -363,6 +383,33 @@ export default function InspectPage() {
             )}
           </div>
 
+          {isSimple ? (
+          <div className="bg-emerald-900/30 border border-emerald-700/60 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-emerald-300">📝 この依頼は簡易報告でOK</p>
+              <span className="text-xs bg-emerald-900/50 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded-full">定型作業</span>
+            </div>
+            <p className="text-xs text-emerald-200/70">実施内容ひと言＋写真だけで送信できます。</p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">実施内容 <span className="text-red-500">*</span></label>
+              <textarea
+                rows={2}
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                placeholder={`例: ${projectWorkType || "予定の作業"}を実施し、完了しました`}
+                className={fieldClass}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setForceDetailed(true)}
+              className="w-full text-xs text-amber-300 border border-amber-700 rounded-lg py-2 hover:bg-amber-900/30 transition"
+            >
+              ⚠ 現場で想定外があった → 詳細報告に切り替える
+            </button>
+          </div>
+          ) : (
+          <>
           {/* 音声でまとめて報告（AIが項目に振り分け） */}
           <div className="bg-indigo-900/30 border border-indigo-700/60 rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -532,6 +579,9 @@ export default function InspectPage() {
             </div>
           </div>
 
+          </>
+          )}
+
           {/* 写真（3セクション） */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 space-y-5">
             <div className="flex items-center justify-between">
@@ -583,7 +633,8 @@ export default function InspectPage() {
             {uploadError && <p className="text-xs text-red-500 break-all">{uploadError}</p>}
           </div>
 
-          {/* AIチェック（報告品質の採点） */}
+          {/* AIチェック（報告品質の採点）：詳細モードのみ */}
+          {!isSimple && (
           <div className="bg-indigo-900/30 border border-indigo-700/60 rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-bold text-indigo-300">🤖 送信前のAIチェック</p>
@@ -619,6 +670,7 @@ export default function InspectPage() {
               <p className="text-xs text-indigo-300/70">入力内容をAIが100点満点で採点し、不足項目をお知らせします（採点しなくても送信できます）</p>
             )}
           </div>
+          )}
 
           <button
             type="submit"
@@ -628,7 +680,7 @@ export default function InspectPage() {
             {submitting ? "送信中..." : "完了報告を送信する"}
           </button>
           {!canSubmit && (
-            <p className="text-xs text-center text-red-400">作業結果・作業日・詳細内容（状況・原因・対応）は必須です</p>
+            <p className="text-xs text-center text-red-400">{isSimple ? "作業結果・作業日・実施内容・写真1枚以上が必要です" : "作業結果・作業日・詳細内容（状況・原因・対応）は必須です"}</p>
           )}
         </form>
       </main>

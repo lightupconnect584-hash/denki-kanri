@@ -15,13 +15,14 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const role = (session.user as { role: string }).role;
   if (role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const { name, defaultAmount, defaultUrgency } = await req.json();
+  const { name, defaultAmount, defaultUrgency, defaultSimpleReport } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "name required" }, { status: 400 });
   const item = await prisma.workTypeMaster.create({
     data: {
       name: name.trim(),
       defaultAmount: defaultAmount ? parseInt(defaultAmount) : null,
       defaultUrgency: defaultUrgency || null,
+      defaultSimpleReport: !!defaultSimpleReport,
     },
   });
   return NextResponse.json(item);
@@ -32,12 +33,13 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const role = (session.user as { role: string }).role;
   if (role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const { id, defaultAmount, defaultUrgency } = await req.json();
+  const { id, defaultAmount, defaultUrgency, defaultSimpleReport } = await req.json();
   const item = await prisma.workTypeMaster.update({
     where: { id },
     data: {
       defaultAmount: defaultAmount ? parseInt(defaultAmount) : null,
       defaultUrgency: defaultUrgency || null,
+      ...(defaultSimpleReport !== undefined ? { defaultSimpleReport: !!defaultSimpleReport } : {}),
     },
   });
   return NextResponse.json(item);

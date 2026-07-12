@@ -198,7 +198,7 @@ export default function SettingsPage() {
   const [msgTab, setMsgTab] = useState<"seasonal" | "thankyou">("seasonal");
 
   // 依頼名マスター
-  const [workTypes, setWorkTypes] = useState<{ id: string; name: string; defaultAmount: number | null; defaultUrgency: string | null }[]>([]);
+  const [workTypes, setWorkTypes] = useState<{ id: string; name: string; defaultAmount: number | null; defaultUrgency: string | null; defaultSimpleReport?: boolean }[]>([]);
   const [newWorkType, setNewWorkType] = useState("");
   const [newWorkTypeAmount, setNewWorkTypeAmount] = useState("");
   const [newWorkTypeUrgency, setNewWorkTypeUrgency] = useState("");
@@ -1223,6 +1223,7 @@ export default function SettingsPage() {
                               {w.defaultAmount ? `¥${w.defaultAmount.toLocaleString()}` : "―"}
                               {" · "}
                               {w.defaultUrgency ? urgencyLabel[w.defaultUrgency] : "―"}
+                              {w.defaultSimpleReport && <span className="ml-1 text-emerald-400">· 📝簡易報告</span>}
                             </p>
                           </div>
                           <button type="button" onClick={() => { setExpandedWorkTypeId(expandedWorkTypeId === w.id ? null : w.id); setEditAmounts((p) => ({ ...p, [w.id]: w.defaultAmount ? String(w.defaultAmount) : "" })); setEditUrgencies((p) => ({ ...p, [w.id]: w.defaultUrgency || "" })); }} className="text-blue-500 text-xs shrink-0">編集</button>
@@ -1243,6 +1244,21 @@ export default function SettingsPage() {
                                 <option value="LOW">低</option>
                               </select>
                             </div>
+                            <button type="button"
+                              onClick={async () => {
+                                const res = await fetch("/api/work-types", {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ id: w.id, defaultAmount: editAmounts[w.id] || null, defaultUrgency: editUrgencies[w.id] || null, defaultSimpleReport: !w.defaultSimpleReport }),
+                                });
+                                if (res.ok) {
+                                  const updated = await res.json();
+                                  setWorkTypes((prev) => prev.map((x) => x.id === w.id ? updated : x));
+                                }
+                              }}
+                              className={`w-full text-xs py-1.5 rounded-lg border transition ${w.defaultSimpleReport ? "bg-emerald-600 text-white border-emerald-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-emerald-500"}`}>
+                              {w.defaultSimpleReport ? "📝 簡易報告でOK（タップで詳細に戻す）" : "📋 詳細報告（タップで簡易にする）"}
+                            </button>
                             <button type="button" onClick={() => saveWorkTypeDefaults(w.id)} className="w-full bg-blue-600 text-white text-xs py-1.5 rounded-lg hover:bg-blue-700 transition">保存</button>
                           </div>
                         )}

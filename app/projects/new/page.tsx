@@ -23,7 +23,7 @@ export default function NewProjectPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultUrgency: string | null }[]>([]);
+  const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultUrgency: string | null; defaultSimpleReport?: boolean }[]>([]);
   const [showWorkTypeList, setShowWorkTypeList] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -36,6 +36,7 @@ export default function NewProjectPage() {
     description: "",
     urgency: "LOW",
     materialSupplied: false,
+    simpleReport: false,
     amount: "",
     dueDate: "",
     parkingInfo: "",
@@ -478,6 +479,7 @@ export default function NewProjectPage() {
                         workType: w.name,
                         ...(w.defaultAmount != null ? { amount: String(w.defaultAmount) } : {}),
                         ...(w.defaultUrgency ? { urgency: w.defaultUrgency } : {}),
+                        simpleReport: !!w.defaultSimpleReport,
                       });
                       setShowWorkTypeList(false);
                     }}
@@ -538,6 +540,19 @@ export default function NewProjectPage() {
                   }`}>
                   📦 {form.materialSupplied ? "材料支給あり" : "材料支給なし"}
                 </button>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">完了報告のタイプ</label>
+                <button type="button"
+                  onClick={() => setForm({ ...form, simpleReport: !form.simpleReport })}
+                  className={`w-full py-2 rounded-lg text-sm font-medium border transition flex items-center justify-center gap-2 ${
+                    form.simpleReport
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "bg-gray-700 text-gray-300 border-gray-600 hover:border-emerald-500"
+                  }`}>
+                  {form.simpleReport ? "📝 簡易報告でOK（定型作業）" : "📋 詳細報告（状況・原因まで）"}
+                </button>
+                <p className="text-xs text-gray-500 mt-1">依頼名マスターで設定しておくと自動で切り替わります</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">駐車場空き区画 <span className="text-gray-500 font-normal text-xs">（任意）</span></label>

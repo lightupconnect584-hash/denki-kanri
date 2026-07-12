@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     where: { id: inspectionId, projectId: id },
     include: {
       project: {
-        select: { title: true, roomNumber: true, location: true, workType: true },
+        select: { title: true, roomNumber: true, location: true, workType: true, simpleReport: true },
       },
     },
   });
@@ -78,7 +78,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 入力内容だけでは判断できない事項があれば、文章を補完せず一覧にする。なければ空配列。
 例：「原因の記載なし」「現在の復旧状況不明」「交換か切り離しか判断できない」「測定値なし」「見積有無不明」
 
-# 案件情報（参考。出力には含めない）
+${inspection.project.simpleReport ? `# この案件について
+この案件は事前に作業内容が確定していた定型作業（簡易報告）です。
+【状況】は依頼名をもとに簡潔に1文で書き、【原因】は省略してください。
+【対応】を中心に、2〜3文の短い報告にしてください。
+
+` : ""}# 案件情報（参考。出力には含めない）
 物件名: ${p.title}${p.roomNumber ? ` ${p.roomNumber}` : ""}
 依頼名: ${p.workType || "（未設定）"}
 作業日: ${workDates}

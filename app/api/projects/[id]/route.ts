@@ -136,7 +136,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
   // 編集フィールド（管理者が内容を変更した場合 → 協力会社に通知）
-  const contentFields = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate", "preferredContactAt", "preferredVisitAt", "materialSupplied", "receivedAt", "parkingInfo", "simpleReport"];
+  const contentFields = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate", "preferredContactAt", "preferredVisitAt", "materialSupplied", "receivedAt", "parkingInfo", "simpleReport", "region"];
   const contentEdited = role === "ADMIN" && contentFields.some(f => body[f] !== undefined);
   if (contentEdited) updateData.notifyPartnerAt = new Date();
   if (body.title !== undefined) updateData.title = body.title;
@@ -169,6 +169,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.moveInDate !== undefined) updateData.moveInDate = body.moveInDate || null;
   if (body.receivedAt !== undefined) updateData.receivedAt = body.receivedAt || null;
   if (body.parkingInfo !== undefined) updateData.parkingInfo = body.parkingInfo || null;
+  if (body.region !== undefined) updateData.region = body.region || null;
 
   // 金額変更は管理者のみ・変更履歴を記録
   let oldAmount: number | null = null;

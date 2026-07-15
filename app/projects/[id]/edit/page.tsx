@@ -43,6 +43,7 @@ export default function EditProjectPage() {
     moveInDate: "",
     receivedAt: "",
     parkingInfo: "",
+    region: "",
     managerName: "",
     afterManagerName: "",
   });
@@ -86,6 +87,7 @@ export default function EditProjectPage() {
             moveInDate: data.moveInDate || "",
             receivedAt: data.receivedAt || "",
             parkingInfo: data.parkingInfo || "",
+            region: data.region || "",
             managerName: data.managerName || "",
             afterManagerName: data.afterManagerName || "",
             simpleReport: data.simpleReport ?? false,
@@ -371,6 +373,19 @@ export default function EditProjectPage() {
             <input type="text" value={form.parkingInfo}
               onChange={(e) => setForm({ ...form, parkingInfo: e.target.value })}
               className={inputClass} placeholder="例: 12番・来客用" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-200 mb-1.5">エリア</label>
+            <div className="flex gap-2">
+              {["埼玉", "北関東"].map((r) => (
+                <button key={r} type="button"
+                  onClick={() => setForm({ ...form, region: form.region === r ? "" : r })}
+                  className={`flex-1 py-2 text-sm rounded-lg border transition font-medium ${form.region === r ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
+                  {r}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>

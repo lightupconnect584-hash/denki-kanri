@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
       moveInDate: body.moveInDate || null,
       receivedAt: body.receivedAt || null,
       parkingInfo: body.parkingInfo || null,
+      region: body.region || null,
       createdById: userId,
       // 自社案件（担当＝作成者）は受注済みで作成
       status: body.assignedToId && body.assignedToId === userId && body.status === "ACCEPTED" ? "ACCEPTED" : "PENDING",

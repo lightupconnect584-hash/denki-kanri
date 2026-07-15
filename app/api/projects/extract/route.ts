@@ -87,12 +87,13 @@ export async function POST(req: NextRequest) {
       smsAllowed: { type: "boolean", description: "ショートメッセージ（SMS）での連絡が可能か。可・OK等の記載があればtrue、不可・記載なしはfalse" },
       managerName: { type: "string", description: "管理担当者名（依頼元の管理担当者。『管理担当』等の項目）。不明なら空文字" },
       afterManagerName: { type: "string", description: "アフター担当者名（『アフター担当』等の項目）。不明なら空文字" },
+      region: { type: "string", enum: ["埼玉", "北関東", ""], description: "依頼元のエリア。書類の発行元・支店名・住所から判断：埼玉（埼玉県）なら「埼玉」、北関東（栃木県・茨城県・群馬県）なら「北関東」。判断できなければ空文字" },
     },
     required: [
       "title", "location", "roomNumber",
       "contractorName", "contractorPhone", "description",
       "moveInDate", "preferredContactAt", "receivedAt", "smsAllowed",
-      "managerName", "afterManagerName",
+      "managerName", "afterManagerName", "region",
     ],
   };
 

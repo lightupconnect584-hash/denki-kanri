@@ -20,6 +20,7 @@ interface Project {
   dueDate: string | null;
   visitDate: string | null;
   visitTime: string | null;
+  region: string | null;
   onHold: boolean;
   holdReason: string | null;
   holdAt: string | null;
@@ -718,7 +719,23 @@ export default function DashboardPage() {
                           <h3 className="text-sm font-bold text-white">🔧 自社案件</h3>
                           <span className="text-xs text-gray-500">（{selfActive.length}件）</span>
                         </div>
-                        <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{selfActive.map(renderProject)}</div>
+                        {/* エリア別（埼玉 / 北関東 / 未分類）に分けて表示 */}
+                        <div className="space-y-4">
+                          {([["埼玉", "text-pink-300", "bg-pink-400"], ["北関東", "text-emerald-300", "bg-emerald-400"], ["", "text-gray-400", "bg-gray-500"]] as const).map(([reg, textCls, barCls]) => {
+                            const group = selfActive.filter((p) => (p.region || "") === reg);
+                            if (group.length === 0) return null;
+                            return (
+                              <div key={reg || "none"}>
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <span className={`w-2 h-2 rounded-full ${barCls}`} />
+                                  <span className={`text-xs font-bold ${textCls}`}>{reg || "エリア未設定"}</span>
+                                  <span className="text-xs text-gray-600">{group.length}件</span>
+                                </div>
+                                <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{group.map(renderProject)}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                     {partnerActive.length > 0 && (

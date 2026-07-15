@@ -42,6 +42,7 @@ export default function NewProjectPage() {
     materialCost: "",
     dueDate: "",
     parkingInfo: "",
+    region: "",
     assignedToId: "",
     preferredContactAt: "",
     preferredVisitAt: "",
@@ -78,6 +79,15 @@ export default function NewProjectPage() {
       managerName: s(d.managerName) || prev.managerName,
       afterManagerName: s(d.afterManagerName) || prev.afterManagerName,
       smsAllowed: typeof d.smsAllowed === "boolean" ? d.smsAllowed : prev.smsAllowed,
+      region: (() => {
+        const r = s(d.region);
+        if (r === "埼玉" || r === "北関東") return r;
+        // 住所から判定（埼玉県→埼玉、栃木/茨城/群馬→北関東）
+        const loc = s(d.location);
+        if (loc.includes("埼玉")) return "埼玉";
+        if (/栃木|茨城|群馬/.test(loc)) return "北関東";
+        return prev.region;
+      })(),
     }));
     const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt", "description"].filter((k) => s(d[k])).length;
     setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
@@ -738,6 +748,18 @@ export default function NewProjectPage() {
                 <input type="text" value={form.parkingInfo}
                   onChange={(e) => setForm({ ...form, parkingInfo: e.target.value })}
                   className={inputClass} placeholder="例: 12番・来客用" maxLength={30} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">エリア <span className="text-gray-500 font-normal text-xs">（AI読み取りで自動判定）</span></label>
+                <div className="flex gap-2">
+                  {["埼玉", "北関東"].map((r) => (
+                    <button key={r} type="button"
+                      onClick={() => setForm({ ...form, region: form.region === r ? "" : r })}
+                      className={`flex-1 py-2 text-sm rounded-lg border transition font-medium ${form.region === r ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

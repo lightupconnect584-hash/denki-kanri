@@ -605,6 +605,7 @@ export default function NewProjectPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={3} className={inputClass} placeholder="作業の詳細や注意事項など" />
               </div>
+              {!isSelf && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">金額【税別】</label>
                 <div className="relative">
@@ -622,6 +623,7 @@ export default function NewProjectPage() {
                     placeholder="0" />
                 </div>
               </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">売上（積水請求・税別）<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
                 <div className="relative">

@@ -95,6 +95,8 @@ interface Project {
   urgency: string;
   materialSupplied: boolean;
   amount: number | null;
+  salesAmount: number | null;
+  materialCost: number | null;
   visitDate: string | null;
   visitTime: string | null;
   onHold: boolean;
@@ -491,6 +493,7 @@ export default function ProjectDetailPage() {
   const isAssigned = project.assignedTo?.id === userId;
   // 担当者（協力会社、または自分担当の管理者）は報告・受注操作が可能
   const canInspect = isAssigned && (role === "PARTNER" || role === "ADMIN");
+  const isSelfJob = role === "ADMIN" && isAssigned; // 自社施工案件
 
   // 訪問予定日のラベル
   const getVisitLabel = (dateStr: string | null) => {
@@ -731,7 +734,7 @@ export default function ProjectDetailPage() {
               {project.urgency === "HIGH" ? "高" : project.urgency === "MEDIUM" ? "中" : "低"}
             </span>
           </div>
-          {project.amount != null && (
+          {project.amount != null && !isSelfJob && (
             <div>
               <p className="text-xs text-gray-400">金額【税別】</p>
               {(() => {
@@ -755,6 +758,22 @@ export default function ProjectDetailPage() {
                   </div>
                 );
               })()}
+            </div>
+          )}
+          {role === "ADMIN" && (project.salesAmount != null || project.materialCost != null) && (
+            <div className="flex gap-6 flex-wrap">
+              {project.salesAmount != null && (
+                <div>
+                  <p className="text-xs text-gray-400">売上（積水請求・税別）<span className="ml-1">🔒</span></p>
+                  <p className="text-sm font-medium text-gray-100">¥{project.salesAmount.toLocaleString()}</p>
+                </div>
+              )}
+              {project.materialCost != null && (
+                <div>
+                  <p className="text-xs text-gray-400">材料費（税別）<span className="ml-1">🔒</span></p>
+                  <p className="text-sm font-medium text-gray-100">¥{project.materialCost.toLocaleString()}</p>
+                </div>
+              )}
             </div>
           )}
           {project.parkingInfo && (

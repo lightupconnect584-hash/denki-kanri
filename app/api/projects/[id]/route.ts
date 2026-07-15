@@ -56,8 +56,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
   // 協力会社には売上（積水請求額）・材料費を見せない
   if (role === "PARTNER") {
-    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null };
-    void _s; void _m; void _mn; void _an;
+    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null };
+    void _s; void _m; void _mn; void _an; void _memo;
     return NextResponse.json(rest);
   }
   return NextResponse.json(project);
@@ -170,6 +170,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.receivedAt !== undefined) updateData.receivedAt = body.receivedAt || null;
   if (body.parkingInfo !== undefined) updateData.parkingInfo = body.parkingInfo || null;
   if (body.region !== undefined) updateData.region = body.region || null;
+  // 自社案件メモ（管理者のみ・協力会社には非公開・通知は出さない）
+  if (body.memo !== undefined && role === "ADMIN") updateData.memo = body.memo || null;
 
   // 金額変更は管理者のみ・変更履歴を記録
   let oldAmount: number | null = null;

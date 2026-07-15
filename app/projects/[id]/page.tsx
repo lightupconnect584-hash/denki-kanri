@@ -97,6 +97,7 @@ interface Project {
   amount: number | null;
   salesAmount: number | null;
   materialCost: number | null;
+  memo: string | null;
   visitDate: string | null;
   visitTime: string | null;
   onHold: boolean;
@@ -133,6 +134,9 @@ export default function ProjectDetailPage() {
   const [holdPanelOpen, setHoldPanelOpen] = useState(false);
   const [holdCustom, setHoldCustom] = useState("");
   const [savingHold, setSavingHold] = useState(false);
+  const [memoInput, setMemoInput] = useState("");
+  const [memoSaved, setMemoSaved] = useState(false);
+  const [savingMemo, setSavingMemo] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
@@ -211,6 +215,7 @@ export default function ProjectDetailPage() {
         if (!data) return;
         if (data.error) { window.location.href = "/dashboard"; return; }
         setProject(data);
+        if (!isRefresh) setMemoInput(data.memo || "");
         // visitDateを日付のみ（YYYY-MM-DD）に変換してセット
         if (data.visitDate) {
           const d = new Date(data.visitDate);
@@ -465,6 +470,18 @@ export default function ProjectDetailPage() {
     setHoldCustom("");
     fetchProject();
     setSavingHold(false);
+  };
+
+  const saveMemo = async () => {
+    setSavingMemo(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memo: memoInput }),
+    });
+    setSavingMemo(false);
+    setMemoSaved(true);
+    setTimeout(() => setMemoSaved(false), 2000);
   };
 
   const saveVisitDate = async () => {
@@ -1330,6 +1347,33 @@ export default function ProjectDetailPage() {
             >
               📞 急ぎの確認
             </a>
+          </div>
+        )}
+
+        {/* 📝 メモ（自社案件のみ・自分用の自由メモ） */}
+        {isSelfJob && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-gray-100">📝 メモ</h3>
+              {memoSaved && <span className="text-xs text-green-400">✓ 保存しました</span>}
+            </div>
+            <textarea
+              value={memoInput}
+              onChange={(e) => { setMemoInput(e.target.value); setMemoSaved(false); }}
+              onBlur={saveMemo}
+              rows={5}
+              placeholder="この案件のメモ（作業内容・連絡事項・気づいたことなど）&#10;※自分用。協力会社には表示されません"
+              className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+            />
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={saveMemo}
+                disabled={savingMemo}
+                className="text-xs bg-blue-600 text-white rounded-lg px-4 py-1.5 hover:bg-blue-700 disabled:opacity-50 transition"
+              >
+                {savingMemo ? "保存中…" : "保存"}
+              </button>
+            </div>
           </div>
         )}
 

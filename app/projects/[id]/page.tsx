@@ -1060,8 +1060,8 @@ export default function ProjectDetailPage() {
         {/* 協力会社向けアクションボタン */}
         {canInspect && (
           <div className="mb-4 space-y-3">
-            {/* PENDING：受注 or 差し戻し */}
-            {project.status === "PENDING" && (
+            {/* PENDING：受注 or 差し戻し（自社案件は自分で登録済みなので受注不要→完了報告へ） */}
+            {project.status === "PENDING" && !isSelfJob && (
               <div className="bg-gray-800 rounded-xl border border-gray-700 p-4">
                 <p className="text-xs text-gray-400 mb-3 text-center">この依頼を受けますか？</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -1082,8 +1082,8 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
             )}
-            {/* ACCEPTED：完了報告 */}
-            {project.status === "ACCEPTED" && (
+            {/* ACCEPTED（自社案件はPENDINGでも）：完了報告 */}
+            {(project.status === "ACCEPTED" || (project.status === "PENDING" && isSelfJob)) && (
               <Link
                 href={`/projects/${id}/inspect`}
                 className="block w-full bg-green-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-green-700 transition text-center"

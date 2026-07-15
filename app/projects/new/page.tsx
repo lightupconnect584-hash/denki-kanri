@@ -360,6 +360,8 @@ export default function NewProjectPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...payload,
+        // 自社案件は自分で登録＝受注済みなので、最初から受注状態にする
+        ...(isSelf ? { status: "ACCEPTED" } : {}),
         photos: allPhotos,
       }),
     });

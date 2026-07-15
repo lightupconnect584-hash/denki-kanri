@@ -71,7 +71,8 @@ export async function POST(req: NextRequest) {
       receivedAt: body.receivedAt || null,
       parkingInfo: body.parkingInfo || null,
       createdById: userId,
-      status: "PENDING",
+      // 自社案件（担当＝作成者）は受注済みで作成
+      status: body.assignedToId && body.assignedToId === userId && body.status === "ACCEPTED" ? "ACCEPTED" : "PENDING",
       notifyPartnerAt: new Date(),
       projectPhotos: {
         create: (body.photos || []).map((p: { filename: string; originalName: string }) => ({
@@ -82,8 +83,8 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // 担当者への通知
-  if (body.assignedToId) {
+  // 担当者への通知（自社案件は自分宛なので不要）
+  if (body.assignedToId && body.assignedToId !== userId) {
     sendPushToUsers([body.assignedToId], {
       title: "新しい依頼が届きました",
       body: `${body.title}（${body.location}）`,

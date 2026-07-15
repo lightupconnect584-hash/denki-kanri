@@ -43,6 +43,8 @@ export default function EditProjectPage() {
     moveInDate: "",
     receivedAt: "",
     parkingInfo: "",
+    managerName: "",
+    afterManagerName: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -84,6 +86,8 @@ export default function EditProjectPage() {
             moveInDate: data.moveInDate || "",
             receivedAt: data.receivedAt || "",
             parkingInfo: data.parkingInfo || "",
+            managerName: data.managerName || "",
+            afterManagerName: data.afterManagerName || "",
             simpleReport: data.simpleReport ?? false,
           });
           setLoading(false);
@@ -194,6 +198,22 @@ export default function EditProjectPage() {
               onChange={(e) => setForm({ ...form, receivedAt: e.target.value })}
               className={inputClass} placeholder="例: 7/10 10:30" />
           </div>
+
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-200 mb-1">管理担当者名</label>
+              <input type="text" value={form.managerName}
+                onChange={(e) => setForm({ ...form, managerName: e.target.value })}
+                className={inputClass} placeholder="依頼元の管理担当" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-200 mb-1">アフター担当者名</label>
+              <input type="text" value={form.afterManagerName}
+                onChange={(e) => setForm({ ...form, afterManagerName: e.target.value })}
+                className={inputClass} placeholder="アフター担当" />
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 -mt-2">🔒 担当者名は協力会社には表示されません</p>
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">折り返し先名カナ</label>

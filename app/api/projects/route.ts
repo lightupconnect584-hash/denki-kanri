@@ -26,8 +26,8 @@ export async function GET() {
   // 協力会社には売上（積水請求額）・材料費を見せない
   if (role === "PARTNER") {
     const sanitized = projects.map((p) => {
-      const { salesAmount: _s, materialCost: _m, ...rest } = p as typeof p & { salesAmount: number | null; materialCost: number | null };
-      void _s; void _m;
+      const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, ...rest } = p as typeof p & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null };
+      void _s; void _m; void _mn; void _an;
       return rest;
     });
     return NextResponse.json(sanitized);
@@ -61,6 +61,8 @@ export async function POST(req: NextRequest) {
       amount: body.amount !== undefined && body.amount !== "" && body.amount !== null ? parseInt(body.amount) : null,
       salesAmount: body.salesAmount !== undefined && body.salesAmount !== "" && body.salesAmount !== null ? parseInt(body.salesAmount) : null,
       materialCost: body.materialCost !== undefined && body.materialCost !== "" && body.materialCost !== null ? parseInt(body.materialCost) : null,
+      managerName: body.managerName || null,
+      afterManagerName: body.afterManagerName || null,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       assignedToId: body.assignedToId || null,
       preferredContactAt: body.preferredContactAt || null,

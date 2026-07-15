@@ -56,8 +56,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
   // 協力会社には売上（積水請求額）・材料費を見せない
   if (role === "PARTNER") {
-    const { salesAmount: _s, materialCost: _m, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null };
-    void _s; void _m;
+    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null };
+    void _s; void _m; void _mn; void _an;
     return NextResponse.json(rest);
   }
   return NextResponse.json(project);
@@ -157,6 +157,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.materialCost !== undefined && role === "ADMIN") {
     updateData.materialCost = body.materialCost !== "" && body.materialCost !== null ? parseInt(body.materialCost) : null;
   }
+  if (body.managerName !== undefined && role === "ADMIN") updateData.managerName = body.managerName || null;
+  if (body.afterManagerName !== undefined && role === "ADMIN") updateData.afterManagerName = body.afterManagerName || null;
   // 請求月の上書き（管理者のみ）
   if (body.billingMonth !== undefined && role === "ADMIN") {
     updateData.billingMonth = body.billingMonth || null;

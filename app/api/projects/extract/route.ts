@@ -85,11 +85,14 @@ export async function POST(req: NextRequest) {
       preferredContactAt: { type: "string", description: "連絡希望日時（あれば）。不明なら空文字" },
       receivedAt: { type: "string", description: "受付日時（依頼を受け付けた日時。文字列そのまま）。不明なら空文字" },
       smsAllowed: { type: "boolean", description: "ショートメッセージ（SMS）での連絡が可能か。可・OK等の記載があればtrue、不可・記載なしはfalse" },
+      managerName: { type: "string", description: "管理担当者名（依頼元の管理担当者。『管理担当』等の項目）。不明なら空文字" },
+      afterManagerName: { type: "string", description: "アフター担当者名（『アフター担当』等の項目）。不明なら空文字" },
     },
     required: [
       "title", "location", "roomNumber",
       "contractorName", "contractorPhone", "description",
       "moveInDate", "preferredContactAt", "receivedAt", "smsAllowed",
+      "managerName", "afterManagerName",
     ],
   };
 
@@ -107,7 +110,7 @@ export async function POST(req: NextRequest) {
               type: "text",
               text:
                 "これは電気工事の依頼元から届いた依頼書です。記載内容から、指定のJSON項目だけを抽出してください。" +
-                "金額・料金・依頼元の社内担当者名・社内管理番号などは抽出しないでください。" +
+                "金額・料金・社内管理番号などは抽出しないでください（管理担当者名・アフター担当者名は抽出対象です）。" +
                 "moveInDate（入居開始日）には日付のみを入れてください。『入居区分』『入居状況』『空室/入居中』などの区分・状態は入居開始日ではないので絶対に入れないでください。" +
                 "入居開始日の日付が書かれていない場合は必ず空文字にしてください。" +
                 "読み取れない項目は空文字にしてください。推測で埋めないでください。",

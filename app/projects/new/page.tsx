@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
@@ -47,6 +47,8 @@ export default function NewProjectPage() {
     preferredVisitAt: "",
     moveInDate: "",
     receivedAt: "",
+    managerName: "",
+    afterManagerName: "",
   });
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -54,6 +56,7 @@ export default function NewProjectPage() {
   const [extracting, setExtracting] = useState(false);
   const [extractMsg, setExtractMsg] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const extractFileRef = useRef<File | null>(null);
 
   // 読み取り結果をフォームに反映（空文字は既存値を残す）
   const applyExtracted = (d: Record<string, unknown>) => {
@@ -69,6 +72,8 @@ export default function NewProjectPage() {
       moveInDate: s(d.moveInDate) || prev.moveInDate,
       preferredContactAt: s(d.preferredContactAt) || prev.preferredContactAt,
       receivedAt: s(d.receivedAt) || prev.receivedAt,
+      managerName: s(d.managerName) || prev.managerName,
+      afterManagerName: s(d.afterManagerName) || prev.afterManagerName,
       smsAllowed: typeof d.smsAllowed === "boolean" ? d.smsAllowed : prev.smsAllowed,
     }));
     const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt", "description"].filter((k) => s(d[k])).length;
@@ -77,6 +82,7 @@ export default function NewProjectPage() {
 
   const runExtract = async (file: File) => {
     if (!file) return;
+    extractFileRef.current = file;
     // PDF・画像のみ受け付け
     const ok = file.type === "application/pdf" || file.type.startsWith("image/") || file.name.toLowerCase().endsWith(".pdf");
     if (!ok) {
@@ -302,12 +308,26 @@ export default function NewProjectPage() {
     e.preventDefault();
     setLoading(true);
 
+    // 自社施工の場合：AI読み取りに使った依頼書の原本を自動で添付（協力会社には渡らないため安全）
+    let allPhotos = photos.map((p) => ({ filename: p.filename, originalName: p.originalName }));
+    if (form.assignedToId === myId && extractFileRef.current) {
+      try {
+        const fd = new FormData();
+        fd.append("file", extractFileRef.current);
+        const up = await fetch("/api/upload", { method: "POST", body: fd });
+        if (up.ok) {
+          const j = await up.json();
+          allPhotos = [...allPhotos, { filename: j.filename, originalName: j.originalName || "依頼書原本.pdf" }];
+        }
+      } catch { /* 添付失敗しても登録は続行 */ }
+    }
+
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
-        photos: photos.map((p) => ({ filename: p.filename, originalName: p.originalName })),
+        photos: allPhotos,
       }),
     });
 
@@ -342,6 +362,8 @@ export default function NewProjectPage() {
             依頼書を<span className="font-bold text-blue-200">ドラッグ&ドロップ</span>／<span className="font-bold text-blue-200">貼り付け（⌘/Ctrl+V）</span>／ファイル選択のいずれかで、AIが物件名・住所などを自動入力します。
             <br />
             <span className="text-blue-300">💡 ドラッグできない時は、依頼書を画面に出して<span className="font-bold text-blue-200">スクショをコピー→この画面で貼り付け</span>が確実です（Macは ⌘⇧4＋Ctrl、Winは Win＋Shift＋S）。</span>
+            <br />
+            <span className="text-blue-300">🔧 担当を「自分で施工」にすると、読み取った依頼書の原本が自動で添付され、詳細ページでそのまま見られます。</span>
           </p>
           <label className={`block w-full text-center text-sm rounded-lg py-2.5 font-medium border cursor-pointer transition ${extracting ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"}`}>
             {extracting ? "読み取り中… 少々お待ちください" : dragOver ? "ここにドロップ" : "＋ ファイルを選ぶ / ドラッグ / 貼り付け"}
@@ -397,6 +419,21 @@ export default function NewProjectPage() {
                   onChange={(e) => setForm({ ...form, receivedAt: e.target.value })}
                   className={inputClass} placeholder="例: 7/10 10:30" maxLength={20} />
               </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">管理担当者名</label>
+                  <input type="text" value={form.managerName}
+                    onChange={(e) => setForm({ ...form, managerName: e.target.value })}
+                    className={inputClass} placeholder="依頼元の管理担当" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">アフター担当者名</label>
+                  <input type="text" value={form.afterManagerName}
+                    onChange={(e) => setForm({ ...form, afterManagerName: e.target.value })}
+                    className={inputClass} placeholder="アフター担当" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 -mt-1">🔒 担当者名は協力会社には表示されません</p>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-300 mb-1">折り返し先名カナ</label>

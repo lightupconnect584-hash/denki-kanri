@@ -90,6 +90,8 @@ interface Project {
   moveInDate: string | null;
   receivedAt: string | null;
   parkingInfo: string | null;
+  managerName: string | null;
+  afterManagerName: string | null;
   urgency: string;
   materialSupplied: boolean;
   amount: number | null;
@@ -645,6 +647,22 @@ export default function ProjectDetailPage() {
             <div>
               <p className="text-xs text-gray-400">受付日時</p>
               <p className="text-sm text-gray-200">{project.receivedAt}</p>
+            </div>
+          )}
+          {role === "ADMIN" && (project.managerName || project.afterManagerName) && (
+            <div className="flex gap-6 flex-wrap">
+              {project.managerName && (
+                <div>
+                  <p className="text-xs text-gray-400">管理担当 <span className="text-gray-600">🔒</span></p>
+                  <p className="text-sm text-gray-200">{project.managerName}</p>
+                </div>
+              )}
+              {project.afterManagerName && (
+                <div>
+                  <p className="text-xs text-gray-400">アフター担当 <span className="text-gray-600">🔒</span></p>
+                  <p className="text-sm text-gray-200">{project.afterManagerName}</p>
+                </div>
+              )}
             </div>
           )}
           {project.preferredContactAt && (

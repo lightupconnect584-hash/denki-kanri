@@ -198,13 +198,14 @@ export default function SettingsPage() {
   const [msgTab, setMsgTab] = useState<"seasonal" | "thankyou">("seasonal");
 
   // 依頼名マスター
-  const [workTypes, setWorkTypes] = useState<{ id: string; name: string; defaultAmount: number | null; defaultUrgency: string | null; defaultSimpleReport?: boolean }[]>([]);
+  const [workTypes, setWorkTypes] = useState<{ id: string; name: string; defaultAmount: number | null; defaultSales?: number | null; defaultUrgency: string | null; defaultSimpleReport?: boolean }[]>([]);
   const [newWorkType, setNewWorkType] = useState("");
   const [newWorkTypeAmount, setNewWorkTypeAmount] = useState("");
   const [newWorkTypeUrgency, setNewWorkTypeUrgency] = useState("");
   const [savingWorkType, setSavingWorkType] = useState(false);
   const [expandedWorkTypeId, setExpandedWorkTypeId] = useState<string | null>(null);
   const [editAmounts, setEditAmounts] = useState<Record<string, string>>({});
+  const [editSales, setEditSales] = useState<Record<string, string>>({});
   const [editUrgencies, setEditUrgencies] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -305,7 +306,7 @@ export default function SettingsPage() {
     const res = await fetch("/api/work-types", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, defaultAmount: editAmounts[id] || null, defaultUrgency: editUrgencies[id] || null }),
+      body: JSON.stringify({ id, defaultAmount: editAmounts[id] || null, defaultSales: editSales[id] || null, defaultUrgency: editUrgencies[id] || null }),
     });
     if (res.ok) {
       const updated = await res.json();
@@ -1221,12 +1222,13 @@ export default function SettingsPage() {
                             <p className="text-sm text-gray-200 font-medium truncate">{w.name}</p>
                             <p className="text-xs text-gray-400">
                               {w.defaultAmount ? `¥${w.defaultAmount.toLocaleString()}` : "―"}
+                              {w.defaultSales ? ` · 売上¥${w.defaultSales.toLocaleString()}` : ""}
                               {" · "}
                               {w.defaultUrgency ? urgencyLabel[w.defaultUrgency] : "―"}
                               {w.defaultSimpleReport && <span className="ml-1 text-emerald-400">· 📝簡易報告</span>}
                             </p>
                           </div>
-                          <button type="button" onClick={() => { setExpandedWorkTypeId(expandedWorkTypeId === w.id ? null : w.id); setEditAmounts((p) => ({ ...p, [w.id]: w.defaultAmount ? String(w.defaultAmount) : "" })); setEditUrgencies((p) => ({ ...p, [w.id]: w.defaultUrgency || "" })); }} className="text-blue-500 text-xs shrink-0">編集</button>
+                          <button type="button" onClick={() => { setExpandedWorkTypeId(expandedWorkTypeId === w.id ? null : w.id); setEditAmounts((p) => ({ ...p, [w.id]: w.defaultAmount ? String(w.defaultAmount) : "" })); setEditSales((p) => ({ ...p, [w.id]: w.defaultSales ? String(w.defaultSales) : "" })); setEditUrgencies((p) => ({ ...p, [w.id]: w.defaultUrgency || "" })); }} className="text-blue-500 text-xs shrink-0">編集</button>
                           <button type="button" onClick={() => deleteWorkType(w.id)} className="text-red-400 text-xs shrink-0">削除</button>
                         </div>
                         {expandedWorkTypeId === w.id && (
@@ -1236,6 +1238,11 @@ export default function SettingsPage() {
                                 onChange={(e) => setEditAmounts((p) => ({ ...p, [w.id]: e.target.value }))}
                                 onBlur={(e) => setEditAmounts((p) => ({ ...p, [w.id]: e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "") }))}
                                 placeholder="金額（税別）"
+                                className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              <input type="text" inputMode="numeric" value={editSales[w.id] || ""}
+                                onChange={(e) => setEditSales((p) => ({ ...p, [w.id]: e.target.value }))}
+                                onBlur={(e) => setEditSales((p) => ({ ...p, [w.id]: e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "") }))}
+                                placeholder="売上（税別）"
                                 className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                               <select value={editUrgencies[w.id] || ""} onChange={(e) => setEditUrgencies((p) => ({ ...p, [w.id]: e.target.value }))} className="flex-1 border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">緊急度なし</option>

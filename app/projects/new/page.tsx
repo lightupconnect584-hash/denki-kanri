@@ -23,7 +23,7 @@ export default function NewProjectPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultUrgency: string | null; defaultSimpleReport?: boolean }[]>([]);
+  const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultSales?: number | null; defaultUrgency: string | null; defaultSimpleReport?: boolean }[]>([]);
   const [showWorkTypeList, setShowWorkTypeList] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -483,6 +483,7 @@ export default function NewProjectPage() {
                         workType: w.name,
                         ...(w.defaultAmount != null ? { amount: String(w.defaultAmount) } : {}),
                         ...(w.defaultUrgency ? { urgency: w.defaultUrgency } : {}),
+                        ...(w.defaultSales != null ? { salesAmount: String(w.defaultSales) } : {}),
                         simpleReport: !!w.defaultSimpleReport,
                       });
                       setShowWorkTypeList(false);

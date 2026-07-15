@@ -19,7 +19,7 @@ export default function EditProjectPage() {
   const id = params.id as string;
 
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultUrgency: string | null }[]>([]);
+  const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultSales?: number | null; defaultUrgency: string | null }[]>([]);
   const [showWorkTypeList, setShowWorkTypeList] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -175,6 +175,7 @@ export default function EditProjectPage() {
                         ...form,
                         workType: w.name,
                         ...(w.defaultAmount != null ? { amount: String(w.defaultAmount) } : {}),
+                        ...(w.defaultSales != null ? { salesAmount: String(w.defaultSales) } : {}),
                         ...(w.defaultUrgency ? { urgency: w.defaultUrgency } : {}),
                       });
                       setShowWorkTypeList(false);

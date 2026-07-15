@@ -305,6 +305,7 @@ model WorkTypeMaster {
   id             String   @id @default(cuid())
   name           String
   defaultAmount  Int?
+  defaultSales   Int?     // 標準売上額（積水請求・税別）
   defaultUrgency String?
   defaultSimpleReport Boolean @default(false)
   order          Int      @default(0)

@@ -89,11 +89,13 @@ export default function DashboardPage() {
     } catch { /* ignore */ }
   }, []);
 
-  const handleIntakeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const [intakeDrag, setIntakeDrag] = useState(false);
+
+  const uploadIntakeFiles = useCallback(async (files: File[]) => {
+    const targets = files.filter((f) => f.type === "application/pdf" || f.type.startsWith("image/") || f.name.toLowerCase().endsWith(".pdf"));
+    if (targets.length === 0) return;
     setIntakeUploading(true);
-    for (const file of Array.from(files)) {
+    for (const file of targets) {
       try {
         const fd = new FormData();
         fd.append("file", file);
@@ -102,8 +104,57 @@ export default function DashboardPage() {
     }
     await fetchIntake();
     setIntakeUploading(false);
+  }, [fetchIntake]);
+
+  const handleIntakeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await uploadIntakeFiles(Array.from(files));
     e.target.value = "";
   };
+
+  // ページ全体でドロップ・貼り付けを受付（管理者のみ。入力欄フォーカス中の貼り付けは除外）
+  useEffect(() => {
+    if (role !== "ADMIN") return;
+    const onOver = (e: DragEvent) => { e.preventDefault(); };
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      setIntakeDrag(false);
+      const dt = e.dataTransfer;
+      if (!dt) return;
+      const files: File[] = dt.files && dt.files.length > 0
+        ? Array.from(dt.files)
+        : Array.from(dt.items || []).filter((it) => it.kind === "file").map((it) => it.getAsFile()).filter((f): f is File => !!f);
+      if (files.length > 0) uploadIntakeFiles(files);
+    };
+    const onDragEnter = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes("Files")) setIntakeDrag(true);
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const files: File[] = [];
+      for (const it of Array.from(items)) {
+        if (it.kind === "file" && (it.type === "application/pdf" || it.type.startsWith("image/"))) {
+          const f = it.getAsFile();
+          if (f) files.push(f);
+        }
+      }
+      if (files.length > 0) { e.preventDefault(); uploadIntakeFiles(files); }
+    };
+    window.addEventListener("dragover", onOver);
+    window.addEventListener("drop", onDrop);
+    window.addEventListener("dragenter", onDragEnter);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("dragover", onOver);
+      window.removeEventListener("drop", onDrop);
+      window.removeEventListener("dragenter", onDragEnter);
+      window.removeEventListener("paste", onPaste);
+    };
+  }, [role, uploadIntakeFiles]);
 
   const deleteIntake = async (intakeId: string) => {
     if (!confirm("この受付を取り消しますか？")) return;
@@ -1058,7 +1109,7 @@ export default function DashboardPage() {
 
             {/* 📥 受付ボックス（管理者のみ） */}
             {role === "ADMIN" && (
-              <div className="mb-4 bg-sky-950/40 border border-sky-700 rounded-xl overflow-hidden">
+              <div className={`mb-4 rounded-xl overflow-hidden border transition ${intakeDrag ? "bg-sky-900/60 border-sky-400 border-dashed border-2" : "bg-sky-950/40 border-sky-700"}`}>
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-sky-800/60">
                   <span className="text-base">📥</span>
                   <span className="text-sm font-bold text-sky-300">受付ボックス</span>
@@ -1069,7 +1120,7 @@ export default function DashboardPage() {
                   </label>
                 </div>
                 {intakeDocs.length === 0 ? (
-                  <p className="text-xs text-gray-500 px-4 py-2.5">依頼書（PDF・写真）をここで受付 → 振り分けボタンで依頼を作成。紙は不要です</p>
+                  <p className="text-xs text-gray-500 px-4 py-2.5">{intakeDrag ? "📥 ここにドロップして受付" : "依頼書（PDF・写真）をドラッグ&ドロップ／貼り付け（⌘V）／ボタンで受付 → 振り分けで依頼を作成"}</p>
                 ) : (
                   <div className="divide-y divide-sky-900/40">
                     {intakeDocs.map((d) => (

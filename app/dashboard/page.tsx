@@ -76,6 +76,7 @@ export default function DashboardPage() {
   const [summaryData, setSummaryData] = useState<{ label: string; count: number; breakdown: { company: string; count: number }[] } | null>(null);
 
   const role = (session?.user as { role?: string })?.role;
+  const myId = (session?.user as { id?: string })?.id;
 
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
@@ -600,15 +601,20 @@ export default function DashboardPage() {
     const visitBadge = getVisitBadge(p.visitDate);
     const unread = isUnread(p);
     const partnerColor = p.assignedTo?.color;
+    const isSelfJob = role === "ADMIN" && !!myId && p.assignedTo?.id === myId; // 自社施工
     return (
       <Link key={p.id} href={`/projects/${p.id}`}
         className={`relative block rounded-xl border transition overflow-hidden group
           ${unread
             ? "bg-gray-800 border-blue-400 border-l-4 shadow-blue-900/30 shadow-md"
+            : isSelfJob
+            ? "bg-emerald-950/40 border-emerald-700 hover:border-emerald-500 hover:shadow-sm"
             : "bg-gray-800/60 border-gray-700 hover:border-gray-500 hover:shadow-sm"
           }`}>
-        {/* 担当者カラーバー */}
-        {partnerColor && (
+        {/* 担当者カラーバー（自社案件はエメラルド） */}
+        {isSelfJob ? (
+          <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl bg-emerald-500" />
+        ) : partnerColor && (
           <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: partnerColor }} />
         )}
         <div className="flex items-start justify-between gap-3 p-4">
@@ -617,6 +623,7 @@ export default function DashboardPage() {
               <p className="font-semibold text-gray-100 truncate">{p.title}</p>
               {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
               {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">中</span>}
+              {isSelfJob && <span className="text-xs bg-emerald-900/60 text-emerald-300 border border-emerald-600 px-1.5 py-0.5 rounded-full font-bold shrink-0">🔧 自社</span>}
               {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">📦 材料支給</span>}
             </div>
             <p className="text-sm text-gray-400 mt-0.5 truncate">📍 {p.location}</p>
@@ -624,7 +631,7 @@ export default function DashboardPage() {
               {p.workType && (
                 <p className="text-xs text-gray-400 font-medium">{p.workType}</p>
               )}
-              {role === "ADMIN" && p.assignedTo && (
+              {role === "ADMIN" && p.assignedTo && !isSelfJob && (
                 <p className="text-xs flex items-center gap-1">
                   {partnerColor && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: partnerColor }} />}
                   <span className="text-gray-500">{p.assignedTo.companyName || p.assignedTo.name}</span>

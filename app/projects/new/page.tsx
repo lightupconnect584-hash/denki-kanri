@@ -179,6 +179,7 @@ export default function NewProjectPage() {
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
   const myName = session?.user?.name;
+  const isSelf = !!myId && form.assignedToId === myId; // 自分施工の案件
 
   // 受付日時の初期値＝フォームを開いた日時（PDF読み取りで上書きされる）
   useEffect(() => {
@@ -308,6 +309,13 @@ export default function NewProjectPage() {
     e.preventDefault();
     setLoading(true);
 
+    // 自社案件で物件名が空の場合は自動命名（一覧表示が空にならないように）
+    const payload = { ...form };
+    if (isSelf && !payload.title.trim()) {
+      const now = new Date();
+      payload.title = payload.workType.trim() || `自社案件 ${now.getMonth() + 1}/${now.getDate()}`;
+    }
+
     // 自社施工の場合：AI読み取りに使った依頼書の原本を自動で添付（協力会社には渡らないため安全）
     let allPhotos = photos.map((p) => ({ filename: p.filename, originalName: p.originalName }));
     if (form.assignedToId === myId && extractFileRef.current) {
@@ -326,7 +334,7 @@ export default function NewProjectPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
+        ...payload,
         photos: allPhotos,
       }),
     });
@@ -362,7 +370,7 @@ export default function NewProjectPage() {
             ))}
           </select>
           {form.assignedToId === myId && (
-            <p className="text-xs text-emerald-400 mt-2">🔧 自分施工：AIで読み取った依頼書の原本が登録時に自動で添付されます</p>
+            <p className="text-xs text-emerald-400 mt-2">🔧 自分施工：依頼書の原本が自動添付され、以下の項目は<span className="font-bold">すべて任意</span>になります（空欄でも登録OK）</p>
           )}
         </div>
 
@@ -403,13 +411,13 @@ export default function NewProjectPage() {
             <div className="p-4 space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">物件名 *</label>
-                <input type="text" required value={form.title}
+                <input type="text" required={!isSelf} value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   className={inputClass} placeholder="例: ○○ビル" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">住所 *</label>
-                <input type="text" required value={form.location}
+                <input type="text" required={!isSelf} value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   className={inputClass} placeholder="例: 東京都渋谷区○○1-2-3" />
               </div>
@@ -520,7 +528,7 @@ export default function NewProjectPage() {
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-300 mb-1">依頼名 *</label>
                 <div className="flex">
-                  <input type="text" required value={form.workType}
+                  <input type="text" required={!isSelf} value={form.workType}
                     onChange={(e) => setForm({ ...form, workType: e.target.value })}
                     onFocus={() => setShowWorkTypeList(false)}
                     className="flex-1 border border-gray-600 rounded-l-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"

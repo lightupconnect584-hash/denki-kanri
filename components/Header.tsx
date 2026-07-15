@@ -126,14 +126,6 @@ export default function Header() {
               </>
             );
           })()}
-          {role === "ADMIN" && (
-            <Link
-              href="/projects/new"
-              className="text-sm bg-blue-600 text-white rounded-lg px-3.5 py-1.5 font-bold hover:bg-blue-700 transition ml-1"
-            >
-              ＋ 新規依頼
-            </Link>
-          )}
           <span className="w-px h-5 bg-gray-700 mx-1.5" />
           {notifStatus === "granted" ? (
             <span className="text-xs text-green-400 px-1" title="通知ON">🔔</span>

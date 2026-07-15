@@ -891,19 +891,16 @@ export default function DashboardPage() {
 {role === "ADMIN" && (
               <button
                 onClick={() => setShowIntakeMobile((v) => !v)}
-                className={`lg:hidden relative flex items-center gap-1 text-sm px-2.5 py-1.5 rounded-lg border transition ${showIntakeMobile || intakeDocs.length > 0 ? "bg-sky-600/20 text-sky-300 border-sky-600" : "bg-gray-800 text-gray-400 border-gray-700"}`}
+                className={`relative flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border font-medium transition ${showIntakeMobile || intakeDocs.length > 0 ? "bg-sky-600/20 text-sky-300 border-sky-600" : "bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500"}`}
                 title="受付ボックス"
               >
                 <span>📥</span>
+                <span>受付</span>
                 {intakeDocs.length > 0 && (
-                  <span className="text-xs font-bold">{intakeDocs.length}</span>
+                  <span className="bg-sky-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">{intakeDocs.length}</span>
                 )}
+                <span className="text-xs text-gray-500">{showIntakeMobile ? "▲" : "▼"}</span>
               </button>
-            )}
-            {role === "ADMIN" && (
-              <Link href="/projects/new" className="lg:hidden bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
-                <span>＋</span>
-              </Link>
             )}
           </div>
         </div>
@@ -1125,9 +1122,9 @@ export default function DashboardPage() {
           {/* ===== 右メインエリア ===== */}
           <div className="mt-3 lg:mt-0">
 
-            {/* 📥 受付ボックス（管理者のみ・モバイルは右上ボタンで開閉） */}
+            {/* 📥 受付ボックス（管理者のみ・右上ボタンで開閉） */}
             {role === "ADMIN" && (
-              <div className={`mb-4 rounded-xl overflow-hidden border transition ${showIntakeMobile ? "block" : "hidden"} lg:block ${intakeDrag ? "bg-sky-900/60 border-sky-400 border-dashed border-2" : "bg-sky-950/40 border-sky-700"}`}>
+              <div className={`mb-4 rounded-xl overflow-hidden border transition ${showIntakeMobile ? "block" : "hidden"} ${intakeDrag ? "bg-sky-900/60 border-sky-400 border-dashed border-2" : "bg-sky-950/40 border-sky-700"}`}>
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-sky-800/60">
                   <span className="text-base">📥</span>
                   <span className="text-sm font-bold text-sky-300">受付ボックス</span>
@@ -1158,6 +1155,14 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 )}
+                {/* 依頼書なしで作る導線（自社案件・電話受けなど） */}
+                <Link
+                  href="/projects/new"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 border-t border-sky-900/50 text-xs text-sky-400 hover:bg-sky-900/30 transition"
+                >
+                  <span>✎</span>
+                  <span>依頼書なしで作成（自社案件・電話受けなど）</span>
+                </Link>
               </div>
             )}
 

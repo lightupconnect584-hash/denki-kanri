@@ -105,6 +105,10 @@ export default function ReplacementModelsPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false); // 詳細（任意）欄の開閉
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [formDrag, setFormDrag] = useState(false);
 
   // カテゴリ管理
   const [showCatManager, setShowCatManager] = useState(false);
@@ -142,12 +146,69 @@ export default function ReplacementModelsPage() {
   };
 
   const openNew = (defaultCategoryId?: string) => {
-    setForm({ ...emptyForm, categoryId: defaultCategoryId || "" });
+    const today = new Date();
+    const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    setForm({ ...emptyForm, categoryId: defaultCategoryId || "", updatedOn: iso });
     setEditingId(null);
+    setShowDetails(false);
+    setExtractError(null);
     setShowForm(true);
   };
 
+  // 📷 写真・PDFから自動入力
+  const runExtract = useCallback(async (file: File) => {
+    setExtracting(true);
+    setExtractError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/replacement-models/extract", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "読み取りに失敗しました");
+      const d = json.data as { existingModel?: string; replacementModel?: string; maker?: string; color?: string; relatedParts?: string[]; notes?: string };
+      setForm((prev) => ({
+        ...prev,
+        existingModel: d.existingModel || prev.existingModel,
+        replacementModel: d.replacementModel || prev.replacementModel,
+        maker: d.maker || prev.maker,
+        color: d.color || prev.color,
+        relatedParts: d.relatedParts && d.relatedParts.length > 0 ? d.relatedParts : prev.relatedParts,
+        notes: d.notes || prev.notes,
+      }));
+      if (d.maker || d.color || (d.relatedParts && d.relatedParts.length > 0) || d.notes) setShowDetails(true);
+    } catch (e) {
+      setExtractError(e instanceof Error ? e.message : "読み取りに失敗しました");
+    }
+    setExtracting(false);
+  }, []);
+
+  const extractFromFiles = useCallback((files: File[]) => {
+    const f = files.find((x) => x.type === "application/pdf" || x.type.startsWith("image/") || x.name.toLowerCase().endsWith(".pdf"));
+    if (f) runExtract(f);
+  }, [runExtract]);
+
+  // フォームを開いている間、貼り付けで読み取り
+  useEffect(() => {
+    if (!showForm) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const files: File[] = [];
+      for (const it of Array.from(items)) {
+        if (it.kind === "file" && (it.type === "application/pdf" || it.type.startsWith("image/"))) {
+          const f = it.getAsFile();
+          if (f) files.push(f);
+        }
+      }
+      if (files.length > 0) { e.preventDefault(); extractFromFiles(files); }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [showForm, extractFromFiles]);
+
   const openEdit = (item: ReplacementModel) => {
+    setShowDetails(true);
+    setExtractError(null);
     setForm({
       existingModel: item.existingModel,
       replacementModel: item.replacementModel,
@@ -396,11 +457,37 @@ export default function ReplacementModelsPage() {
         {/* 追加・編集フォーム */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4">
-            <div className="bg-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 shadow-xl">
+            <div
+              className={`bg-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 shadow-xl border-2 transition ${formDrag ? "border-dashed border-blue-400" : "border-transparent"}`}
+              onDragOver={(e) => { e.preventDefault(); setFormDrag(true); }}
+              onDragLeave={() => setFormDrag(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setFormDrag(false);
+                const dt = e.dataTransfer;
+                const files: File[] = dt.files && dt.files.length > 0
+                  ? Array.from(dt.files)
+                  : Array.from(dt.items || []).filter((it) => it.kind === "file").map((it) => it.getAsFile()).filter((f): f is File => !!f);
+                if (files.length > 0) extractFromFiles(files);
+              }}
+            >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-gray-100">{editingId ? "機種を編集" : "機種を追加"}</h3>
                 <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-300 text-xl leading-none">✕</button>
               </div>
+              {/* 📷 AI自動入力 */}
+              <div className="mb-4 bg-blue-950/40 border border-blue-800 rounded-xl px-3 py-2.5 flex items-center gap-2">
+                <span className="text-base shrink-0">📷</span>
+                <p className="text-xs text-blue-300 flex-1 min-w-0">
+                  {extracting ? "AIが読み取り中…" : "後継品案内・銘板の写真やPDFから自動入力（撮影／ドロップ／貼り付け）"}
+                </p>
+                <label className={`shrink-0 text-xs rounded-lg px-3 py-1.5 cursor-pointer transition ${extracting ? "bg-gray-700 text-gray-400" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
+                  {extracting ? "読み取り中…" : "ファイル選択"}
+                  <input type="file" accept="application/pdf,image/*" capture="environment" className="hidden" disabled={extracting}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) runExtract(f); e.target.value = ""; }} />
+                </label>
+              </div>
+              {extractError && <p className="text-xs text-red-400 mb-3">⚠️ {extractError}</p>}
               <form onSubmit={handleSave} className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1">大枠（カテゴリ）</label>
@@ -424,6 +511,12 @@ export default function ReplacementModelsPage() {
                     onChange={(e) => setForm({ ...form, replacementModel: e.target.value })}
                     className={inputClass} placeholder="例: PAC-SH36KA" />
                 </div>
+                <button type="button" onClick={() => setShowDetails((v) => !v)}
+                  className="w-full flex items-center justify-between text-xs text-gray-400 border border-gray-700 rounded-lg px-3 py-2 hover:border-gray-500 transition">
+                  <span>詳細を入力（メーカー・色・金額・部材など / 任意）</span>
+                  <span>{showDetails ? "▲" : "▼"}</span>
+                </button>
+                {showDetails && (<>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1">メーカー</label>
@@ -496,6 +589,7 @@ export default function ReplacementModelsPage() {
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     rows={2} className={inputClass} placeholder="メモ・注意事項など" />
                 </div>
+                </>)}
                 <button type="submit" disabled={saving}
                   className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition">
                   {saving ? "保存中..." : editingId ? "変更を保存" : "追加する"}

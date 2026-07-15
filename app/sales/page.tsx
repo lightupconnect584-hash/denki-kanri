@@ -47,8 +47,6 @@ export default function SalesPage() {
   const [entries, setEntries] = useState<SalesEntry[]>([]);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [importing, setImporting] = useState(false);
-  const [importMsg, setImportMsg] = useState("");
   const [showExpenses, setShowExpenses] = useState(false);
   const [newExpLabel, setNewExpLabel] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
@@ -77,7 +75,6 @@ export default function SalesPage() {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(y, m - 1 + n, 1);
     setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-    setImportMsg("");
   };
 
   const monthLabel = (() => {
@@ -117,21 +114,6 @@ export default function SalesPage() {
     }).catch(() => {});
   };
 
-  const importProjects = async () => {
-    setImporting(true);
-    setImportMsg("");
-    const res = await fetch("/api/sales/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ month }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setImportMsg(data.imported > 0 ? `${data.imported}件を取り込みました` : "未登録の完了案件はありません");
-      if (data.imported > 0) await fetchData(month);
-    }
-    setImporting(false);
-  };
 
   // ── 経費操作 ──
   const patchExpense = async (id: string, fields: Partial<ExpenseItem>) => {
@@ -187,28 +169,14 @@ export default function SalesPage() {
     <div className="min-h-full flex flex-col bg-gray-900">
       <Header />
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 sm:py-6">
-        {/* ヘッダー行：タイトル・月切替・取り込み（PCでは1行に） */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
-            <h2 className="text-lg font-bold text-white">売上集計</h2>
-          </div>
-          <div className="flex items-center justify-center gap-4 lg:mx-auto">
+        {/* ヘッダー行：タイトル・月切替 */}
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
+          <h2 className="text-lg font-bold text-white">売上集計</h2>
+          <div className="flex items-center justify-center gap-4 ml-auto">
             <button onClick={() => shiftMonth(-1)} className="text-gray-400 hover:text-white text-xl px-3 py-1">‹</button>
             <p className="text-lg font-bold text-white w-36 text-center">{monthLabel}</p>
             <button onClick={() => shiftMonth(1)} className="text-gray-400 hover:text-white text-xl px-3 py-1">›</button>
-          </div>
-          <div className="lg:w-80">
-            <button
-              onClick={importProjects}
-              disabled={importing}
-              className="w-full bg-gray-800 text-gray-300 border border-gray-600 text-sm rounded-xl py-2.5 font-medium hover:bg-gray-700 disabled:opacity-50 transition"
-            >
-              {importing ? "取り込み中..." : "⬇ 未登録の完了案件を取り込む"}
-            </button>
-            <p className="text-[11px] text-gray-500 text-center mt-1">
-              {importMsg || "※ 完了時に自動で登録されます。このボタンは過去分の補完用"}
-            </p>
           </div>
         </div>
 

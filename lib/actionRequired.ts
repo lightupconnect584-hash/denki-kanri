@@ -83,16 +83,18 @@ export function partnerActionReason(p: ActionCheckProject): ActionReason | null 
     return null;
   }
 
-  if (p.status === "PENDING") {
-    return { label: "受注の判断", color: "bg-yellow-100 text-yellow-700" };
+  // 通常の流れ（受注→訪問日→報告）は一覧のステータスで分かるので、
+  // 要対応には「滞っているもの」だけを出す
+  if (p.status === "PENDING" && daysSince(p.updatedAt) >= 2) {
+    return { label: `未受注${daysSince(p.updatedAt)}日`, color: "bg-yellow-100 text-yellow-700" };
   }
   if (p.status === "REWORK") {
     return { label: "再報告が必要", color: "bg-red-100 text-red-700" };
   }
-  if (p.status === "QUOTE_REQUESTED" && !p.quotes.some((q) => q.status === "PENDING")) {
+  if (p.status === "QUOTE_REQUESTED" && !p.quotes.some((q) => q.status === "PENDING") && daysSince(p.updatedAt) >= 2) {
     return { label: "見積りの提出", color: "bg-orange-100 text-orange-700" };
   }
-  if (p.status === "ACCEPTED" && !p.visitDate) {
+  if (p.status === "ACCEPTED" && !p.visitDate && daysSince(p.updatedAt) >= 3) {
     return { label: "訪問日の入力", color: "bg-blue-100 text-blue-700" };
   }
   // ── 放置検知 ──

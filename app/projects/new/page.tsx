@@ -349,6 +349,23 @@ export default function NewProjectPage() {
           <h2 className="text-lg font-bold text-white">新規依頼登録</h2>
         </div>
 
+        {/* まず担当を決める */}
+        <div className={`rounded-xl border p-4 mb-4 ${form.assignedToId ? "bg-gray-800 border-gray-700" : "bg-gray-800 border-blue-600"}`}>
+          <label className="block text-sm font-bold text-gray-100 mb-2">① まず担当を選ぶ *</label>
+          <select required value={form.assignedToId}
+            onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
+            className={inputClass}>
+            <option value="">担当を選択してください</option>
+            {myId && <option value={myId}>🔧 自分で施工（{myName || "管理者"}）</option>}
+            {partners.map((p) => (
+              <option key={p.id} value={p.id}>{p.companyName || p.name}</option>
+            ))}
+          </select>
+          {form.assignedToId === myId && (
+            <p className="text-xs text-emerald-400 mt-2">🔧 自分施工：AIで読み取った依頼書の原本が登録時に自動で添付されます</p>
+          )}
+        </div>
+
         {/* PDF/写真から自動入力（AI読み取り） */}
         <div
           className={`rounded-xl border p-4 mb-4 transition ${dragOver ? "bg-blue-800/50 border-blue-400 border-dashed" : "bg-gradient-to-br from-blue-900/40 to-indigo-900/30 border-blue-700/60"}`}
@@ -357,13 +374,11 @@ export default function NewProjectPage() {
           onDrop={handleDrop}
           onPaste={handlePaste}
         >
-          <p className="text-sm font-bold text-blue-200 mb-1">📄 依頼書から自動入力</p>
+          <p className="text-sm font-bold text-blue-200 mb-1">② 依頼書から自動入力</p>
           <p className="text-xs text-blue-300/80 mb-3">
             依頼書を<span className="font-bold text-blue-200">ドラッグ&ドロップ</span>／<span className="font-bold text-blue-200">貼り付け（⌘/Ctrl+V）</span>／ファイル選択のいずれかで、AIが物件名・住所などを自動入力します。
             <br />
             <span className="text-blue-300">💡 ドラッグできない時は、依頼書を画面に出して<span className="font-bold text-blue-200">スクショをコピー→この画面で貼り付け</span>が確実です（Macは ⌘⇧4＋Ctrl、Winは Win＋Shift＋S）。</span>
-            <br />
-            <span className="text-blue-300">🔧 担当を「自分で施工」にすると、読み取った依頼書の原本が自動で添付され、詳細ページでそのまま見られます。</span>
           </p>
           <label className={`block w-full text-center text-sm rounded-lg py-2.5 font-medium border cursor-pointer transition ${extracting ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"}`}>
             {extracting ? "読み取り中… 少々お待ちください" : dragOver ? "ここにドロップ" : "＋ ファイルを選ぶ / ドラッグ / 貼り付け"}
@@ -635,18 +650,6 @@ export default function NewProjectPage() {
                 <input type="text" value={form.parkingInfo}
                   onChange={(e) => setForm({ ...form, parkingInfo: e.target.value })}
                   className={inputClass} placeholder="例: 12番・来客用" maxLength={30} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">担当協力会社 *</label>
-                <select required value={form.assignedToId}
-                  onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
-                  className={inputClass}>
-                  <option value=""></option>
-                  {myId && <option value={myId}>🔧 自分で施工（{myName || "管理者"}）</option>}
-                  {partners.map((p) => (
-                    <option key={p.id} value={p.id}>{p.companyName || p.name}</option>
-                  ))}
-                </select>
               </div>
             </div>
           </div>

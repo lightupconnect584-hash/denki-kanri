@@ -8,7 +8,10 @@ export const SAITAMA_HINTS = [
   "朝霞", "志木", "富士見", "ふじみ野", "三郷", "八潮", "吉川", "戸田", "鶴ヶ島", "坂戸", "飯能",
 ];
 
-export function guessCategory(location: string): string {
+// エリア（明示指定）を優先し、なければ住所から推定
+export function guessCategory(location: string, region?: string | null): string {
+  if (region === "埼玉") return "SEKISUI_SAITAMA";
+  if (region === "北関東") return "SEKISUI_KITA";
   return SAITAMA_HINTS.some((h) => location.includes(h)) ? "SEKISUI_SAITAMA" : "SEKISUI_KITA";
 }
 
@@ -25,6 +28,7 @@ export async function syncSalesEntryForProject(
   project: {
     id: string; title: string; location: string; amount: number | null;
     assignedToId?: string | null; salesAmount?: number | null; materialCost?: number | null;
+    region?: string | null;
   },
   month: string
 ): Promise<void> {
@@ -59,7 +63,7 @@ export async function syncSalesEntryForProject(
     await prisma.salesEntry.create({
       data: {
         yearMonth: month,
-        category: guessCategory(project.location),
+        category: guessCategory(project.location, project.region),
         label: project.title,
         // 売上: 案件の売上（積水請求額）。自社施工で未入力なら金額を売上とみなす
         sales: project.salesAmount ?? (selfAssigned ? (project.amount ?? 0) : 0),

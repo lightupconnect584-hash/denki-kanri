@@ -190,7 +190,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 完了になったら売上集計に自動登録（今の月に仮置き。月末の締めで最終調整）
   if (["CONFIRMED", "COMPLETED"].includes(body.status)) {
     await syncSalesEntryForProject(
-      { id: project.id, title: project.title, location: project.location, amount: project.amount, assignedToId: project.assignedToId, salesAmount: project.salesAmount, materialCost: project.materialCost },
+      { id: project.id, title: project.title, location: project.location, amount: project.amount, assignedToId: project.assignedToId, salesAmount: project.salesAmount, materialCost: project.materialCost, region: project.region },
       currentMonthKey()
     );
   }

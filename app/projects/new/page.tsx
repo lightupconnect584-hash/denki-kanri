@@ -58,6 +58,8 @@ export default function NewProjectPage() {
   const [dragOver, setDragOver] = useState(false);
   const extractFileRef = useRef<File | null>(null);
   const [intakeId, setIntakeId] = useState<string | null>(null);
+  const [intakeDoc, setIntakeDoc] = useState<{ url: string; name: string; isPdf: boolean } | null>(null); // 原本プレビュー
+  const [showDocMobile, setShowDocMobile] = useState(false);
 
   // 読み取り結果をフォームに反映（空文字は既存値を残す）
   const applyExtracted = (d: Record<string, unknown>) => {
@@ -194,6 +196,11 @@ export default function NewProjectPage() {
         if (!r.ok) return;
         const doc = await r.json();
         setIntakeId(doc.id);
+        setIntakeDoc({
+          url: doc.filename,
+          name: doc.originalName || "依頼書",
+          isPdf: (doc.originalName || "").toLowerCase().endsWith(".pdf") || !/\.(png|jpe?g|webp|gif|heic)$/i.test(doc.originalName || ""),
+        });
         setExtractMsg("受付ボックスの依頼書を読み取っています…");
         const fr = await fetch(doc.filename);
         const blob = await fr.blob();
@@ -389,11 +396,44 @@ export default function NewProjectPage() {
   return (
     <div className="min-h-full flex flex-col bg-gray-900">
       <Header />
-      <main className="flex-1 max-w-lg lg:max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
+      <main className={`flex-1 mx-auto w-full px-4 py-4 sm:py-6 ${intakeDoc ? "max-w-lg lg:max-w-7xl" : "max-w-lg lg:max-w-2xl"}`}>
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">新規依頼登録</h2>
         </div>
+
+        <div className={intakeDoc ? "lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start" : ""}>
+
+        {/* 📄 依頼書原本（振り分け時）: PCは左に常時表示・モバイルは開閉 */}
+        {intakeDoc && (
+          <div className="mb-4 lg:mb-0 lg:sticky lg:top-4 lg:order-2">
+            <div className="bg-gray-800 border border-sky-700 rounded-xl overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-sky-800/60">
+                <span className="shrink-0">📄</span>
+                <span className="text-sm font-bold text-sky-300 truncate flex-1 min-w-0">{intakeDoc.name}</span>
+                <a href={intakeDoc.url} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-sky-400 border border-sky-700 rounded-lg px-2.5 py-1 hover:bg-sky-900/40 transition shrink-0">
+                  別タブで開く
+                </a>
+                <button type="button" onClick={() => setShowDocMobile((v) => !v)}
+                  className="lg:hidden text-xs text-sky-400 px-1.5 shrink-0">
+                  {showDocMobile ? "▲ 閉じる" : "▼ 表示"}
+                </button>
+              </div>
+              <div className={`${showDocMobile ? "block" : "hidden"} lg:block`}>
+                {intakeDoc.isPdf ? (
+                  <iframe src={intakeDoc.url} title="依頼書原本"
+                    className="w-full h-[60vh] lg:h-[calc(100vh-9rem)] bg-white" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={intakeDoc.url} alt="依頼書原本" className="w-full max-h-[70vh] lg:max-h-[calc(100vh-9rem)] object-contain bg-gray-950" />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="min-w-0 lg:order-1">
 
         {/* まず担当を決める */}
         <div className={`rounded-xl border p-4 mb-4 ${form.assignedToId ? "bg-gray-800 border-gray-700" : "bg-gray-800 border-blue-600"}`}>
@@ -752,6 +792,8 @@ export default function NewProjectPage() {
             {loading ? "登録中..." : "依頼を登録する"}
           </button>
         </form>
+        </div>
+        </div>
       </main>
     </div>
   );

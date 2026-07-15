@@ -168,6 +168,8 @@ export default function NewProjectPage() {
   };
 
   const role = (session?.user as { role?: string })?.role;
+  const myId = (session?.user as { id?: string })?.id;
+  const myName = session?.user?.name;
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -566,6 +568,7 @@ export default function NewProjectPage() {
                   onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
                   className={inputClass}>
                   <option value=""></option>
+                  {myId && <option value={myId}>🔧 自分で施工（{myName || "管理者"}）</option>}
                   {partners.map((p) => (
                     <option key={p.id} value={p.id}>{p.companyName || p.name}</option>
                   ))}

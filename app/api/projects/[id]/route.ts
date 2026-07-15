@@ -121,14 +121,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }).catch(() => {});
   }
 
-  // 訪問予定日・時間帯は担当協力会社のみ変更可
+  // 訪問予定日・時間帯は担当者（協力会社、または自分担当の管理者）のみ変更可
   if (body.visitDate !== undefined || body.visitTime !== undefined) {
     const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true } });
-    if (role === "PARTNER" && project?.assignedToId === userId && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
+    if (project?.assignedToId === userId && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
       if (body.visitDate !== undefined) updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
       if (body.visitTime !== undefined) updateData.visitTime = body.visitTime || null;
     }
-    // 管理者は visitDate / visitTime を変更不可（無視）
   }
   // 編集フィールド（管理者が内容を変更した場合 → 協力会社に通知）
   const contentFields = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "smsAllowed", "description", "urgency", "dueDate", "preferredContactAt", "preferredVisitAt", "materialSupplied", "receivedAt", "parkingInfo", "simpleReport"];
@@ -175,7 +174,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 完了になったら売上集計に自動登録（今の月に仮置き。月末の締めで最終調整）
   if (["CONFIRMED", "COMPLETED"].includes(body.status)) {
     await syncSalesEntryForProject(
-      { id: project.id, title: project.title, location: project.location, amount: project.amount },
+      { id: project.id, title: project.title, location: project.location, amount: project.amount, assignedToId: project.assignedToId },
       currentMonthKey()
     );
   }

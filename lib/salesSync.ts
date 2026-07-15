@@ -18,13 +18,23 @@ export function currentMonthKey(): string {
 }
 
 // 案件の売上明細行を作成/調整する
-// - 行がなければ month に新規作成（外注費=案件金額）
+// - 行がなければ month に新規作成
+//   協力会社担当: 外注費=案件金額 / 自分施工（担当が管理者）: 売上=案件金額・外注費0
 // - 行があって月が違えば month に移動（入力済みの売上・材料費は保持）
 export async function syncSalesEntryForProject(
-  project: { id: string; title: string; location: string; amount: number | null },
+  project: { id: string; title: string; location: string; amount: number | null; assignedToId?: string | null },
   month: string
 ): Promise<void> {
   try {
+    // 担当が管理者＝自社施工
+    let selfAssigned = false;
+    if (project.assignedToId) {
+      const assignee = await prisma.user.findUnique({
+        where: { id: project.assignedToId },
+        select: { role: true },
+      });
+      selfAssigned = assignee?.role === "ADMIN";
+    }
     const existing = await prisma.salesEntry.findUnique({ where: { projectId: project.id } });
     if (existing) {
       if (existing.yearMonth !== month) {
@@ -48,9 +58,9 @@ export async function syncSalesEntryForProject(
         yearMonth: month,
         category: guessCategory(project.location),
         label: project.title,
-        sales: 0,
+        sales: selfAssigned ? (project.amount ?? 0) : 0,
         material: 0,
-        outsource: project.amount ?? 0,
+        outsource: selfAssigned ? 0 : (project.amount ?? 0),
         projectId: project.id,
         order: (max._max.order ?? -1) + 1,
       },

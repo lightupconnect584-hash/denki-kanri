@@ -487,7 +487,8 @@ export default function ProjectDetailPage() {
   }
 
   const isAssigned = project.assignedTo?.id === userId;
-  const canInspect = role === "PARTNER" && isAssigned;
+  // 担当者（協力会社、または自分担当の管理者）は報告・受注操作が可能
+  const canInspect = isAssigned && (role === "PARTNER" || role === "ADMIN");
 
   // 訪問予定日のラベル
   const getVisitLabel = (dateStr: string | null) => {
@@ -774,14 +775,14 @@ export default function ProjectDetailPage() {
 
         {/* 訪問予定日 */}
         {!(role === "PARTNER" && ["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status)) && (
-        <div className={`rounded-xl border p-5 mb-4 ${!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? "bg-amber-900/30 border-amber-700" : "bg-gray-800 border-gray-700"}`}>
+        <div className={`rounded-xl border p-5 mb-4 ${!project.visitDate && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? "bg-amber-900/30 border-amber-700" : "bg-gray-800 border-gray-700"}`}>
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-sm font-bold text-gray-100">📅 訪問予定日</h3>
-            {!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
+            {!project.visitDate && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
               <span className="text-xs bg-amber-900/40 text-amber-300 border border-amber-700 px-2 py-0.5 rounded-full font-medium">未設定</span>
             )}
           </div>
-          {!project.visitDate && role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
+          {!project.visitDate && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
             <p className="text-xs text-amber-300 mb-3">作業日が決まったら設定してください。管理者が日程を把握するために使います。</p>
           )}
           {project.visitDate && visitLabel && (
@@ -797,11 +798,11 @@ export default function ProjectDetailPage() {
               </span>
             </div>
           )}
-          {!project.visitDate && !(role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status)) && (
+          {!project.visitDate && !(isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status)) && (
             <p className="text-sm text-gray-500 mb-3">未設定</p>
           )}
           {/* 担当協力会社のみ・PENDING or ACCEPTED中は編集可 */}
-          {role === "PARTNER" && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? (
+          {isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? (
             <>
               <div className="flex gap-2">
                 <input
@@ -857,7 +858,7 @@ export default function ProjectDetailPage() {
                 )}
               </div>
             </>
-          ) : role === "PARTNER" && isAssigned && !["PENDING", "ACCEPTED"].includes(project.status) ? (
+          ) : isAssigned && !["PENDING", "ACCEPTED"].includes(project.status) ? (
             <p className="text-xs text-gray-400 bg-gray-700/40 rounded-lg px-3 py-2">
               🔒 完了報告後は訪問予定日を変更できません
             </p>

@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       roomNumber: { type: "string", description: "部屋番号・号室。不明なら空文字" },
       contractorName: { type: "string", description: "折り返し先名（カナ）。入居者・連絡担当者の氏名カナ。不明なら空文字" },
       contractorPhone: { type: "string", description: "折り返し先電話番号。不明なら空文字" },
+      description: { type: "string", description: "依頼内容・不具合の内容（例: 廊下の照明が点灯しない、ブレーカーが落ちる）。記載の文章を簡潔にまとめてよいが、書かれていないことは追加しない。不明なら空文字" },
       moveInDate: { type: "string", description: "入居開始日・入居日・入居予定日という項目の【日付】のみ（例: 2026/7/1、R8.7.1）。『入居区分』『入居状況』『入居中/空室』などの区分・状態の語は絶対に入れない。日付が書かれていなければ空文字。日付以外の文字列は入れない" },
       preferredContactAt: { type: "string", description: "連絡希望日時（あれば）。不明なら空文字" },
       receivedAt: { type: "string", description: "受付日時（依頼を受け付けた日時。文字列そのまま）。不明なら空文字" },
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
     },
     required: [
       "title", "location", "roomNumber",
-      "contractorName", "contractorPhone",
+      "contractorName", "contractorPhone", "description",
       "moveInDate", "preferredContactAt", "receivedAt", "smsAllowed",
     ],
   };

@@ -65,12 +65,13 @@ export default function NewProjectPage() {
       roomNumber: s(d.roomNumber) || prev.roomNumber,
       contractorName: s(d.contractorName) || prev.contractorName,
       contractorPhone: s(d.contractorPhone) || prev.contractorPhone,
+      description: s(d.description) || prev.description,
       moveInDate: s(d.moveInDate) || prev.moveInDate,
       preferredContactAt: s(d.preferredContactAt) || prev.preferredContactAt,
       receivedAt: s(d.receivedAt) || prev.receivedAt,
       smsAllowed: typeof d.smsAllowed === "boolean" ? d.smsAllowed : prev.smsAllowed,
     }));
-    const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt"].filter((k) => s(d[k])).length;
+    const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt", "description"].filter((k) => s(d[k])).length;
     setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
   };
 
@@ -172,6 +173,13 @@ export default function NewProjectPage() {
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
   const myName = session?.user?.name;
+
+  // 受付日時の初期値＝フォームを開いた日時（PDF読み取りで上書きされる）
+  useEffect(() => {
+    const now = new Date();
+    const v = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    setForm((prev) => (prev.receivedAt ? prev : { ...prev, receivedAt: v }));
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");

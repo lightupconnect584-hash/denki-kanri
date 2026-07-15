@@ -57,6 +57,7 @@ export default function NewProjectPage() {
   const [extractMsg, setExtractMsg] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const extractFileRef = useRef<File | null>(null);
+  const [intakeId, setIntakeId] = useState<string | null>(null);
 
   // 読み取り結果をフォームに反映（空文字は既存値を残す）
   const applyExtracted = (d: Record<string, unknown>) => {
@@ -180,6 +181,30 @@ export default function NewProjectPage() {
   const myId = (session?.user as { id?: string })?.id;
   const myName = session?.user?.name;
   const isSelf = !!myId && form.assignedToId === myId; // 自分施工の案件
+
+  // 受付ボックスからの振り分け：?intake=ID の依頼書を自動で読み取り
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const params = new URLSearchParams(window.location.search);
+    const iid = params.get("intake");
+    if (!iid) return;
+    (async () => {
+      try {
+        const r = await fetch(`/api/intake?id=${iid}`);
+        if (!r.ok) return;
+        const doc = await r.json();
+        setIntakeId(doc.id);
+        setExtractMsg("受付ボックスの依頼書を読み取っています…");
+        const fr = await fetch(doc.filename);
+        const blob = await fr.blob();
+        const file = new File([blob], doc.originalName || "依頼書.pdf", { type: blob.type || "application/pdf" });
+        runExtract(file);
+      } catch {
+        setExtractMsg("受付ボックスの依頼書の取得に失敗しました");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // 受付日時の初期値＝フォームを開いた日時（PDF読み取りで上書きされる）
   useEffect(() => {
@@ -340,6 +365,17 @@ export default function NewProjectPage() {
     });
 
     if (res.ok) {
+      // 受付ボックス経由なら振り分け済みにする
+      if (intakeId) {
+        try {
+          const created = await res.json().catch(() => null);
+          await fetch("/api/intake", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: intakeId, projectId: created?.id || null }),
+          });
+        } catch { /* ignore */ }
+      }
       router.push("/dashboard");
     } else {
       setLoading(false);
@@ -370,7 +406,7 @@ export default function NewProjectPage() {
             ))}
           </select>
           {form.assignedToId === myId && (
-            <p className="text-xs text-emerald-400 mt-2">🔧 自分施工：依頼書の原本が自動添付され、以下の項目は<span className="font-bold">すべて任意</span>になります（空欄でも登録OK）</p>
+            <p className="text-xs text-amber-300 mt-2">🔧 自分施工：依頼書の原本が自動添付され、以下の項目は<span className="font-bold">すべて任意</span>になります（空欄でも登録OK）</p>
           )}
         </div>
 

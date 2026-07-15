@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -77,6 +77,43 @@ export default function DashboardPage() {
 
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
+
+  // 📥 受付ボックス（依頼書のペーパーレス受付）
+  const [intakeDocs, setIntakeDocs] = useState<{ id: string; filename: string; originalName: string; createdByName: string | null; createdAt: string }[]>([]);
+  const [intakeUploading, setIntakeUploading] = useState(false);
+
+  const fetchIntake = useCallback(async () => {
+    try {
+      const res = await fetch("/api/intake");
+      if (res.ok) setIntakeDocs(await res.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleIntakeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIntakeUploading(true);
+    for (const file of Array.from(files)) {
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        await fetch("/api/intake", { method: "POST", body: fd });
+      } catch { /* ignore */ }
+    }
+    await fetchIntake();
+    setIntakeUploading(false);
+    e.target.value = "";
+  };
+
+  const deleteIntake = async (intakeId: string) => {
+    if (!confirm("この受付を取り消しますか？")) return;
+    await fetch("/api/intake", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: intakeId }),
+    });
+    fetchIntake();
+  };
 
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
@@ -367,6 +404,11 @@ export default function DashboardPage() {
 
   const unreadCount = filtered.filter((p) => !DONE_STATUSES.includes(p.status) && p.status !== "REJECTED" && isUnread(p)).length;
 
+  // 受付ボックスの取得（管理者）
+  useEffect(() => {
+    if (role === "ADMIN") fetchIntake();
+  }, [role, fetchIntake]);
+
   // 要対応リスト（フィルター無視・全件から抽出）
   const actionItems = projects
     .map((p) => ({ project: p, reason: actionReason(role, p) }))
@@ -608,12 +650,12 @@ export default function DashboardPage() {
           ${unread
             ? "bg-gray-800 border-blue-400 border-l-4 shadow-blue-900/30 shadow-md"
             : isSelfJob
-            ? "bg-emerald-950/40 border-emerald-700 hover:border-emerald-500 hover:shadow-sm"
+            ? "bg-amber-950/25 border-amber-800/70 hover:border-amber-600 hover:shadow-sm"
             : "bg-gray-800/60 border-gray-700 hover:border-gray-500 hover:shadow-sm"
           }`}>
         {/* 担当者カラーバー（自社案件はエメラルド） */}
         {isSelfJob ? (
-          <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl bg-emerald-500" />
+          <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl bg-amber-600" />
         ) : partnerColor && (
           <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: partnerColor }} />
         )}
@@ -623,7 +665,7 @@ export default function DashboardPage() {
               <p className="font-semibold text-gray-100 truncate">{p.title}</p>
               {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
               {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">中</span>}
-              {isSelfJob && <span className="text-xs bg-emerald-900/60 text-emerald-300 border border-emerald-600 px-1.5 py-0.5 rounded-full font-bold shrink-0">🔧 自社</span>}
+              {isSelfJob && <span className="text-xs bg-amber-900/50 text-amber-200 border border-amber-700 px-1.5 py-0.5 rounded-full font-bold shrink-0">🔧 自社</span>}
               {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">📦 材料支給</span>}
             </div>
             <p className="text-sm text-gray-400 mt-0.5 truncate">📍 {p.location}</p>
@@ -1013,6 +1055,42 @@ export default function DashboardPage() {
 
           {/* ===== 右メインエリア ===== */}
           <div className="mt-3 lg:mt-0">
+
+            {/* 📥 受付ボックス（管理者のみ） */}
+            {role === "ADMIN" && (
+              <div className="mb-4 bg-sky-950/40 border border-sky-700 rounded-xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-sky-800/60">
+                  <span className="text-base">📥</span>
+                  <span className="text-sm font-bold text-sky-300">受付ボックス</span>
+                  {intakeDocs.length > 0 && <span className="text-xs text-sky-500">{intakeDocs.length}件 未振り分け</span>}
+                  <label className={`ml-auto text-xs rounded-lg px-3 py-1.5 cursor-pointer transition ${intakeUploading ? "bg-gray-700 text-gray-400" : "bg-sky-600 text-white hover:bg-sky-700"}`}>
+                    {intakeUploading ? "受付中…" : "＋ 依頼書を受付"}
+                    <input type="file" accept="application/pdf,image/*" multiple className="hidden" disabled={intakeUploading} onChange={handleIntakeUpload} />
+                  </label>
+                </div>
+                {intakeDocs.length === 0 ? (
+                  <p className="text-xs text-gray-500 px-4 py-2.5">依頼書（PDF・写真）をここで受付 → 振り分けボタンで依頼を作成。紙は不要です</p>
+                ) : (
+                  <div className="divide-y divide-sky-900/40">
+                    {intakeDocs.map((d) => (
+                      <div key={d.id} className="flex items-center gap-2 px-4 py-2.5">
+                        <a href={d.filename} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80">
+                          <span className="shrink-0">📄</span>
+                          <span className="text-sm text-gray-200 truncate">{d.originalName}</span>
+                        </a>
+                        <span className="text-xs text-gray-500 shrink-0">
+                          {new Date(d.createdAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} {d.createdByName || ""}
+                        </span>
+                        <Link href={`/projects/new?intake=${d.id}`} className="text-xs bg-sky-600 text-white rounded px-2.5 py-1 hover:bg-sky-700 transition shrink-0">
+                          振り分け
+                        </Link>
+                        <button onClick={() => deleteIntake(d.id)} className="text-gray-600 hover:text-red-400 text-xs shrink-0">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ⚡ 要対応ボックス */}
             {actionItems.length > 0 && (

@@ -142,6 +142,17 @@ model Invoice {
   uploadedById String
 }
 
+// 依頼書の受付ボックス（ペーパーレス受付→振り分け）
+model IntakeDoc {
+  id            String   @id @default(cuid())
+  filename      String   // BlobのURL
+  originalName  String
+  createdByName String?
+  status        String   @default("PENDING") // PENDING / PROCESSED
+  projectId     String?  // 振り分け先の案件
+  createdAt     DateTime @default(now())
+}
+
 // 月次売上の明細行（アプリ内売上集計）
 model SalesEntry {
   id        String   @id @default(cuid())

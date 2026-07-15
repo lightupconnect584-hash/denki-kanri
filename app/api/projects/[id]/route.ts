@@ -100,6 +100,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (role === "ADMIN" && body.assignedToId) updateData.notifyPartnerAt = new Date();
   }
 
+  // 保留の設定/解除（管理者・担当協力会社どちらも可）
+  if (body.onHold !== undefined) {
+    const hold = Boolean(body.onHold);
+    updateData.onHold = hold;
+    updateData.holdReason = hold ? String(body.holdReason || "").slice(0, 100) || null : null;
+    updateData.holdAt = hold ? new Date() : null;
+    updateData.holdByName = hold ? ((session.user as { name?: string }).name || null) : null;
+    // 相手側に通知
+    if (role === "ADMIN") updateData.notifyPartnerAt = new Date();
+    if (role === "PARTNER") updateData.notifyAdminAt = new Date();
+    // 活動ログ
+    await prisma.activityLog.create({
+      data: {
+        projectId: id,
+        userId,
+        action: hold ? "HOLD" : "HOLD_RELEASED",
+        detail: hold ? `保留: ${String(body.holdReason || "").slice(0, 100)}` : "保留を解除",
+      },
+    }).catch(() => {});
+  }
+
   // 訪問予定日・時間帯は担当協力会社のみ変更可
   if (body.visitDate !== undefined || body.visitTime !== undefined) {
     const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true } });

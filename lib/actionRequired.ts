@@ -7,6 +7,8 @@ export interface ActionCheckProject {
   assignedTo?: { id: string } | null;
   assignedToId?: string | null;
   quotes: { status: string }[];
+  onHold?: boolean;
+  holdAt?: string | Date | null;
 }
 
 export interface ActionReason {
@@ -31,6 +33,15 @@ function visitOverdue(visitDate: string | Date | null): boolean {
 
 // 管理者にとっての要対応理由（なければnull）
 export function adminActionReason(p: ActionCheckProject): ActionReason | null {
+  // ── 保留中の案件 ──
+  // 保留7日未満は要対応に出さない（保留の意味を保つ）。7日以上は忘れ防止で浮上させる
+  if (p.onHold) {
+    if (p.holdAt && daysSince(p.holdAt) >= 7) {
+      return { label: `保留のまま${daysSince(p.holdAt)}日`, color: "bg-orange-100 text-orange-700" };
+    }
+    return null;
+  }
+
   if (p.status === "INSPECTED") {
     return { label: "完了報告の確認", color: "bg-purple-100 text-purple-700" };
   }
@@ -63,6 +74,15 @@ export function adminActionReason(p: ActionCheckProject): ActionReason | null {
 
 // 協力会社にとっての要対応理由（なければnull）
 export function partnerActionReason(p: ActionCheckProject): ActionReason | null {
+  // ── 保留中の案件 ──
+  // 保留7日未満は要対応に出さない（保留の意味を保つ）。7日以上は忘れ防止で浮上させる
+  if (p.onHold) {
+    if (p.holdAt && daysSince(p.holdAt) >= 7) {
+      return { label: `保留のまま${daysSince(p.holdAt)}日`, color: "bg-orange-100 text-orange-700" };
+    }
+    return null;
+  }
+
   if (p.status === "PENDING") {
     return { label: "受注の判断", color: "bg-yellow-100 text-yellow-700" };
   }

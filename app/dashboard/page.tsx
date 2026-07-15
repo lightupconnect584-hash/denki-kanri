@@ -19,6 +19,9 @@ interface Project {
   amount: number | null;
   dueDate: string | null;
   visitDate: string | null;
+  onHold: boolean;
+  holdReason: string | null;
+  holdAt: string | null;
   updatedAt: string;
   notifyAdminAt: string | null;
   notifyPartnerAt: string | null;
@@ -316,7 +319,12 @@ export default function DashboardPage() {
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const activeProjects = filtered.filter((p) => !DONE_STATUSES.includes(p.status) && p.status !== "REJECTED");
+  const activeProjects = filtered.filter((p) => !DONE_STATUSES.includes(p.status) && p.status !== "REJECTED" && !p.onHold);
+  // 保留中（フィルター無視・全件から。古い順）
+  const heldProjects = projects
+    .filter((p) => p.onHold && !DONE_STATUSES.includes(p.status) && p.status !== "REJECTED")
+    .sort((a, b) => new Date(a.holdAt || 0).getTime() - new Date(b.holdAt || 0).getTime());
+  const holdDays = (d: string | null) => (d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 0);
   const activePerCompany = activeProjects.reduce<Record<string, number>>((acc, p) => {
     const id = p.assignedTo?.id ?? "__none";
     acc[id] = (acc[id] ?? 0) + 1;
@@ -1024,6 +1032,41 @@ export default function DashboardPage() {
                         </span>
                       )}
                       <span className="text-amber-600 text-xs shrink-0">→</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ⏸ 保留中ボックス */}
+            {heldProjects.length > 0 && (
+              <div className="mb-4 bg-orange-950/40 border border-orange-700 rounded-xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-orange-800/60">
+                  <span className="text-base">⏸</span>
+                  <span className="text-sm font-bold text-orange-300">保留中</span>
+                  <span className="text-xs text-orange-500">{heldProjects.length}件</span>
+                  <span className="text-xs text-gray-500 ml-auto">連絡待ち・確認待ちの依頼</span>
+                </div>
+                <div className="divide-y divide-orange-900/40">
+                  {heldProjects.map((p) => (
+                    <Link
+                      key={p.id}
+                      href={`/projects/${p.id}`}
+                      className="flex items-center gap-2 px-4 py-2.5 hover:bg-orange-900/30 transition"
+                    >
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0 bg-orange-100 text-orange-700 truncate max-w-[140px]">
+                        {p.holdReason || "保留"}
+                      </span>
+                      <span className="text-sm text-gray-200 truncate flex-1 min-w-0">{p.title}</span>
+                      <span className={`text-xs shrink-0 font-medium ${holdDays(p.holdAt) >= 7 ? "text-red-400" : "text-orange-500"}`}>
+                        {holdDays(p.holdAt)}日
+                      </span>
+                      {role === "ADMIN" && p.assignedTo && (
+                        <span className="text-xs text-gray-500 truncate max-w-[90px] shrink-0">
+                          {p.assignedTo.companyName || p.assignedTo.name}
+                        </span>
+                      )}
+                      <span className="text-orange-600 text-xs shrink-0">→</span>
                     </Link>
                   ))}
                 </div>

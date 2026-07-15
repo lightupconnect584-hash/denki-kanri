@@ -95,6 +95,10 @@ interface Project {
   amount: number | null;
   visitDate: string | null;
   visitTime: string | null;
+  onHold: boolean;
+  holdReason: string | null;
+  holdAt: string | null;
+  holdByName: string | null;
   status: string;
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
@@ -122,6 +126,9 @@ export default function ProjectDetailPage() {
   const [visitTimeFrom, setVisitTimeFrom] = useState("");
   const [visitTimeTo, setVisitTimeTo] = useState("");
   const [savingVisit, setSavingVisit] = useState(false);
+  const [holdPanelOpen, setHoldPanelOpen] = useState(false);
+  const [holdCustom, setHoldCustom] = useState("");
+  const [savingHold, setSavingHold] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
@@ -442,6 +449,20 @@ export default function ProjectDetailPage() {
     });
   };
 
+  // 保留の設定/解除
+  const setHold = async (onHold: boolean, reason?: string) => {
+    setSavingHold(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ onHold, holdReason: reason || "" }),
+    });
+    setHoldPanelOpen(false);
+    setHoldCustom("");
+    fetchProject();
+    setSavingHold(false);
+  };
+
   const saveVisitDate = async () => {
     setSavingVisit(true);
     const dateToSave = visitInput ? new Date(`${visitInput}T09:00:00`).toISOString() : null;
@@ -526,6 +547,81 @@ export default function ProjectDetailPage() {
             </div>
           )}
         </div>
+
+        {/* 保留バナー・保留操作（管理者・担当協力会社） */}
+        {project.onHold ? (
+          <div className="mb-4 bg-orange-950/50 border-2 border-orange-600 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-orange-300">
+                  ⏸ 保留中
+                  {project.holdAt && (
+                    <span className="ml-2 text-xs font-medium text-orange-400">
+                      {Math.floor((Date.now() - new Date(project.holdAt).getTime()) / 86400000)}日経過
+                    </span>
+                  )}
+                </p>
+                <p className="text-sm text-orange-200 mt-1">{project.holdReason || "（理由未記入）"}</p>
+                {project.holdByName && (
+                  <p className="text-xs text-orange-500 mt-0.5">{project.holdByName} が保留にしました</p>
+                )}
+              </div>
+              {(role === "ADMIN" || isAssigned) && (
+                <button
+                  onClick={() => setHold(false)}
+                  disabled={savingHold}
+                  className="bg-orange-600 text-white text-sm rounded-lg px-4 py-2 font-medium hover:bg-orange-700 disabled:opacity-50 transition shrink-0"
+                >
+                  {savingHold ? "…" : "▶ 保留を解除して再開"}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (role === "ADMIN" || isAssigned) && !["CONFIRMED", "COMPLETED", "REJECTED"].includes(project.status) ? (
+          <div className="mb-4">
+            {!holdPanelOpen ? (
+              <button
+                onClick={() => setHoldPanelOpen(true)}
+                className="w-full text-left text-xs text-gray-400 border border-gray-700 rounded-lg px-3 py-2 hover:border-orange-600 hover:text-orange-300 transition"
+              >
+                ⏸ 連絡が取れない・確認待ちのときは → この依頼を保留にする
+              </button>
+            ) : (
+              <div className="bg-gray-800 border border-orange-700 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-bold text-orange-300">⏸ 保留の理由を選んでください</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {["入居者と連絡が取れない", "確認事項あり", "部品・手配待ち"].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setHold(true, r)}
+                      disabled={savingHold}
+                      className="text-sm bg-gray-700 text-gray-200 border border-gray-600 rounded-lg py-2 px-2 hover:border-orange-500 hover:text-orange-300 disabled:opacity-50 transition"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={holdCustom}
+                    onChange={(e) => setHoldCustom(e.target.value)}
+                    placeholder="その他の理由を入力"
+                    className="flex-1 min-w-0 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <button
+                    onClick={() => holdCustom.trim() && setHold(true, holdCustom.trim())}
+                    disabled={savingHold || !holdCustom.trim()}
+                    className="bg-orange-600 text-white text-sm rounded-lg px-4 py-2 hover:bg-orange-700 disabled:opacity-40 transition shrink-0"
+                  >
+                    保留にする
+                  </button>
+                </div>
+                <button onClick={() => setHoldPanelOpen(false)} className="text-xs text-gray-500 hover:text-gray-300">キャンセル</button>
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {/* PC: 左=情報 / 右=チャット の2カラム。モバイルは従来順のまま */}
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-6 lg:items-start">

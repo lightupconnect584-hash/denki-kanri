@@ -90,6 +90,8 @@ export default function DashboardPage() {
   }, []);
 
   const [intakeDrag, setIntakeDrag] = useState(false);
+  const [showIntakeMobile, setShowIntakeMobile] = useState(false); // モバイルで受付ボックスを開くか
+  const [showHeldMobile, setShowHeldMobile] = useState(false); // モバイルで保留中を開くか
 
   const uploadIntakeFiles = useCallback(async (files: File[]) => {
     const targets = files.filter((f) => f.type === "application/pdf" || f.type.startsWith("image/") || f.name.toLowerCase().endsWith(".pdf"));
@@ -708,36 +710,42 @@ export default function DashboardPage() {
         ) : partnerColor && (
           <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: partnerColor }} />
         )}
-        <div className="flex items-start justify-between gap-3 p-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-semibold text-gray-100 truncate">{p.title}</p>
-              {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
-              {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">中</span>}
-              {isSelfJob && <span className="text-xs bg-white/10 text-white border border-gray-400 px-1.5 py-0.5 rounded-full font-bold shrink-0">🔧 自社</span>}
-              {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">📦 材料支給</span>}
+        <div className="p-4">
+          {/* タイトル行：タイトル＋ステータス */}
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-semibold text-gray-100 break-words leading-snug flex-1 min-w-0">{p.title}</p>
+            <div className="shrink-0"><StatusBadge status={p.status} /></div>
+          </div>
+          {/* バッジ行（該当時のみ） */}
+          {(p.urgency === "HIGH" || p.urgency === "MEDIUM" || isSelfJob || p.materialSupplied) && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+              {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium">緊急</span>}
+              {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium">中</span>}
+              {isSelfJob && <span className="text-xs bg-white/10 text-white border border-gray-400 px-1.5 py-0.5 rounded-full font-bold">🔧 自社</span>}
+              {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium">📦 材料支給</span>}
             </div>
-            <p className="text-sm text-gray-400 mt-0.5 truncate">📍 {p.location}</p>
-            <div className="flex items-center gap-3 mt-1 flex-wrap">
+          )}
+          {/* 住所 */}
+          <p className="text-sm text-gray-400 mt-2 truncate">📍 {p.location}</p>
+          {/* メタ情報（依頼名・協力会社・訪問予定）を1行にまとめる */}
+          {(p.workType || (role === "ADMIN" && p.assignedTo && !isSelfJob) || visitBadge) && (
+            <div className="flex items-center gap-x-3 gap-y-1.5 mt-2 flex-wrap">
               {p.workType && (
-                <p className="text-xs text-gray-400 font-medium">{p.workType}</p>
+                <span className="text-xs text-gray-400 font-medium">{p.workType}</span>
               )}
               {role === "ADMIN" && p.assignedTo && !isSelfJob && (
-                <p className="text-xs flex items-center gap-1">
+                <span className="text-xs flex items-center gap-1">
                   {partnerColor && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: partnerColor }} />}
                   <span className="text-gray-500">{p.assignedTo.companyName || p.assignedTo.name}</span>
-                </p>
+                </span>
+              )}
+              {visitBadge && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${visitBadge.color}`}>
+                  {visitBadge.text}
+                </span>
               )}
             </div>
-            {visitBadge && (
-              <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium ${visitBadge.color}`}>
-                {visitBadge.text}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <StatusBadge status={p.status} />
-          </div>
+          )}
         </div>
       </Link>
     );
@@ -881,7 +889,19 @@ export default function DashboardPage() {
               </button>
             )}
 {role === "ADMIN" && (
-              <Link href="/projects/new" className="sm:hidden bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
+              <button
+                onClick={() => setShowIntakeMobile((v) => !v)}
+                className={`lg:hidden relative flex items-center gap-1 text-sm px-2.5 py-1.5 rounded-lg border transition ${showIntakeMobile || intakeDocs.length > 0 ? "bg-sky-600/20 text-sky-300 border-sky-600" : "bg-gray-800 text-gray-400 border-gray-700"}`}
+                title="受付ボックス"
+              >
+                <span>📥</span>
+                {intakeDocs.length > 0 && (
+                  <span className="text-xs font-bold">{intakeDocs.length}</span>
+                )}
+              </button>
+            )}
+            {role === "ADMIN" && (
+              <Link href="/projects/new" className="lg:hidden bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
                 <span>＋</span>
               </Link>
             )}
@@ -1105,9 +1125,9 @@ export default function DashboardPage() {
           {/* ===== 右メインエリア ===== */}
           <div className="mt-3 lg:mt-0">
 
-            {/* 📥 受付ボックス（管理者のみ） */}
+            {/* 📥 受付ボックス（管理者のみ・モバイルは右上ボタンで開閉） */}
             {role === "ADMIN" && (
-              <div className={`mb-4 rounded-xl overflow-hidden border transition ${intakeDrag ? "bg-sky-900/60 border-sky-400 border-dashed border-2" : "bg-sky-950/40 border-sky-700"}`}>
+              <div className={`mb-4 rounded-xl overflow-hidden border transition ${showIntakeMobile ? "block" : "hidden"} lg:block ${intakeDrag ? "bg-sky-900/60 border-sky-400 border-dashed border-2" : "bg-sky-950/40 border-sky-700"}`}>
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-sky-800/60">
                   <span className="text-base">📥</span>
                   <span className="text-sm font-bold text-sky-300">受付ボックス</span>
@@ -1172,16 +1192,20 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* ⏸ 保留中ボックス */}
+            {/* ⏸ 保留中ボックス（モバイルは折りたたみ） */}
             {heldProjects.length > 0 && (
               <div className="mb-4 bg-orange-950/40 border border-orange-700 rounded-xl overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-orange-800/60">
+                <button
+                  onClick={() => setShowHeldMobile((v) => !v)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 border-b border-orange-800/60 lg:cursor-default"
+                >
                   <span className="text-base">⏸</span>
                   <span className="text-sm font-bold text-orange-300">保留中</span>
                   <span className="text-xs text-orange-500">{heldProjects.length}件</span>
-                  <span className="text-xs text-gray-500 ml-auto">連絡待ち・確認待ちの依頼</span>
-                </div>
-                <div className="divide-y divide-orange-900/40">
+                  <span className="hidden lg:inline text-xs text-gray-500 ml-auto">連絡待ち・確認待ちの依頼</span>
+                  <span className="lg:hidden text-xs text-orange-500 ml-auto">{showHeldMobile ? "▲" : "▼"}</span>
+                </button>
+                <div className={`divide-y divide-orange-900/40 ${showHeldMobile ? "block" : "hidden"} lg:block`}>
                   {heldProjects.map((p) => (
                     <Link
                       key={p.id}

@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       roomNumber: { type: "string", description: "部屋番号・号室。不明なら空文字" },
       contractorName: { type: "string", description: "折り返し先名（カナ）。入居者・連絡担当者の氏名カナ。不明なら空文字" },
       contractorPhone: { type: "string", description: "折り返し先電話番号。不明なら空文字" },
-      moveInDate: { type: "string", description: "入居開始日（あれば。文字列そのまま）。不明なら空文字" },
+      moveInDate: { type: "string", description: "入居開始日・入居日・入居予定日という項目の【日付】のみ（例: 2026/7/1、R8.7.1）。『入居区分』『入居状況』『入居中/空室』などの区分・状態の語は絶対に入れない。日付が書かれていなければ空文字。日付以外の文字列は入れない" },
       preferredContactAt: { type: "string", description: "連絡希望日時（あれば）。不明なら空文字" },
       receivedAt: { type: "string", description: "受付日時（依頼を受け付けた日時。文字列そのまま）。不明なら空文字" },
       smsAllowed: { type: "boolean", description: "ショートメッセージ（SMS）での連絡が可能か。可・OK等の記載があればtrue、不可・記載なしはfalse" },
@@ -107,6 +107,8 @@ export async function POST(req: NextRequest) {
               text:
                 "これは電気工事の依頼元から届いた依頼書です。記載内容から、指定のJSON項目だけを抽出してください。" +
                 "金額・料金・依頼元の社内担当者名・社内管理番号などは抽出しないでください。" +
+                "moveInDate（入居開始日）には日付のみを入れてください。『入居区分』『入居状況』『空室/入居中』などの区分・状態は入居開始日ではないので絶対に入れないでください。" +
+                "入居開始日の日付が書かれていない場合は必ず空文字にしてください。" +
                 "読み取れない項目は空文字にしてください。推測で埋めないでください。",
             },
           ],
@@ -118,6 +120,11 @@ export async function POST(req: NextRequest) {
     const textBlock = res.content.find((b) => b.type === "text");
     const raw = textBlock && textBlock.type === "text" ? textBlock.text : "{}";
     const data = JSON.parse(raw);
+    // moveInDateは日付を含む値のみ採用（「入居区分」等の混入を防ぐ）
+    if (data && typeof data.moveInDate === "string" && data.moveInDate.trim()) {
+      const hasDate = /\d{1,4}[年./\-]\s*\d{1,2}|[RHS令平昭]\d?\s*[.年]|\d{1,2}\s*月/.test(data.moveInDate);
+      if (!hasDate) data.moveInDate = "";
+    }
     return NextResponse.json({ data });
   } catch (e) {
     console.error("[extract] error:", e);

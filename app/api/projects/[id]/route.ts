@@ -54,6 +54,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   });
 
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // 協力会社には売上（積水請求額）・材料費を見せない
+  if (role === "PARTNER") {
+    const { salesAmount: _s, materialCost: _m, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null };
+    void _s; void _m;
+    return NextResponse.json(rest);
+  }
   return NextResponse.json(project);
 }
 
@@ -144,6 +150,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.urgency !== undefined) updateData.urgency = body.urgency;
   if (body.materialSupplied !== undefined) updateData.materialSupplied = Boolean(body.materialSupplied);
   if (body.simpleReport !== undefined) updateData.simpleReport = Boolean(body.simpleReport);
+  // 売上・材料費（管理者のみ・協力会社には非公開）
+  if (body.salesAmount !== undefined && role === "ADMIN") {
+    updateData.salesAmount = body.salesAmount !== "" && body.salesAmount !== null ? parseInt(body.salesAmount) : null;
+  }
+  if (body.materialCost !== undefined && role === "ADMIN") {
+    updateData.materialCost = body.materialCost !== "" && body.materialCost !== null ? parseInt(body.materialCost) : null;
+  }
   // 請求月の上書き（管理者のみ）
   if (body.billingMonth !== undefined && role === "ADMIN") {
     updateData.billingMonth = body.billingMonth || null;
@@ -174,7 +187,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 完了になったら売上集計に自動登録（今の月に仮置き。月末の締めで最終調整）
   if (["CONFIRMED", "COMPLETED"].includes(body.status)) {
     await syncSalesEntryForProject(
-      { id: project.id, title: project.title, location: project.location, amount: project.amount, assignedToId: project.assignedToId },
+      { id: project.id, title: project.title, location: project.location, amount: project.amount, assignedToId: project.assignedToId, salesAmount: project.salesAmount, materialCost: project.materialCost },
       currentMonthKey()
     );
   }

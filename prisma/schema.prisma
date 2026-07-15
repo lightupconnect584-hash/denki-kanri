@@ -91,6 +91,8 @@ model Project {
   holdAt           DateTime?
   holdByName       String?
   amount           Int?
+  salesAmount      Int?      // 売上（積水への請求額・税別）。協力会社には非公開
+  materialCost     Int?      // 材料費（税別）。協力会社には非公開
   billingMonth     String?   // 請求月の上書き（YYYY-MM）。未設定なら作業月を使用
   visitDate        DateTime?
   visitTime        String?

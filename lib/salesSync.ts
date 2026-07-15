@@ -22,7 +22,10 @@ export function currentMonthKey(): string {
 //   協力会社担当: 外注費=案件金額 / 自分施工（担当が管理者）: 売上=案件金額・外注費0
 // - 行があって月が違えば month に移動（入力済みの売上・材料費は保持）
 export async function syncSalesEntryForProject(
-  project: { id: string; title: string; location: string; amount: number | null; assignedToId?: string | null },
+  project: {
+    id: string; title: string; location: string; amount: number | null;
+    assignedToId?: string | null; salesAmount?: number | null; materialCost?: number | null;
+  },
   month: string
 ): Promise<void> {
   try {
@@ -58,8 +61,9 @@ export async function syncSalesEntryForProject(
         yearMonth: month,
         category: guessCategory(project.location),
         label: project.title,
-        sales: selfAssigned ? (project.amount ?? 0) : 0,
-        material: 0,
+        // 売上: 案件の売上（積水請求額）。自社施工で未入力なら金額を売上とみなす
+        sales: project.salesAmount ?? (selfAssigned ? (project.amount ?? 0) : 0),
+        material: project.materialCost ?? 0,
         outsource: selfAssigned ? 0 : (project.amount ?? 0),
         projectId: project.id,
         order: (max._max.order ?? -1) + 1,

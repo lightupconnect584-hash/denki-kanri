@@ -34,6 +34,8 @@ export default function EditProjectPage() {
     materialSupplied: false,
     simpleReport: false,
     amount: "",
+    salesAmount: "",
+    materialCost: "",
     dueDate: "",
     assignedToId: "",
     preferredContactAt: "",
@@ -73,6 +75,8 @@ export default function EditProjectPage() {
             urgency: data.urgency || "LOW",
             materialSupplied: data.materialSupplied ?? false,
             amount: data.amount != null ? String(data.amount) : "",
+            salesAmount: data.salesAmount != null ? String(data.salesAmount) : "",
+            materialCost: data.materialCost != null ? String(data.materialCost) : "",
             dueDate: data.dueDate ? data.dueDate.slice(0, 10) : "",
             assignedToId: data.assignedTo?.id || "",
             preferredContactAt: data.preferredContactAt || "",
@@ -272,6 +276,32 @@ export default function EditProjectPage() {
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-200 mb-1">売上（積水請求・税別）<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
+              <input type="text" inputMode="numeric" value={form.salesAmount}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+                  setForm({ ...form, salesAmount: v });
+                }}
+                className="w-full border border-gray-600 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-200 mb-1">材料費（税別）<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
+              <input type="text" inputMode="numeric" value={form.materialCost}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+                  setForm({ ...form, materialCost: v });
+                }}
+                className="w-full border border-gray-600 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0" />
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-2">緊急度</label>
             <div className="flex gap-2">

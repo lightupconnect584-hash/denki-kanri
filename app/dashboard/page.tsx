@@ -700,13 +700,11 @@ export default function DashboardPage() {
         className={`relative block rounded-xl border transition overflow-hidden group
           ${unread
             ? "bg-gray-800 border-blue-400 border-l-4 shadow-blue-900/30 shadow-md"
-            : isSelfJob
-            ? "bg-amber-950/25 border-amber-800/70 hover:border-amber-600 hover:shadow-sm"
             : "bg-gray-800/60 border-gray-700 hover:border-gray-500 hover:shadow-sm"
           }`}>
-        {/* 担当者カラーバー（自社案件はエメラルド） */}
+        {/* 担当者カラーバー（自社案件は白） */}
         {isSelfJob ? (
-          <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl bg-amber-600" />
+          <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl bg-white" />
         ) : partnerColor && (
           <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: partnerColor }} />
         )}
@@ -716,7 +714,7 @@ export default function DashboardPage() {
               <p className="font-semibold text-gray-100 truncate">{p.title}</p>
               {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">緊急</span>}
               {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium shrink-0">中</span>}
-              {isSelfJob && <span className="text-xs bg-amber-900/50 text-amber-200 border border-amber-700 px-1.5 py-0.5 rounded-full font-bold shrink-0">🔧 自社</span>}
+              {isSelfJob && <span className="text-xs bg-white/10 text-white border border-gray-400 px-1.5 py-0.5 rounded-full font-bold shrink-0">🔧 自社</span>}
               {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">📦 材料支給</span>}
             </div>
             <p className="text-sm text-gray-400 mt-0.5 truncate">📍 {p.location}</p>
@@ -1214,6 +1212,37 @@ export default function DashboardPage() {
                 <p className="text-4xl mb-3">📋</p>
                 <p>{search || filterStatus || filterUrgency || filterRegion ? "条件に一致する依頼がありません" : "進行中の依頼がありません"}</p>
               </div>
+            ) : role === "ADMIN" ? (
+              (() => {
+                const selfActive = sortedActive.filter((p) => !!myId && p.assignedTo?.id === myId);
+                const partnerActive = sortedActive.filter((p) => !(!!myId && p.assignedTo?.id === myId));
+                return (
+                  <div className="space-y-5">
+                    {selfActive.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <span className="w-1 h-4 bg-white rounded-full" />
+                          <h3 className="text-sm font-bold text-white">🔧 自社案件</h3>
+                          <span className="text-xs text-gray-500">（{selfActive.length}件）</span>
+                        </div>
+                        <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{selfActive.map(renderProject)}</div>
+                      </div>
+                    )}
+                    {partnerActive.length > 0 && (
+                      <div>
+                        {selfActive.length > 0 && (
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <span className="w-1 h-4 bg-blue-500 rounded-full" />
+                            <h3 className="text-sm font-bold text-gray-200">🤝 協力会社案件</h3>
+                            <span className="text-xs text-gray-500">（{partnerActive.length}件）</span>
+                          </div>
+                        )}
+                        <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{partnerActive.map(renderProject)}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
             ) : (
               <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{sortedActive.map(renderProject)}</div>
             )}

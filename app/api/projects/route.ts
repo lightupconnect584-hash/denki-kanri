@@ -32,7 +32,13 @@ export async function GET() {
     });
     return NextResponse.json(sanitized);
   }
-  return NextResponse.json(projects);
+  // 管理者には協力会社メモを見せない
+  const adminList = projects.map((p) => {
+    const { partnerMemo: _pm, ...rest } = p as typeof p & { partnerMemo: string | null };
+    void _pm;
+    return rest;
+  });
+  return NextResponse.json(adminList);
 }
 
 export async function POST(req: NextRequest) {

@@ -84,7 +84,8 @@ model Project {
   receivedAt         String?
   parkingInfo        String?
   region             String?   // 依頼元エリア（"埼玉" | "北関東"）。自社案件の分類に使用
-  memo               String?   // 自社案件用の自由メモ（協力会社には非公開）
+  memo               String?   // 管理者専用メモ（協力会社には非公開）。自社案件・協力会社案件どちらでも使用
+  partnerMemo        String?   // 協力会社専用メモ（管理者には非公開）
   urgency          String    @default("LOW")
   materialSupplied Boolean   @default(false)
   simpleReport     Boolean   @default(false)

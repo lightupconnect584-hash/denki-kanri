@@ -98,6 +98,7 @@ interface Project {
   salesAmount: number | null;
   materialCost: number | null;
   memo: string | null;
+  partnerMemo: string | null;
   visitDate: string | null;
   visitTime: string | null;
   onHold: boolean;
@@ -215,7 +216,8 @@ export default function ProjectDetailPage() {
         if (!data) return;
         if (data.error) { window.location.href = "/dashboard"; return; }
         setProject(data);
-        if (!isRefresh) setMemoInput(data.memo || "");
+        // 管理者は memo、協力会社は partnerMemo を編集
+        if (!isRefresh) setMemoInput((role === "PARTNER" ? data.partnerMemo : data.memo) || "");
         // visitDateを日付のみ（YYYY-MM-DD）に変換してセット
         if (data.visitDate) {
           const d = new Date(data.visitDate);
@@ -474,10 +476,11 @@ export default function ProjectDetailPage() {
 
   const saveMemo = async () => {
     setSavingMemo(true);
+    const field = role === "PARTNER" ? "partnerMemo" : "memo";
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memo: memoInput }),
+      body: JSON.stringify({ [field]: memoInput }),
     });
     setSavingMemo(false);
     setMemoSaved(true);
@@ -1350,8 +1353,8 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* 📝 メモ（自社案件のみ・自分用の自由メモ） */}
-        {isSelfJob && (
+        {/* 📝 メモ（各自専用・相手には非公開）。管理者は全案件、協力会社は担当案件で表示 */}
+        {(role === "ADMIN" || (role === "PARTNER" && isAssigned)) && (
           <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 mt-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-gray-100">📝 メモ</h3>
@@ -1362,7 +1365,9 @@ export default function ProjectDetailPage() {
               onChange={(e) => { setMemoInput(e.target.value); setMemoSaved(false); }}
               onBlur={saveMemo}
               rows={5}
-              placeholder="この案件のメモ（作業内容・連絡事項・気づいたことなど）&#10;※自分用。協力会社には表示されません"
+              placeholder={role === "PARTNER"
+                ? "この案件のメモ（作業内容・気づいたことなど）\n※自分用。管理者には表示されません"
+                : "この案件のメモ（作業内容・連絡事項・気づいたことなど）\n※自分用。協力会社には表示されません"}
               className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
             />
             <div className="flex justify-end mt-2">

@@ -176,9 +176,6 @@ export default function Header() {
               <span>🔔</span><span>通知をONにする</span>
             </button>
           )}
-          <Link href="/help" className="flex items-center gap-2 text-sm text-gray-200 hover:text-white py-2 border-b border-gray-700">
-            <span>❓</span><span>使い方</span>
-          </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             className="flex items-center gap-2 text-sm text-gray-400 hover:text-red-400 py-2 w-full"

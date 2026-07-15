@@ -1166,9 +1166,11 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* ⚡ 要対応ボックス */}
+            {/* ⚡要対応・⏸保留中（PCは左右2カラム / モバイルは上下） */}
+            {(actionItems.length > 0 || heldProjects.length > 0) && (
+            <div className="mb-4 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
             {actionItems.length > 0 && (
-              <div className="mb-4 bg-amber-950/40 border border-amber-700 rounded-xl overflow-hidden">
+              <div className="bg-amber-950/40 border border-amber-700 rounded-xl overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-800/60">
                   <span className="text-base">⚡</span>
                   <span className="text-sm font-bold text-amber-300">要対応</span>
@@ -1199,7 +1201,7 @@ export default function DashboardPage() {
 
             {/* ⏸ 保留中ボックス（モバイルは折りたたみ） */}
             {heldProjects.length > 0 && (
-              <div className="mb-4 bg-orange-950/40 border border-orange-700 rounded-xl overflow-hidden">
+              <div className="bg-orange-950/40 border border-orange-700 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setShowHeldMobile((v) => !v)}
                   className="w-full flex items-center gap-2 px-4 py-2.5 border-b border-orange-800/60 lg:cursor-default"
@@ -1234,6 +1236,8 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
+            )}
+            </div>
             )}
 
             {sortedActive.length === 0 ? (

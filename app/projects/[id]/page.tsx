@@ -1333,7 +1333,8 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* コメント */}
+        {/* コメント（自社案件は相談相手がいないので非表示） */}
+        {!isSelfJob && (
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 mt-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-gray-100">💬 相談・確認チャット</h3>
@@ -1477,6 +1478,7 @@ export default function ProjectDetailPage() {
             </button>
           </div>
         </div>
+        )}
 
         </div>
 

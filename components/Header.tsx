@@ -121,6 +121,7 @@ export default function Header() {
               <>
                 {navLink("/dashboard", "依頼", pathname === "/dashboard" || (pathname.startsWith("/projects") && pathname !== "/projects/new"))}
                 {navLink("/messages", "チャット", pathname === "/messages")}
+                {navLink("/calendar", "カレンダー", pathname === "/calendar")}
                 {navLink("/billing", "完了済", pathname === "/billing")}
                 {role === "ADMIN" && navLink("/sales", "売上", pathname === "/sales")}
               </>

@@ -94,9 +94,6 @@ export function partnerActionReason(p: ActionCheckProject): ActionReason | null 
   if (p.status === "QUOTE_REQUESTED" && !p.quotes.some((q) => q.status === "PENDING") && daysSince(p.updatedAt) >= 2) {
     return { label: "見積りの提出", color: "bg-orange-100 text-orange-700" };
   }
-  if (p.status === "ACCEPTED" && !p.visitDate && daysSince(p.updatedAt) >= 3) {
-    return { label: "訪問日の入力", color: "bg-blue-100 text-blue-700" };
-  }
   // ── 放置検知 ──
   if (p.status === "ACCEPTED" && visitOverdue(p.visitDate)) {
     return { label: "完了報告の提出", color: "bg-purple-100 text-purple-700" };

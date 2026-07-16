@@ -210,6 +210,28 @@ export default function SettingsPage() {
   const copyCalUrl = async () => {
     try { await navigator.clipboard.writeText(calUrl); setCalCopied(true); setTimeout(() => setCalCopied(false), 2000); } catch {}
   };
+  // 会社別フィード（Googleで色分け用・管理者のみ）
+  const [calPartners, setCalPartners] = useState<{ id: string; label: string }[]>([]);
+  const [calCopiedId, setCalCopiedId] = useState<string | null>(null);
+  const loadCalPartners = async () => {
+    if (role !== "ADMIN" || calPartners.length > 0) return;
+    const r = await fetch("/api/users");
+    if (!r.ok) return;
+    const users: { id: string; name: string; companyName: string | null; role: string }[] = await r.json();
+    const list = users
+      .filter((u) => u.role === "PARTNER")
+      .map((u) => ({ id: u.id, label: u.companyName || u.name }));
+    const meId = (session?.user as { id?: string })?.id;
+    if (meId) list.unshift({ id: meId, label: "🔧 自社案件" });
+    setCalPartners(list);
+  };
+  const copyPartnerUrl = async (pid: string) => {
+    try {
+      await navigator.clipboard.writeText(`${calUrl}&partner=${pid}`);
+      setCalCopiedId(pid);
+      setTimeout(() => setCalCopiedId(null), 2000);
+    } catch {}
+  };
   const isOpen = (key: string) => openSections.has(key);
 
   // メッセージタブ
@@ -1035,7 +1057,7 @@ export default function SettingsPage() {
 
         {/* 📅 カレンダー連携（ICS購読） */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
-          <button onClick={() => { toggleSection("calendar"); loadCalToken(); }} className="w-full flex items-center justify-between px-4 py-3.5">
+          <button onClick={() => { toggleSection("calendar"); loadCalToken(); loadCalPartners(); }} className="w-full flex items-center justify-between px-4 py-3.5">
             <span className="text-sm font-bold text-gray-100">📅 スマホのカレンダーと連携</span>
             <span className="text-gray-400 text-xs">{isOpen("calendar") ? "▲" : "▼"}</span>
           </button>
@@ -1062,6 +1084,26 @@ export default function SettingsPage() {
                     <p>📆 <span className="text-gray-300">Googleカレンダー(PC):</span> 他のカレンダー「＋」 → <span className="text-gray-300">URLで追加</span> → URLを貼り付け</p>
                     <p className="text-gray-600">※ 反映はカレンダーアプリの更新間隔によります（iPhoneは設定で最短5分毎、Googleは数時間毎）</p>
                   </div>
+                  {role === "ADMIN" && calPartners.length > 0 && (
+                    <div className="bg-gray-900/60 rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-bold text-gray-300">🎨 会社ごとに色分けしたい場合（Google向け）</p>
+                      <p className="text-xs text-gray-500">
+                        会社別のURLをそれぞれ別カレンダーとして登録すると、Googleカレンダー側で
+                        カレンダーごとに色を設定できます（上の全件URLの代わりに使用）
+                      </p>
+                      <div className="divide-y divide-gray-800">
+                        {calPartners.map((cp) => (
+                          <div key={cp.id} className="flex items-center gap-2 py-1.5">
+                            <span className="text-xs text-gray-200 flex-1 min-w-0 truncate">{cp.label}</span>
+                            <button onClick={() => copyPartnerUrl(cp.id)}
+                              className={`shrink-0 text-xs rounded px-2.5 py-1 font-medium transition ${calCopiedId === cp.id ? "bg-green-600 text-white" : "bg-gray-700 text-gray-200 hover:bg-gray-600"}`}>
+                              {calCopiedId === cp.id ? "✓ コピー済" : "URLコピー"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <button onClick={regenCalToken} className="text-xs text-gray-500 hover:text-red-400 transition">
                     🔄 URLを再発行する（古いURLを無効化）
                   </button>

@@ -36,13 +36,29 @@ export async function GET(req: NextRequest) {
   });
   if (!user) return new NextResponse("Not found", { status: 404 });
 
+  // 会社別フィード（管理者のみ）: ?partner=<userId> でその担当分だけに絞る
+  const partnerId = req.nextUrl.searchParams.get("partner") || null;
+  let calName = "電気工事 訪問予定";
+  if (partnerId && user.role === "ADMIN") {
+    const partner = await prisma.user.findUnique({
+      where: { id: partnerId },
+      select: { companyName: true, name: true },
+    });
+    if (!partner) return new NextResponse("Not found", { status: 404 });
+    calName = `訪問予定｜${partner.companyName || partner.name}`;
+  }
+
   // 直近60日〜未来の訪問予定（管理者=全件 / 協力会社=担当分のみ）
   const since = new Date(Date.now() - 60 * 86400000);
   const projects = await prisma.project.findMany({
     where: {
       visitDate: { not: null, gte: since },
       status: { not: "REJECTED" },
-      ...(user.role === "PARTNER" ? { assignedToId: user.id } : {}),
+      ...(user.role === "PARTNER"
+        ? { assignedToId: user.id }
+        : partnerId
+        ? { assignedToId: partnerId }
+        : {}),
     },
     select: {
       id: true, title: true, location: true, roomNumber: true, workType: true,
@@ -62,7 +78,7 @@ export async function GET(req: NextRequest) {
     "PRODID:-//denki-kanri//visit-calendar//JP",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:電気工事 訪問予定",
+    `X-WR-CALNAME:${esc(calName)}`,
     "X-WR-TIMEZONE:Asia/Tokyo",
   ];
 

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import { enhanceForOcr } from "@/lib/enhanceForOcr";
 
 interface Partner {
   id: string;
@@ -105,8 +106,10 @@ export default function NewProjectPage() {
     setExtracting(true);
     setExtractMsg("");
     try {
+      // 画像は書類スキャン風に補正してからAIへ（読み取り精度UP。原本ファイルは変更しない）
+      const aiFile = file.type.startsWith("image/") ? await enhanceForOcr(file) : file;
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", aiFile);
       const res = await fetch("/api/projects/extract", { method: "POST", body: fd });
       const json = await res.json();
       if (!res.ok) {

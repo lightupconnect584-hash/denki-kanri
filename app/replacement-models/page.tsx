@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { enhanceForOcr } from "@/lib/enhanceForOcr";
 
 interface UserMini {
   id: string;
@@ -160,8 +161,9 @@ export default function ReplacementModelsPage() {
     setExtracting(true);
     setExtractError(null);
     try {
+      const aiFile = file.type.startsWith("image/") ? await enhanceForOcr(file) : file;
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", aiFile);
       const res = await fetch("/api/replacement-models/extract", { method: "POST", body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "読み取りに失敗しました");

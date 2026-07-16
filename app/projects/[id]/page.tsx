@@ -132,6 +132,9 @@ export default function ProjectDetailPage() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [visitInput, setVisitInput] = useState("");
   const [visitTimeFrom, setVisitTimeFrom] = useState("");
+  // 30分刻みの時刻候補（"9:00", "9:30", ...）
+  const HALF_HOURS = Array.from({ length: 48 }, (_, i) => `${Math.floor(i / 2)}:${i % 2 === 0 ? "00" : "30"}`);
+  const fmtTime = (from: string, to: string) => (from && to ? `${from}〜${to}` : from ? `${from}〜` : null);
   const [visitTimeTo, setVisitTimeTo] = useState("");
   const [savingVisit, setSavingVisit] = useState(false);
   const [holdPanelOpen, setHoldPanelOpen] = useState(false);
@@ -229,9 +232,10 @@ export default function ProjectDetailPage() {
           setVisitInput("");
         }
         if (data.visitTime) {
-          const m = data.visitTime.match(/^(\d+)時〜(\d+)時$/);
-          if (m) { setVisitTimeFrom(m[1]); setVisitTimeTo(m[2]); }
-          else { const m2 = data.visitTime.match(/^(\d+)/); if (m2) { setVisitTimeFrom(m2[1]); setVisitTimeTo(""); } }
+          const m = data.visitTime.match(/^(\d+(?::\d+)?)(?:時)?〜(\d+(?::\d+)?)(?:時)?$/);
+          const norm = (v: string) => (v.includes(":") ? v : `${v}:00`);
+          if (m) { setVisitTimeFrom(norm(m[1])); setVisitTimeTo(m[2] ? norm(m[2]) : ""); }
+          else { const m2 = data.visitTime.match(/^(\d+(?::\d+)?)/); if (m2) { setVisitTimeFrom(norm(m2[1])); setVisitTimeTo(""); } }
         } else {
           setVisitTimeFrom(""); setVisitTimeTo("");
         }
@@ -500,7 +504,7 @@ export default function ProjectDetailPage() {
     const payload: Record<string, unknown> = { contacted: true };
     if (withDate && apptDate) {
       payload.visitDate = new Date(`${apptDate}T09:00:00`).toISOString();
-      payload.visitTime = apptFrom && apptTo ? `${apptFrom}時〜${apptTo}時` : apptFrom ? `${apptFrom}時〜` : null;
+      payload.visitTime = fmtTime(apptFrom, apptTo);
     }
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
@@ -539,9 +543,7 @@ export default function ProjectDetailPage() {
   const saveVisitDate = async () => {
     setSavingVisit(true);
     const dateToSave = visitInput ? new Date(`${visitInput}T09:00:00`).toISOString() : null;
-    const visitTime = visitTimeFrom && visitTimeTo
-      ? `${visitTimeFrom}時〜${visitTimeTo}時`
-      : visitTimeFrom ? `${visitTimeFrom}時〜` : null;
+    const visitTime = fmtTime(visitTimeFrom, visitTimeTo);
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -702,16 +704,16 @@ export default function ProjectDetailPage() {
                       <select value={apptFrom} onChange={(e) => setApptFrom(e.target.value)}
                         className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none">
                         <option value="">--</option>
-                        {Array.from({ length: 24 }, (_, i) => (
-                          <option key={i} value={String(i)}>{i}時</option>
+                        {HALF_HOURS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
                       <span className="text-gray-500">〜</span>
                       <select value={apptTo} onChange={(e) => setApptTo(e.target.value)}
                         className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none">
                         <option value="">--</option>
-                        {Array.from({ length: 24 }, (_, i) => (
-                          <option key={i} value={String(i)}>{i}時</option>
+                        {HALF_HOURS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
                     </div>
@@ -1068,8 +1070,8 @@ export default function ProjectDetailPage() {
                   className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">--</option>
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <option key={i} value={String(i)}>{i}時</option>
+                  {HALF_HOURS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
                 <span className="text-gray-500">〜</span>
@@ -1079,13 +1081,13 @@ export default function ProjectDetailPage() {
                   className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">--</option>
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <option key={i} value={String(i)}>{i}時</option>
+                  {HALF_HOURS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
                 {(visitTimeFrom || visitTimeTo) && (
                   <span className="text-xs text-blue-300 font-medium">
-                    {visitTimeFrom && visitTimeTo ? `${visitTimeFrom}時〜${visitTimeTo}時` : visitTimeFrom ? `${visitTimeFrom}時〜` : ""}
+                    {fmtTime(visitTimeFrom, visitTimeTo) || ""}
                   </span>
                 )}
               </div>

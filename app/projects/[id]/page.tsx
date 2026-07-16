@@ -595,9 +595,9 @@ export default function ProjectDetailPage() {
               <div className="flex items-start gap-3">
                 <span className="text-xl shrink-0">📞</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-red-300">入居者立ち会いが必要な案件です</p>
+                  <p className="text-sm font-bold text-red-300">入居者とのアポイントが必要な案件です</p>
                   <p className="text-xs text-red-400 mt-0.5">
-                    入居者（折り返し先）に連絡して日程を調整してください。連絡が取れたら下のボタンを押すと表示が消えます
+                    入居者（折り返し先）に連絡して訪問日程のアポイントを取ってください。アポが取れたら下のボタンを押すと表示が消えます
                   </p>
                   {project.contractorPhone && (
                     <a href={`tel:${project.contractorPhone}`}
@@ -613,13 +613,13 @@ export default function ProjectDetailPage() {
                   disabled={savingContact}
                   className="mt-3 w-full bg-red-600 text-white rounded-xl py-2.5 text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition"
                 >
-                  {savingContact ? "…" : "✓ 入居者と連絡が取れた"}
+                  {savingContact ? "…" : "✓ アポイントが取れた"}
                 </button>
               )}
             </div>
           ) : (
             <div className="mb-4 flex items-center gap-2 bg-green-950/40 border border-green-800 rounded-xl px-4 py-2.5">
-              <span className="text-sm text-green-300">✓ 入居者と連絡済み（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）</span>
+              <span className="text-sm text-green-300">✓ アポイント済み（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）</span>
               {(role === "ADMIN" || isAssigned) && (
                 <button onClick={() => setContacted(false)} disabled={savingContact}
                   className="ml-auto text-xs text-gray-500 hover:text-red-400 transition">

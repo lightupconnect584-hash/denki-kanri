@@ -378,7 +378,7 @@ export default function EditProjectPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1.5">入居者立ち会い</label>
+            <label className="block text-sm font-medium text-gray-200 mb-1.5">入居者アポイント</label>
             <button type="button"
               onClick={() => setForm({ ...form, contactRequired: !form.contactRequired })}
               className={`w-full py-2 rounded-lg text-sm font-medium border transition ${
@@ -386,7 +386,7 @@ export default function EditProjectPage() {
                   ? "bg-red-600 text-white border-red-600"
                   : "bg-gray-700 text-gray-300 border-gray-600 hover:border-red-500"
               }`}>
-              📞 {form.contactRequired ? "立ち会い必要・要連絡" : "立ち会い不要"}
+              📞 {form.contactRequired ? "アポイント必要" : "アポイント不要"}
             </button>
           </div>
 

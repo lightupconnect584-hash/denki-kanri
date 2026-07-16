@@ -428,7 +428,7 @@ export default function DashboardPage() {
           {/* バッジ行（該当時のみ。自社バッジは自社セクションに入っているので不要） */}
           {(p.urgency === "HIGH" || p.urgency === "MEDIUM" || p.materialSupplied || (p.contactRequired && !p.contactedAt)) && (
             <div className="flex items-center gap-1.5 flex-wrap mt-2">
-              {p.contactRequired && !p.contactedAt && <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要連絡</span>}
+              {p.contactRequired && !p.contactedAt && <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要アポ</span>}
               {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium">緊急</span>}
               {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium">中</span>}
               {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium">📦 材料支給</span>}

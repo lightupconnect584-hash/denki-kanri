@@ -46,7 +46,7 @@ export function adminActionReason(p: ActionCheckProject): ActionReason | null {
 
   // 入居者立ち会い・要連絡（連絡が取れるまで表示）
   if (p.contactRequired && !p.contactedAt && !DONE.includes(p.status)) {
-    return { label: "入居者へ連絡", color: "bg-red-100 text-red-700" };
+    return { label: "アポイントを取る", color: "bg-red-100 text-red-700" };
   }
 
   if (p.status === "INSPECTED") {
@@ -92,7 +92,7 @@ export function partnerActionReason(p: ActionCheckProject): ActionReason | null 
 
   // 入居者立ち会い・要連絡（連絡が取れるまで表示）
   if (p.contactRequired && !p.contactedAt && !DONE.includes(p.status)) {
-    return { label: "入居者へ連絡", color: "bg-red-100 text-red-700" };
+    return { label: "アポイントを取る", color: "bg-red-100 text-red-700" };
   }
 
   // 通常の流れ（受注→訪問日→報告）は一覧のステータスで分かるので、

@@ -754,7 +754,7 @@ export default function NewProjectPage() {
                   className={inputClass} placeholder="例: 12番・来客用" maxLength={30} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">入居者立ち会い <span className="text-gray-500 font-normal text-xs">（AI読み取りで自動判定）</span></label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">入居者アポイント <span className="text-gray-500 font-normal text-xs">（AI読み取りで自動判定）</span></label>
                 <button type="button"
                   onClick={() => setForm({ ...form, contactRequired: !form.contactRequired })}
                   className={`w-full py-2 rounded-lg text-sm font-medium border transition flex items-center justify-center gap-2 ${
@@ -762,10 +762,10 @@ export default function NewProjectPage() {
                       ? "bg-red-600 text-white border-red-600"
                       : "bg-gray-700 text-gray-300 border-gray-600 hover:border-red-500"
                   }`}>
-                  📞 {form.contactRequired ? "立ち会い必要・要連絡" : "立ち会い不要"}
+                  📞 {form.contactRequired ? "アポイント必要" : "アポイント不要"}
                 </button>
                 {form.contactRequired && (
-                  <p className="text-xs text-red-400 mt-1">連絡が取れるまで「要対応」に表示されます</p>
+                  <p className="text-xs text-red-400 mt-1">アポが取れるまで「要対応」に表示されます</p>
                 )}
               </div>
               <div>

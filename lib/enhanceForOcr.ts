@@ -37,10 +37,10 @@ export async function enhanceForOcr(file: File): Promise<File> {
     if (!ctx) return file;
     ctx.drawImage(img, 0, 0, w, h);
 
-    // グレースケール + コントラスト強調
+    // グレースケール + 軽いコントラスト強調（強すぎると逆に潰れるため控えめ）
     const imageData = ctx.getImageData(0, 0, w, h);
     const px = imageData.data;
-    const contrast = 1.35; // コントラスト係数（>1で強調）
+    const contrast = 1.15; // コントラスト係数（>1で強調）
     const intercept = 128 * (1 - contrast);
     for (let i = 0; i < px.length; i += 4) {
       // 輝度（グレースケール）

@@ -45,6 +45,13 @@ export default function CalendarPage() {
   const [viewMonth, setViewMonth] = useState(now.getMonth());
 
   const role = (session?.user as { role?: string })?.role;
+  const myId = (session?.user as { id?: string })?.id;
+
+  // 自社案件（担当＝自分）は白。それ以外は担当協力会社の色
+  const eventColor = (p: Project) => {
+    if (role === "ADMIN" && myId && p.assignedTo?.id === myId) return "#ffffff";
+    return p.assignedTo?.color || "#4b5563";
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -207,7 +214,7 @@ export default function CalendarPage() {
                         <span
                           key={j}
                           className="w-1.5 h-1.5 rounded-full shrink-0"
-                          style={{ backgroundColor: p.assignedTo?.color || "#3b82f6" }}
+                          style={{ backgroundColor: eventColor(p) }}
                         />
                       ))}
                       {dayProjects.length > 3 && <span className="text-xs text-gray-400 leading-none font-bold">+</span>}
@@ -220,8 +227,14 @@ export default function CalendarPage() {
         </div>
 
         {/* 凡例（管理者のみ・カラー設定済み会社） */}
-        {role === "ADMIN" && legend.length > 0 && (
+        {role === "ADMIN" && (legend.length > 0 || projects.some((p) => p.assignedTo?.id === myId)) && (
           <div className="flex gap-3 flex-wrap mb-4">
+            {projects.some((p) => p.assignedTo?.id === myId) && (
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-gray-500" style={{ backgroundColor: "#ffffff" }} />
+                <span className="text-xs text-gray-400">自社</span>
+              </div>
+            )}
             {legend.map(({ id, name, color }) => (
               <div key={id} className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -244,7 +257,7 @@ export default function CalendarPage() {
               <div className="space-y-2">
                 {selectedProjects.map((p) => (
                   <Link key={p.id} href={`/projects/${p.id}`} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden flex items-stretch hover:bg-gray-700 transition block">
-                    <div className="w-1 shrink-0" style={{ backgroundColor: p.assignedTo?.color || "#4b5563" }} />
+                    <div className="w-1 shrink-0" style={{ backgroundColor: eventColor(p) }} />
                     <div className="flex items-center gap-3 px-4 py-3 flex-1 min-w-0">
                       <div className="shrink-0 text-center w-14">
                         {p.visitTime ? (
@@ -287,7 +300,7 @@ export default function CalendarPage() {
                   const dateLabel = d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
                   return (
                     <Link key={p.id} href={`/projects/${p.id}`} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden flex items-stretch hover:bg-gray-700 transition block">
-                      <div className="w-1 shrink-0" style={{ backgroundColor: p.assignedTo?.color || "#4b5563" }} />
+                      <div className="w-1 shrink-0" style={{ backgroundColor: eventColor(p) }} />
                       <div className="flex items-center gap-3 px-4 py-3 flex-1 min-w-0">
                         <div className="shrink-0 text-center w-16">
                           <p className={`text-xs font-bold ${isToday ? "text-blue-400" : "text-gray-300"}`}>{isToday ? "今日" : dateLabel}</p>

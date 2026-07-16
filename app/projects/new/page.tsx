@@ -721,6 +721,7 @@ export default function NewProjectPage() {
                   ))}
                 </div>
               </div>
+              {!isSelf && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">材料支給</label>
                 <button type="button"
@@ -733,6 +734,7 @@ export default function NewProjectPage() {
                   📦 {form.materialSupplied ? "材料支給あり" : "材料支給なし"}
                 </button>
               </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">完了報告のタイプ</label>
                 <button type="button"

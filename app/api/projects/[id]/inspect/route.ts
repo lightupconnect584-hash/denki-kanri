@@ -40,7 +40,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     include: { photos: true },
   });
 
-  const newStatus = body.result === "REPAIR_NEEDED" ? "QUOTE_REQUESTED" : "INSPECTED";
+  // 「修理が必要」→見積り依頼中 は協力会社のフロー。自社案件（報告者=管理者）は見積り不要なのでINSPECTEDのまま
+  const newStatus = body.result === "REPAIR_NEEDED" && role === "PARTNER" ? "QUOTE_REQUESTED" : "INSPECTED";
   const project = await prisma.project.update({
     where: { id },
     data: { status: newStatus, notifyAdminAt: new Date() },
@@ -55,23 +56,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
 
-  // 管理者へメール通知
+  // 管理者へメール通知（報告者本人は除外：自社案件で自分に通知が飛ばないように）
+  const actorEmail = (session.user as { email?: string }).email;
   const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
+  const notifyEmails = admins.map(a => a.email).filter(e => e !== actorEmail);
   const workDateStr = new Date(body.workDate).toLocaleDateString("ja-JP");
-  await notifyInspectionSubmitted(
-    admins.map(a => a.email), id, project.title,
-    userName, body.result, workDateStr
-  );
+  if (notifyEmails.length > 0) {
+    await notifyInspectionSubmitted(
+      notifyEmails, id, project.title,
+      userName, body.result, workDateStr
+    );
+  }
 
-  // 管理者へプッシュ通知
+  // 管理者へプッシュ通知（報告者本人は除外）
   const resultLabel = body.result === "REPAIR_NEEDED" ? "🔧 修理が必要" : "✅ 問題なし";
-  getAdminIds().then((adminIds) =>
-    sendPushToUsers(adminIds, {
+  getAdminIds().then((adminIds) => {
+    const targets = adminIds.filter((a) => a !== userId);
+    if (targets.length === 0) return;
+    return sendPushToUsers(targets, {
       title: `完了報告が届きました`,
       body: `${project.title} — ${resultLabel}（${userName}）`,
       url: `/projects/${id}`,
-    })
-  ).catch(() => {});
+    });
+  }).catch(() => {});
 
   return NextResponse.json(inspection);
 }

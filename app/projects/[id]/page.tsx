@@ -1252,7 +1252,7 @@ export default function ProjectDetailPage() {
           <div className="mb-4 bg-gray-800 rounded-xl border border-gray-700 p-4 space-y-2">
             <p className="text-xs font-bold text-gray-400 mb-3">管理者操作</p>
             <div className="flex flex-wrap gap-2">
-              {project.status === "INSPECTED" && (
+              {project.status === "INSPECTED" && !isSelfJob && (
                 <button
                   onClick={() => changeStatus("QUOTE_REQUESTED")}
                   disabled={updating}
@@ -1269,6 +1269,7 @@ export default function ProjectDetailPage() {
               >
                 ✅ 確認・完了する
               </button>
+              {!isSelfJob && (
               <button
                 onClick={() => changeStatus("REWORK")}
                 disabled={updating}
@@ -1276,6 +1277,7 @@ export default function ProjectDetailPage() {
               >
                 ↩ 差し戻す（再報告要求）
               </button>
+              )}
             </div>
           </div>
         )}
@@ -1341,7 +1343,7 @@ export default function ProjectDetailPage() {
                 </Link>
               </div>
             )}
-            {["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status) && (
+            {["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status) && !isSelfJob && (
               <Link
                 href={`/projects/${id}/quote`}
                 className="block w-full bg-orange-900/300 text-white rounded-xl py-3 text-sm font-medium hover:bg-orange-600 transition text-center"

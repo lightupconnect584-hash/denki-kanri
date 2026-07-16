@@ -31,6 +31,7 @@ model User {
   licenseNumber    String?
   licenseExpiry    DateTime?
   vehicleNumber    String?
+  calendarToken String?  @unique // カレンダー購読（ICS）用の秘密トークン
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 

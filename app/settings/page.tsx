@@ -192,6 +192,24 @@ export default function SettingsPage() {
   // アコーディオン
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const toggleSection = (key: string) => setOpenSections(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
+
+  // 📅 カレンダー連携（ICS購読URL）
+  const [calToken, setCalToken] = useState<string | null>(null);
+  const [calCopied, setCalCopied] = useState(false);
+  const loadCalToken = async () => {
+    if (calToken) return;
+    const r = await fetch("/api/calendar/token");
+    if (r.ok) setCalToken((await r.json()).token);
+  };
+  const regenCalToken = async () => {
+    if (!window.confirm("URLを再発行しますか？\n登録済みのカレンダーは無効になり、新しいURLで登録し直しが必要です。")) return;
+    const r = await fetch("/api/calendar/token", { method: "POST" });
+    if (r.ok) setCalToken((await r.json()).token);
+  };
+  const calUrl = calToken ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/calendar/ics?token=${calToken}` : "";
+  const copyCalUrl = async () => {
+    try { await navigator.clipboard.writeText(calUrl); setCalCopied(true); setTimeout(() => setCalCopied(false), 2000); } catch {}
+  };
   const isOpen = (key: string) => openSections.has(key);
 
   // メッセージタブ
@@ -1013,6 +1031,46 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">設定</h2>
+        </div>
+
+        {/* 📅 カレンダー連携（ICS購読） */}
+        <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
+          <button onClick={() => { toggleSection("calendar"); loadCalToken(); }} className="w-full flex items-center justify-between px-4 py-3.5">
+            <span className="text-sm font-bold text-gray-100">📅 スマホのカレンダーと連携</span>
+            <span className="text-gray-400 text-xs">{isOpen("calendar") ? "▲" : "▼"}</span>
+          </button>
+          {isOpen("calendar") && (
+            <div className="px-4 pb-4 border-t border-gray-700 pt-3 space-y-3">
+              <p className="text-xs text-gray-400">
+                下のURLをカレンダーアプリに一度登録すると、アプリで入れた訪問予定が
+                iPhoneカレンダーやGoogleカレンダーに<span className="text-gray-200 font-medium">自動で表示</span>されます（手入力不要）。
+              </p>
+              {calToken ? (
+                <>
+                  <div className="flex gap-2">
+                    <input readOnly value={calUrl}
+                      onFocus={(e) => e.target.select()}
+                      className="flex-1 min-w-0 border border-gray-600 rounded-lg px-3 py-2 text-xs text-gray-300 bg-gray-900 focus:outline-none" />
+                    <button onClick={copyCalUrl}
+                      className={`shrink-0 text-xs rounded-lg px-3 py-2 font-medium transition ${calCopied ? "bg-green-600 text-white" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
+                      {calCopied ? "✓ コピー済" : "コピー"}
+                    </button>
+                  </div>
+                  <div className="bg-gray-900/60 rounded-lg p-3 space-y-2 text-xs text-gray-400">
+                    <p className="font-bold text-gray-300">登録方法（一度だけ）</p>
+                    <p>📱 <span className="text-gray-300">iPhone:</span> 設定 → アプリ → カレンダー → カレンダーアカウント → アカウントを追加 → その他 → <span className="text-gray-300">照会カレンダーを追加</span> → URLを貼り付け</p>
+                    <p>📆 <span className="text-gray-300">Googleカレンダー(PC):</span> 他のカレンダー「＋」 → <span className="text-gray-300">URLで追加</span> → URLを貼り付け</p>
+                    <p className="text-gray-600">※ 反映はカレンダーアプリの更新間隔によります（iPhoneは設定で最短5分毎、Googleは数時間毎）</p>
+                  </div>
+                  <button onClick={regenCalToken} className="text-xs text-gray-500 hover:text-red-400 transition">
+                    🔄 URLを再発行する（古いURLを無効化）
+                  </button>
+                </>
+              ) : (
+                <p className="text-xs text-gray-500">読み込み中…</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ストレージ残量 */}

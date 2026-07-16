@@ -101,6 +101,7 @@ interface Project {
   partnerMemo: string | null;
   contactRequired: boolean;
   contactedAt: string | null;
+  contactMethod: string | null;
   visitDate: string | null;
   visitTime: string | null;
   onHold: boolean;
@@ -527,6 +528,19 @@ export default function ProjectDetailPage() {
     setLoggingAttempt(null);
   };
 
+  // 共用部：完了後メモ投函予定として記録（不出ログがある場合のみ選択可）
+  const confirmNotePlan = async () => {
+    if (!confirm("共用部不具合のため「完了後メモ投函予定」として記録しますか？\nアポ取りの要対応表示が消えます。")) return;
+    setSavingContact(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contacted: true, contactMethod: "note" }),
+    });
+    fetchProject();
+    setSavingContact(false);
+  };
+
   const saveMemo = async () => {
     setSavingMemo(true);
     const field = role === "PARTNER" ? "partnerMemo" : "memo";
@@ -684,12 +698,37 @@ export default function ProjectDetailPage() {
               )}
               {(role === "ADMIN" || isAssigned) && (
                 !apptPanelOpen ? (
+                  <>
                   <button
                     onClick={() => setApptPanelOpen(true)}
                     className="mt-3 w-full bg-red-600 text-white rounded-xl py-2.5 text-sm font-bold hover:bg-red-700 transition"
                   >
                     ✓ アポイントが取れた
                   </button>
+                  {(() => {
+                    const hasNoAnswer = project.activityLogs.some(
+                      (l) => l.action === "CONTACT_ATTEMPT" && (l.detail || "").includes("不出")
+                    );
+                    return (
+                      <div className="mt-2">
+                        <button
+                          onClick={confirmNotePlan}
+                          disabled={savingContact || !hasNoAnswer}
+                          className={`w-full rounded-xl py-2 text-xs font-medium border transition ${
+                            hasNoAnswer
+                              ? "bg-gray-800 text-amber-300 border-amber-700 hover:bg-amber-900/30"
+                              : "bg-gray-800/50 text-gray-600 border-gray-700 cursor-not-allowed"
+                          }`}
+                        >
+                          📮 共用部のため「完了後メモ投函予定」にする
+                        </button>
+                        {!hasNoAnswer && (
+                          <p className="text-xs text-gray-600 mt-1 text-center">※ 一度電話して「不出」を記録すると選べます</p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  </>
                 ) : (
                   <div className="mt-3 bg-gray-800 border border-green-700 rounded-xl p-3 space-y-2">
                     <p className="text-xs font-bold text-green-300">📅 決まった訪問日をそのまま登録できます</p>
@@ -740,7 +779,9 @@ export default function ProjectDetailPage() {
             </div>
           ) : (
             <div className="mb-4 flex items-center gap-2 bg-green-950/40 border border-green-800 rounded-xl px-4 py-2.5">
-              <span className="text-sm text-green-300">✓ アポイント済み（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）</span>
+              <span className="text-sm text-green-300">
+                {project.contactMethod === "note" ? "📮 完了後メモ投函予定（共用部）" : "✓ アポイント済み"}（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）
+              </span>
               {(role === "ADMIN" || isAssigned) && (
                 <button onClick={() => setContacted(false)} disabled={savingContact}
                   className="ml-auto text-xs text-gray-500 hover:text-red-400 transition">

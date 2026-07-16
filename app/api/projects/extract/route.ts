@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     additionalProperties: false,
     properties: {
       title: { type: "string", description: "物件名・建物名（例: ブリリアントヴィレッジ）。不明なら空文字" },
-      location: { type: "string", description: "住所（市区町村＋番地）。不明なら空文字" },
+      location: { type: "string", description: "工事対象の【物件（現場）の住所】。建物名・部屋番号がある物件そのものの所在地。依頼元・支店・管理会社・折り返し先・積水ハウスの会社住所は絶対に入れない。物件住所が読み取れなければ空文字" },
       roomNumber: { type: "string", description: "部屋番号・号室。不明なら空文字" },
       contractorName: { type: "string", description: "折り返し先名（カナ）。入居者・連絡担当者の氏名カナ。不明なら空文字" },
       contractorPhone: { type: "string", description: "折り返し先電話番号。不明なら空文字" },
@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
               text:
                 "これは電気工事の依頼元から届いた依頼書です。記載内容から、指定のJSON項目だけを抽出してください。" +
                 "金額・料金・社内管理番号などは抽出しないでください（管理担当者名・アフター担当者名は抽出対象です）。" +
+                "location（住所）は、工事対象の物件（現場）の住所だけを抽出してください。書類には依頼元・支店・管理会社・折り返し先・積水ハウスの会社住所など複数の住所が載っていることがありますが、それらは絶対に入れないでください。建物名・部屋番号がある物件そのものの所在地を選んでください。物件の住所が判別できなければ空文字にしてください。" +
                 "moveInDate（入居開始日）には日付のみを入れてください。『入居区分』『入居状況』『空室/入居中』などの区分・状態は入居開始日ではないので絶対に入れないでください。" +
                 "入居開始日の日付が書かれていない場合は必ず空文字にしてください。" +
                 "読み取れない項目は空文字にしてください。推測で埋めないでください。",

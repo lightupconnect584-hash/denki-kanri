@@ -488,6 +488,19 @@ export default function ProjectDetailPage() {
     setSavingContact(false);
   };
 
+  const [loggingAttempt, setLoggingAttempt] = useState<string | null>(null);
+  const logAttempt = async (label: string) => {
+    setLoggingAttempt(label);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactAttempt: label }),
+    });
+    await new Promise((r) => setTimeout(r, 100));
+    fetchProject(true);
+    setLoggingAttempt(null);
+  };
+
   const saveMemo = async () => {
     setSavingMemo(true);
     const field = role === "PARTNER" ? "partnerMemo" : "memo";
@@ -600,13 +613,51 @@ export default function ProjectDetailPage() {
                     入居者（折り返し先）に連絡して訪問日程のアポイントを取ってください。アポが取れたら下のボタンを押すと表示が消えます
                   </p>
                   {project.contractorPhone && (
-                    <a href={`tel:${project.contractorPhone}`}
-                      className="inline-flex items-center gap-1.5 mt-2 text-sm text-red-200 bg-red-900/50 border border-red-700 rounded-lg px-3 py-1.5 hover:bg-red-900 transition">
-                      📞 {project.contractorName ? `${project.contractorName} ` : ""}{project.contractorPhone}
-                    </a>
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      <a href={`tel:${project.contractorPhone}`}
+                        className="inline-flex items-center gap-1.5 text-sm text-red-200 bg-red-900/50 border border-red-700 rounded-lg px-3 py-1.5 hover:bg-red-900 transition">
+                        📞 {project.contractorName ? `${project.contractorName} ` : ""}{project.contractorPhone}
+                      </a>
+                      {project.smsAllowed && (
+                        <a href={`sms:${project.contractorPhone}`}
+                          className="inline-flex items-center gap-1.5 text-sm text-blue-200 bg-blue-900/50 border border-blue-700 rounded-lg px-3 py-1.5 hover:bg-blue-900 transition">
+                          💬 SMSで連絡（可）
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
+              {/* 連絡結果の記録（ワンタップでログ） */}
+              {(role === "ADMIN" || isAssigned) && (
+                <div className="mt-3">
+                  <p className="text-xs text-red-400 mb-1.5">連絡した結果を記録：</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {["☎ 不出・留守電吹き込み済", "☎ 不出・留守電なし", ...(project.smsAllowed ? ["💬 SMS送信済"] : [])].map((label) => (
+                      <button key={label}
+                        onClick={() => logAttempt(label)}
+                        disabled={loggingAttempt !== null}
+                        className="text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded-lg py-2 px-2 hover:border-red-500 hover:text-red-300 disabled:opacity-50 transition">
+                        {loggingAttempt === label ? "記録中…" : label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* 連絡履歴 */}
+              {project.activityLogs.filter((l) => l.action === "CONTACT_ATTEMPT").length > 0 && (
+                <div className="mt-3 bg-gray-900/60 border border-red-900/50 rounded-lg divide-y divide-gray-800">
+                  {project.activityLogs.filter((l) => l.action === "CONTACT_ATTEMPT").map((l) => (
+                    <div key={l.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                      <span className="text-gray-500 shrink-0">
+                        {new Date(l.createdAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <span className="text-gray-200 flex-1 min-w-0 truncate">{l.detail}</span>
+                      {l.user && <span className="text-gray-600 shrink-0">{l.user.name}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
               {(role === "ADMIN" || isAssigned) && (
                 <button
                   onClick={() => setContacted(true)}
@@ -1610,6 +1661,9 @@ export default function ProjectDetailPage() {
                     QUOTE_REJECTED: "見積却下",
                     COMMENT: "コメント",
                     ASSIGNED: "担当者設定",
+                    CONTACT_ATTEMPT: "連絡記録",
+                    HOLD: "保留",
+                    HOLD_RELEASED: "保留解除",
                   };
                   return (
                     <div key={log.id} className="px-4 py-3 flex items-start gap-3">

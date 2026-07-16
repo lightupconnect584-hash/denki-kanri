@@ -489,6 +489,28 @@ export default function ProjectDetailPage() {
   };
 
   const [loggingAttempt, setLoggingAttempt] = useState<string | null>(null);
+  const [apptPanelOpen, setApptPanelOpen] = useState(false);
+  const [apptDate, setApptDate] = useState("");
+  const [apptFrom, setApptFrom] = useState("");
+  const [apptTo, setApptTo] = useState("");
+
+  // アポ取得＋訪問日を一度に登録
+  const confirmAppointment = async (withDate: boolean) => {
+    setSavingContact(true);
+    const payload: Record<string, unknown> = { contacted: true };
+    if (withDate && apptDate) {
+      payload.visitDate = new Date(`${apptDate}T09:00:00`).toISOString();
+      payload.visitTime = apptFrom && apptTo ? `${apptFrom}時〜${apptTo}時` : apptFrom ? `${apptFrom}時〜` : null;
+    }
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setApptPanelOpen(false);
+    fetchProject();
+    setSavingContact(false);
+  };
   const logAttempt = async (label: string) => {
     setLoggingAttempt(label);
     await fetch(`/api/projects/${id}`, {
@@ -659,13 +681,59 @@ export default function ProjectDetailPage() {
                 </div>
               )}
               {(role === "ADMIN" || isAssigned) && (
-                <button
-                  onClick={() => setContacted(true)}
-                  disabled={savingContact}
-                  className="mt-3 w-full bg-red-600 text-white rounded-xl py-2.5 text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition"
-                >
-                  {savingContact ? "…" : "✓ アポイントが取れた"}
-                </button>
+                !apptPanelOpen ? (
+                  <button
+                    onClick={() => setApptPanelOpen(true)}
+                    className="mt-3 w-full bg-red-600 text-white rounded-xl py-2.5 text-sm font-bold hover:bg-red-700 transition"
+                  >
+                    ✓ アポイントが取れた
+                  </button>
+                ) : (
+                  <div className="mt-3 bg-gray-800 border border-green-700 rounded-xl p-3 space-y-2">
+                    <p className="text-xs font-bold text-green-300">📅 決まった訪問日をそのまま登録できます</p>
+                    <input
+                      type="date"
+                      value={apptDate}
+                      onChange={(e) => setApptDate(e.target.value)}
+                      className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 [color-scheme:dark]"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 shrink-0">時間帯</span>
+                      <select value={apptFrom} onChange={(e) => setApptFrom(e.target.value)}
+                        className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none">
+                        <option value="">--</option>
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <option key={i} value={String(i)}>{i}時</option>
+                        ))}
+                      </select>
+                      <span className="text-gray-500">〜</span>
+                      <select value={apptTo} onChange={(e) => setApptTo(e.target.value)}
+                        className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-700 focus:outline-none">
+                        <option value="">--</option>
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <option key={i} value={String(i)}>{i}時</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => confirmAppointment(true)}
+                      disabled={savingContact || !apptDate}
+                      className="w-full bg-green-600 text-white rounded-xl py-2.5 text-sm font-bold hover:bg-green-700 disabled:opacity-40 transition"
+                    >
+                      {savingContact ? "登録中…" : "✓ アポ取得・訪問日を登録"}
+                    </button>
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => setApptPanelOpen(false)} className="text-xs text-gray-500 hover:text-gray-300">キャンセル</button>
+                      <button
+                        onClick={() => confirmAppointment(false)}
+                        disabled={savingContact}
+                        className="text-xs text-gray-400 hover:text-green-300 underline"
+                      >
+                        日程は後で入れる（アポ取得だけ記録）
+                      </button>
+                    </div>
+                  </div>
+                )
               )}
             </div>
           ) : (

@@ -133,7 +133,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 訪問予定日・時間帯は担当者（協力会社、または自分担当の管理者）のみ変更可
   if (body.visitDate !== undefined || body.visitTime !== undefined) {
     const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true } });
-    if (project?.assignedToId === userId && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
+    if ((project?.assignedToId === userId || role === "ADMIN") && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
       if (body.visitDate !== undefined) updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
       if (body.visitTime !== undefined) updateData.visitTime = body.visitTime || null;
     }

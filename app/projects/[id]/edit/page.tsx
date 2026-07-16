@@ -44,6 +44,7 @@ export default function EditProjectPage() {
     receivedAt: "",
     parkingInfo: "",
     region: "",
+    contactRequired: false,
     managerName: "",
     afterManagerName: "",
   });
@@ -88,6 +89,7 @@ export default function EditProjectPage() {
             receivedAt: data.receivedAt || "",
             parkingInfo: data.parkingInfo || "",
             region: data.region || "",
+            contactRequired: Boolean(data.contactRequired),
             managerName: data.managerName || "",
             afterManagerName: data.afterManagerName || "",
             simpleReport: data.simpleReport ?? false,
@@ -373,6 +375,19 @@ export default function EditProjectPage() {
             <input type="text" value={form.parkingInfo}
               onChange={(e) => setForm({ ...form, parkingInfo: e.target.value })}
               className={inputClass} placeholder="例: 12番・来客用" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-200 mb-1.5">入居者立ち会い</label>
+            <button type="button"
+              onClick={() => setForm({ ...form, contactRequired: !form.contactRequired })}
+              className={`w-full py-2 rounded-lg text-sm font-medium border transition ${
+                form.contactRequired
+                  ? "bg-red-600 text-white border-red-600"
+                  : "bg-gray-700 text-gray-300 border-gray-600 hover:border-red-500"
+              }`}>
+              📞 {form.contactRequired ? "立ち会い必要・要連絡" : "立ち会い不要"}
+            </button>
           </div>
 
           <div>

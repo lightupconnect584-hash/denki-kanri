@@ -20,6 +20,8 @@ export async function GET() {
     select: {
       status: true,
       visitDate: true,
+      contactRequired: true,
+      contactedAt: true,
       onHold: true,
       holdAt: true,
       updatedAt: true,

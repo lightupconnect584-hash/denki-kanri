@@ -85,6 +85,8 @@ model Project {
   parkingInfo        String?
   region             String?   // 依頼元エリア（"埼玉" | "北関東"）。自社案件の分類に使用
   memo               String?   // 管理者専用メモ（協力会社には非公開）。自社案件・協力会社案件どちらでも使用
+  contactRequired    Boolean   @default(false) // 入居者立ち会い・要連絡
+  contactedAt        DateTime? // 入居者と連絡が取れた日時（nullなら未連絡）
   partnerMemo        String?   // 協力会社専用メモ（管理者には非公開）
   urgency          String    @default("LOW")
   materialSupplied Boolean   @default(false)

@@ -173,6 +173,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.receivedAt !== undefined) updateData.receivedAt = body.receivedAt || null;
   if (body.parkingInfo !== undefined) updateData.parkingInfo = body.parkingInfo || null;
   if (body.region !== undefined) updateData.region = body.region || null;
+  if (body.contactRequired !== undefined && role === "ADMIN") updateData.contactRequired = Boolean(body.contactRequired);
+  // 入居者と連絡が取れた／取り消し（担当者・管理者）
+  if (body.contacted !== undefined) updateData.contactedAt = body.contacted ? new Date() : null;
   // メモ（各自専用・相手には非公開・通知は出さない）
   if (body.memo !== undefined && role === "ADMIN") updateData.memo = body.memo || null;
   if (body.partnerMemo !== undefined && role === "PARTNER") updateData.partnerMemo = body.partnerMemo || null;

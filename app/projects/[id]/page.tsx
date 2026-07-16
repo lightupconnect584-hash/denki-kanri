@@ -99,6 +99,8 @@ interface Project {
   materialCost: number | null;
   memo: string | null;
   partnerMemo: string | null;
+  contactRequired: boolean;
+  contactedAt: string | null;
   visitDate: string | null;
   visitTime: string | null;
   onHold: boolean;
@@ -474,6 +476,18 @@ export default function ProjectDetailPage() {
     setSavingHold(false);
   };
 
+  const [savingContact, setSavingContact] = useState(false);
+  const setContacted = async (contacted: boolean) => {
+    setSavingContact(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contacted }),
+    });
+    fetchProject();
+    setSavingContact(false);
+  };
+
   const saveMemo = async () => {
     setSavingMemo(true);
     const field = role === "PARTNER" ? "partnerMemo" : "memo";
@@ -573,6 +587,48 @@ export default function ProjectDetailPage() {
             </div>
           )}
         </div>
+
+        {/* 📞 入居者立ち会い・要連絡バナー */}
+        {project.contactRequired && !["CONFIRMED", "COMPLETED", "REJECTED"].includes(project.status) && (
+          !project.contactedAt ? (
+            <div className="mb-4 bg-red-950/50 border border-red-700 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">📞</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-red-300">入居者立ち会いが必要な案件です</p>
+                  <p className="text-xs text-red-400 mt-0.5">
+                    入居者（折り返し先）に連絡して日程を調整してください。連絡が取れたら下のボタンを押すと表示が消えます
+                  </p>
+                  {project.contractorPhone && (
+                    <a href={`tel:${project.contractorPhone}`}
+                      className="inline-flex items-center gap-1.5 mt-2 text-sm text-red-200 bg-red-900/50 border border-red-700 rounded-lg px-3 py-1.5 hover:bg-red-900 transition">
+                      📞 {project.contractorName ? `${project.contractorName} ` : ""}{project.contractorPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
+              {(role === "ADMIN" || isAssigned) && (
+                <button
+                  onClick={() => setContacted(true)}
+                  disabled={savingContact}
+                  className="mt-3 w-full bg-red-600 text-white rounded-xl py-2.5 text-sm font-bold hover:bg-red-700 disabled:opacity-50 transition"
+                >
+                  {savingContact ? "…" : "✓ 入居者と連絡が取れた"}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="mb-4 flex items-center gap-2 bg-green-950/40 border border-green-800 rounded-xl px-4 py-2.5">
+              <span className="text-sm text-green-300">✓ 入居者と連絡済み（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）</span>
+              {(role === "ADMIN" || isAssigned) && (
+                <button onClick={() => setContacted(false)} disabled={savingContact}
+                  className="ml-auto text-xs text-gray-500 hover:text-red-400 transition">
+                  取り消す
+                </button>
+              )}
+            </div>
+          )
+        )}
 
         {/* 保留バナー・保留操作（管理者・担当協力会社） */}
         {project.onHold ? (

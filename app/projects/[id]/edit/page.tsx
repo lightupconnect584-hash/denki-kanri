@@ -53,7 +53,10 @@ export default function EditProjectPage() {
 
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
+  // 自社案件（担当=自分）は金額・材料支給が不要
+
   const myName = session?.user?.name;
+
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -139,14 +142,14 @@ export default function EditProjectPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">物件名 *</label>
-            <input type="text" required value={form.title}
+            <input type="text" required={!(myId && form.assignedToId === myId)} value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className={inputClass} />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">住所 *</label>
-            <input type="text" required value={form.location}
+            <input type="text" required={!(myId && form.assignedToId === myId)} value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
               className={inputClass} />
           </div>
@@ -161,7 +164,7 @@ export default function EditProjectPage() {
           <div className="relative">
             <label className="block text-sm font-medium text-gray-200 mb-1">依頼名 *</label>
             <div className="flex">
-              <input type="text" required value={form.workType}
+              <input type="text" required={!(myId && form.assignedToId === myId)} value={form.workType}
                 onChange={(e) => setForm({ ...form, workType: e.target.value })}
                 onFocus={() => setShowWorkTypeList(false)}
                 className="flex-1 border border-gray-600 rounded-l-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -283,6 +286,7 @@ export default function EditProjectPage() {
               rows={3} className={inputClass} />
           </div>
 
+          {!(myId && form.assignedToId === myId) && (
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">金額【税別】</label>
             <div className="relative">
@@ -300,6 +304,7 @@ export default function EditProjectPage() {
                 placeholder="0" />
             </div>
           </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">売上（積水請求・税別）<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
@@ -344,6 +349,7 @@ export default function EditProjectPage() {
             </div>
           </div>
 
+          {!(myId && form.assignedToId === myId) && (
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-2">材料支給</label>
             <button type="button"
@@ -356,6 +362,7 @@ export default function EditProjectPage() {
               📦 {form.materialSupplied ? "材料支給あり" : "材料支給なし"}
             </button>
           </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1.5">完了報告のタイプ</label>

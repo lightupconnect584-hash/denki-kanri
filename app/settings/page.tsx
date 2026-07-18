@@ -1078,11 +1078,23 @@ export default function SettingsPage() {
                       {calCopied ? "✓ コピー済" : "コピー"}
                     </button>
                   </div>
-                  <div className="bg-gray-900/60 rounded-lg p-3 space-y-2 text-xs text-gray-400">
-                    <p className="font-bold text-gray-300">登録方法（一度だけ）</p>
-                    <p>📱 <span className="text-gray-300">iPhone:</span> 設定 → アプリ → カレンダー → カレンダーアカウント → アカウントを追加 → その他 → <span className="text-gray-300">照会カレンダーを追加</span> → URLを貼り付け</p>
-                    <p>📆 <span className="text-gray-300">Googleカレンダー(PC):</span> 他のカレンダー「＋」 → <span className="text-gray-300">URLで追加</span> → URLを貼り付け</p>
-                    <p className="text-gray-600">※ 反映はカレンダーアプリの更新間隔によります（iPhoneは設定で最短5分毎、Googleは数時間毎）</p>
+                  <div className="bg-gray-900/60 rounded-lg p-3 space-y-2.5 text-xs text-gray-400">
+                    <p className="font-bold text-emerald-300">📱 iPhoneカレンダーがおすすめ（最短5分で反映）</p>
+                    <div className="space-y-1">
+                      <p className="text-gray-300 font-medium">① 登録（一度だけ）</p>
+                      <p className="pl-3">設定 → アプリ → カレンダー → アカウント → アカウントを追加 → その他 → <span className="text-gray-300">照会カレンダーを追加</span> → 上のURLを貼り付け</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-gray-300 font-medium">② 更新間隔を短くする（重要）</p>
+                      <p className="pl-3">設定 → アプリ → カレンダー → アカウント → データの取得 → <span className="text-gray-300">フェッチ＝15分（またはそれ以下）</span></p>
+                    </div>
+                    <div className="space-y-1 border-t border-gray-700/60 pt-2">
+                      <p className="text-gray-300 font-medium">👫 奥さんなど家族と共有したい場合</p>
+                      <p className="pl-3">同じURLを相手のiPhoneでも①の手順で登録すればOK（読み取り専用で全員に同じ予定が出ます）</p>
+                    </div>
+                    <p className="text-gray-600 border-t border-gray-700/60 pt-2">
+                      ⚠️ Googleカレンダー（URLで追加）は仕様上、反映が数時間〜最大1日と遅く、間隔も変えられません。すぐ反映させたい場合はiPhoneカレンダーを使ってください。
+                    </p>
                   </div>
                   {role === "ADMIN" && calPartners.length > 0 && (
                     <div className="bg-gray-900/60 rounded-lg p-3 space-y-2">

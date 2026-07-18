@@ -58,6 +58,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (role === "PARTNER") {
     const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null };
     void _s; void _m; void _mn; void _an; void _memo;
+    // 依頼書原本の添付は協力会社に見せない（自社案件を後から付け替えた場合の保険）
+    rest.projectPhotos = rest.projectPhotos.filter((ph) => !ph.originalName.includes("依頼書原本"));
     return NextResponse.json(rest);
   }
   // 管理者には協力会社メモを見せない（各自専用）

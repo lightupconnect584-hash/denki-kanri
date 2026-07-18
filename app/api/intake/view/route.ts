@@ -20,6 +20,10 @@ const EXT_TYPES: Record<string, string> = {
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
+  // 依頼書原本は管理者のみ（協力会社には依頼書の存在ごと非公開）
+  if ((session.user as { role?: string })?.role !== "ADMIN") {
+    return new NextResponse("Not found", { status: 404 });
+  }
 
   const id = req.nextUrl.searchParams.get("id") || "";
   if (!id) return new NextResponse("Not found", { status: 404 });

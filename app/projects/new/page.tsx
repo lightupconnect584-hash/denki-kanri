@@ -372,7 +372,7 @@ export default function NewProjectPage() {
         const up = await fetch("/api/upload", { method: "POST", body: fd });
         if (up.ok) {
           const j = await up.json();
-          allPhotos = [...allPhotos, { filename: j.filename, originalName: j.originalName || "依頼書原本.pdf" }];
+          allPhotos = [...allPhotos, { filename: j.filename, originalName: `【依頼書原本】${j.originalName || "依頼書.pdf"}` }];
         }
       } catch { /* 添付失敗しても登録は続行 */ }
     }

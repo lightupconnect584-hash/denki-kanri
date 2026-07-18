@@ -60,7 +60,7 @@ export default function NewProjectPage() {
   const [dragOver, setDragOver] = useState(false);
   const extractFileRef = useRef<File | null>(null);
   const [intakeId, setIntakeId] = useState<string | null>(null);
-  const [intakeDoc, setIntakeDoc] = useState<{ url: string; name: string; isPdf: boolean } | null>(null); // 原本プレビュー
+  const [intakeDoc, setIntakeDoc] = useState<{ url: string; name: string; isPdf: boolean; objUrl: string | null } | null>(null); // 原本プレビュー
   const [showDocMobile, setShowDocMobile] = useState(false);
 
   // 読み取り結果をフォームに反映（空文字は既存値を残す）
@@ -208,14 +208,17 @@ export default function NewProjectPage() {
         if (!r.ok) return;
         const doc = await r.json();
         setIntakeId(doc.id);
-        setIntakeDoc({
-          url: doc.filename,
-          name: doc.originalName || "依頼書",
-          isPdf: (doc.originalName || "").toLowerCase().endsWith(".pdf") || !/\.(png|jpe?g|webp|gif|heic)$/i.test(doc.originalName || ""),
-        });
         setExtractMsg("受付ボックスの依頼書を読み取っています…");
         const fr = await fetch(doc.filename);
         const blob = await fr.blob();
+        const isImage = blob.type.startsWith("image/");
+        const typed = blob.type ? blob : new Blob([blob], { type: "application/pdf" });
+        setIntakeDoc({
+          url: doc.filename,
+          name: doc.originalName || "依頼書",
+          isPdf: !isImage,
+          objUrl: URL.createObjectURL(typed),
+        });
         const file = new File([blob], doc.originalName || "依頼書.pdf", { type: blob.type || "application/pdf" });
         runExtract(file);
       } catch {
@@ -434,11 +437,11 @@ export default function NewProjectPage() {
               </div>
               <div className={`${showDocMobile ? "block" : "hidden"} lg:block`}>
                 {intakeDoc.isPdf ? (
-                  <iframe src={intakeDoc.url} title="依頼書原本"
+                  <iframe src={intakeDoc.objUrl || intakeDoc.url} title="依頼書原本"
                     className="w-full h-[60vh] lg:h-[calc(100vh-9rem)] bg-white" />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={intakeDoc.url} alt="依頼書原本" className="w-full max-h-[70vh] lg:max-h-[calc(100vh-9rem)] object-contain bg-gray-950" />
+                  <img src={intakeDoc.objUrl || intakeDoc.url} alt="依頼書原本" className="w-full max-h-[70vh] lg:max-h-[calc(100vh-9rem)] object-contain bg-gray-950" />
                 )}
               </div>
             </div>

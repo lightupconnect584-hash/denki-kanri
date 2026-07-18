@@ -52,8 +52,22 @@ export default function SalesPage() {
   const [showExpenses, setShowExpenses] = useState(false);
   const [newExpLabel, setNewExpLabel] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
-  // 📄 依頼書原本の拡大ビューア
-  const [viewerDoc, setViewerDoc] = useState<{ url: string; label: string } | null>(null);
+  // 📄 依頼書原本の拡大ビューア（Blob直リンクはダウンロード扱いで黒画面になるため、取得してから表示）
+  const [viewerDoc, setViewerDoc] = useState<{ url: string; label: string; objUrl: string | null; isImage: boolean } | null>(null);
+  const openViewer = async (url: string, label: string) => {
+    setViewerDoc({ url, label, objUrl: null, isImage: false });
+    try {
+      const r = await fetch(url);
+      const b = await r.blob();
+      const isImage = b.type.startsWith("image/");
+      const typed = b.type ? b : new Blob([b], { type: "application/pdf" });
+      setViewerDoc({ url, label, objUrl: URL.createObjectURL(typed), isImage });
+    } catch { /* 取得失敗時は「別タブで開く」で対応 */ }
+  };
+  const closeViewer = () => {
+    if (viewerDoc?.objUrl) URL.revokeObjectURL(viewerDoc.objUrl);
+    setViewerDoc(null);
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -174,22 +188,24 @@ export default function SalesPage() {
       <Header />
       {/* 📄 依頼書原本ビューア */}
       {viewerDoc && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col" onClick={() => setViewerDoc(null)}>
+        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col" onClick={closeViewer}>
           <div className="flex items-center gap-3 px-4 py-3 bg-gray-950/90 shrink-0" onClick={(e) => e.stopPropagation()}>
             <p className="text-sm font-bold text-gray-100 truncate flex-1 min-w-0">📄 {viewerDoc.label}</p>
             <a href={viewerDoc.url} target="_blank" rel="noopener noreferrer"
               className="text-xs text-sky-400 border border-sky-700 rounded-lg px-3 py-1.5 hover:bg-sky-900/40 transition shrink-0">
               別タブで開く
             </a>
-            <button onClick={() => setViewerDoc(null)}
+            <button onClick={closeViewer}
               className="text-gray-400 hover:text-white text-xl leading-none px-2 shrink-0">✕</button>
           </div>
           <div className="flex-1 min-h-0" onClick={(e) => e.stopPropagation()}>
-            {/\.(png|jpe?g|webp|gif|heic)(\?|$)/i.test(viewerDoc.url) ? (
+            {!viewerDoc.objUrl ? (
+              <p className="text-sm text-gray-400 text-center pt-16">読み込み中…</p>
+            ) : viewerDoc.isImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={viewerDoc.url} alt="依頼書原本" className="w-full h-full object-contain" />
+              <img src={viewerDoc.objUrl} alt="依頼書原本" className="w-full h-full object-contain" />
             ) : (
-              <iframe src={viewerDoc.url} title="依頼書原本" className="w-full h-full bg-white" />
+              <iframe src={viewerDoc.objUrl} title="依頼書原本" className="w-full h-full bg-white" />
             )}
           </div>
         </div>
@@ -282,7 +298,7 @@ export default function SalesPage() {
                             />
                             {e.docUrl ? (
                               <button
-                                onClick={() => setViewerDoc({ url: e.docUrl!, label: e.label || "依頼書" })}
+                                onClick={() => openViewer(e.docUrl!, e.label || "依頼書")}
                                 title="依頼書原本を表示"
                                 className="text-sky-500 hover:text-sky-300 text-sm leading-none transition"
                               >

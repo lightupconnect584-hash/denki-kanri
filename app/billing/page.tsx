@@ -192,7 +192,8 @@ export default function BillingPage() {
 
   const myProjects = useMemo(() => {
     if (role === "PARTNER") return projects.filter((p) => p.assignedTo?.id === userId);
-    return projects;
+    // 自社案件は完了済（請求・締め管理）には出さない（売上集計側で管理）
+    return projects.filter((p) => p.assignedTo?.id !== userId);
   }, [projects, role, userId]);
 
   // 作業日を取得（inspectionsのworkDate最新値、なければdueDate→createdAt）

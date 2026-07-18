@@ -304,6 +304,8 @@ export default function SalesPage() {
                             </button>
                             <input
                               value={e.label}
+                              disabled={e.invoiced}
+                              title={e.invoiced ? "請求済みのためロック中（✓を外すと編集できます）" : undefined}
                               onChange={(ev) => setEntries((prev) => prev.map((x) => (x.id === e.id ? { ...x, label: ev.target.value } : x)))}
                               onBlur={(ev) => patchEntry(e.id, { label: ev.target.value })}
                               placeholder="建物名"
@@ -332,13 +334,19 @@ export default function SalesPage() {
                                 }}
                                 onBlur={(ev) => patchEntry(e.id, { [f]: Number(numClean(ev.target.value)) || 0 })}
                                 placeholder="0"
-                                className={`min-w-0 bg-gray-900/60 text-xs sm:text-sm text-gray-100 text-right rounded px-1.5 py-1 border border-gray-700 focus:border-blue-500 focus:outline-none ${f !== "sales" ? "hidden sm:block" : ""}`}
+                                disabled={e.invoiced}
+                                title={e.invoiced ? "請求済みのためロック中（✓を外すと編集できます）" : undefined}
+                                className={`min-w-0 text-xs sm:text-sm text-right rounded px-1.5 py-1 border focus:border-blue-500 focus:outline-none ${f !== "sales" ? "hidden sm:block" : ""} ${e.invoiced ? "bg-gray-900/30 text-gray-500 border-gray-800" : "bg-gray-900/60 text-gray-100 border-gray-700"}`}
                               />
                             ))}
                             <span className={`hidden sm:block text-xs sm:text-sm text-right font-medium ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                               {fmt(profit)}
                             </span>
-                            <button onClick={() => deleteEntry(e.id)} className="text-gray-600 hover:text-red-500 text-xs">✕</button>
+                            {e.invoiced ? (
+                              <span className="text-gray-700 text-xs" title="請求済みのためロック中">🔒</span>
+                            ) : (
+                              <button onClick={() => deleteEntry(e.id)} className="text-gray-600 hover:text-red-500 text-xs">✕</button>
+                            )}
                           </div>
                         );
                       })}

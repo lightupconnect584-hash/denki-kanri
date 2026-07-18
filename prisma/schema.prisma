@@ -169,6 +169,7 @@ model SalesEntry {
   sales     Int      @default(0)  // 売上
   material  Int      @default(0)  // 材料費
   outsource Int      @default(0)  // 外注工費
+  invoiced  Boolean  @default(false) // 請求書送付済み
   projectId String?  @unique      // 完了案件から取り込んだ場合の元案件
   order     Int      @default(0)
   createdAt DateTime @default(now())

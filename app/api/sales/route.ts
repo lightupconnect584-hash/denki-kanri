@@ -67,6 +67,7 @@ export async function PATCH(req: NextRequest) {
   if (body.sales !== undefined) data.sales = Number(body.sales) || 0;
   if (body.material !== undefined) data.material = Number(body.material) || 0;
   if (body.outsource !== undefined) data.outsource = Number(body.outsource) || 0;
+  if (body.invoiced !== undefined) data.invoiced = Boolean(body.invoiced);
   if (body.category !== undefined && CATEGORIES.includes(body.category)) data.category = body.category;
 
   const entry = await prisma.salesEntry.update({ where: { id: body.id }, data });

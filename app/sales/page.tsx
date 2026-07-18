@@ -13,6 +13,7 @@ interface SalesEntry {
   sales: number;
   material: number;
   outsource: number;
+  invoiced: boolean;
   projectId: string | null;
 }
 
@@ -197,7 +198,7 @@ export default function SalesPage() {
         </div>
 
         {/* カテゴリ別明細（PCでは2列） */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 items-start">
           {CATEGORY_DEFS.map(({ key, name }) => {
             const rows = entries.filter((e) => e.category === key);
             const sub = {
@@ -208,33 +209,50 @@ export default function SalesPage() {
             const subProfit = sub.sales - sub.material - sub.outsource;
             return (
               <div key={key} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-                <div className="px-4 py-2.5 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between">
-                  <p className="text-sm font-bold text-gray-100">{name}</p>
-                  <p className="text-xs text-gray-400">{rows.length}件</p>
+                <div className="px-2.5 sm:px-4 py-2.5 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between gap-1">
+                  <p className="text-xs sm:text-sm font-bold text-gray-100 truncate">{name}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-400 shrink-0">
+                    {rows.filter((e) => e.invoiced).length > 0 && (
+                      <span className="text-green-400 mr-1">請求済{rows.filter((e) => e.invoiced).length}</span>
+                    )}
+                    {rows.length}件
+                  </p>
                 </div>
 
                 {rows.length > 0 && (
                   <>
                     {/* 列見出し */}
-                    <div className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] sm:grid-cols-[1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-3 pt-2 pb-1 text-[10px] text-gray-500">
-                      <span>建物名・内容</span>
+                    <div className="grid grid-cols-[16px_1fr_58px_14px] sm:grid-cols-[22px_1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-2 sm:px-3 pt-2 pb-1 text-[10px] text-gray-500">
+                      <span title="請求書送付済み">📨</span>
+                      <span>建物名</span>
                       <span className="text-right">売上</span>
-                      <span className="text-right">材料費</span>
-                      <span className="text-right">外注費</span>
-                      <span className="text-right">利益</span>
+                      <span className="hidden sm:block text-right">材料費</span>
+                      <span className="hidden sm:block text-right">外注費</span>
+                      <span className="hidden sm:block text-right">利益</span>
                       <span></span>
                     </div>
                     <div className="divide-y divide-gray-700/60">
                       {rows.map((e) => {
                         const profit = e.sales - e.material - e.outsource;
                         return (
-                          <div key={e.id} className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] sm:grid-cols-[1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 items-center px-3 py-1.5">
+                          <div key={e.id} className={`grid grid-cols-[16px_1fr_58px_14px] sm:grid-cols-[22px_1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
+                            <button
+                              onClick={() => patchEntry(e.id, { invoiced: !e.invoiced })}
+                              title={e.invoiced ? "請求書送付済み（タップで取り消し）" : "請求書を送ったらタップ"}
+                              className={`w-4 h-4 sm:w-[18px] sm:h-[18px] rounded border flex items-center justify-center text-[10px] leading-none transition ${
+                                e.invoiced
+                                  ? "bg-green-600 border-green-600 text-white"
+                                  : "bg-gray-900 border-gray-600 text-transparent hover:border-green-500"
+                              }`}
+                            >
+                              ✓
+                            </button>
                             <input
                               value={e.label}
                               onChange={(ev) => setEntries((prev) => prev.map((x) => (x.id === e.id ? { ...x, label: ev.target.value } : x)))}
                               onBlur={(ev) => patchEntry(e.id, { label: ev.target.value })}
                               placeholder="建物名"
-                              className="min-w-0 bg-transparent text-xs sm:text-sm text-gray-100 border-b border-transparent focus:border-blue-500 focus:outline-none py-1"
+                              className={`min-w-0 bg-transparent text-xs sm:text-sm border-b border-transparent focus:border-blue-500 focus:outline-none py-1 truncate ${e.invoiced ? "text-gray-500" : "text-gray-100"}`}
                             />
                             {(["sales", "material", "outsource"] as const).map((f) => (
                               <input
@@ -248,10 +266,10 @@ export default function SalesPage() {
                                 }}
                                 onBlur={(ev) => patchEntry(e.id, { [f]: Number(numClean(ev.target.value)) || 0 })}
                                 placeholder="0"
-                                className="min-w-0 bg-gray-900/60 text-xs sm:text-sm text-gray-100 text-right rounded px-1.5 py-1 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                                className={`min-w-0 bg-gray-900/60 text-xs sm:text-sm text-gray-100 text-right rounded px-1.5 py-1 border border-gray-700 focus:border-blue-500 focus:outline-none ${f !== "sales" ? "hidden sm:block" : ""}`}
                               />
                             ))}
-                            <span className={`text-xs sm:text-sm text-right font-medium ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            <span className={`hidden sm:block text-xs sm:text-sm text-right font-medium ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                               {fmt(profit)}
                             </span>
                             <button onClick={() => deleteEntry(e.id)} className="text-gray-600 hover:text-red-500 text-xs">✕</button>
@@ -260,12 +278,13 @@ export default function SalesPage() {
                       })}
                     </div>
                     {/* 小計 */}
-                    <div className="grid grid-cols-[1fr_72px_68px_68px_64px_20px] sm:grid-cols-[1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs sm:text-sm font-bold">
+                    <div className="grid grid-cols-[16px_1fr_58px_14px] sm:grid-cols-[22px_1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-2 sm:px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs sm:text-sm font-bold">
+                      <span></span>
                       <span className="text-gray-400">小計</span>
                       <span className="text-right text-gray-100">{fmt(sub.sales)}</span>
-                      <span className="text-right text-gray-300">{fmt(sub.material)}</span>
-                      <span className="text-right text-gray-300">{fmt(sub.outsource)}</span>
-                      <span className={`text-right ${subProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(subProfit)}</span>
+                      <span className="hidden sm:block text-right text-gray-300">{fmt(sub.material)}</span>
+                      <span className="hidden sm:block text-right text-gray-300">{fmt(sub.outsource)}</span>
+                      <span className={`hidden sm:block text-right ${subProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(subProfit)}</span>
                       <span></span>
                     </div>
                   </>
@@ -282,7 +301,7 @@ export default function SalesPage() {
           })}
 
           {/* 経費一覧（毎月共通） */}
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden xl:col-span-2">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden col-span-2">
             <button
               onClick={() => setShowExpenses((v) => !v)}
               className="w-full px-4 py-2.5 bg-gray-800/50 flex items-center justify-between hover:bg-gray-700/50 transition"

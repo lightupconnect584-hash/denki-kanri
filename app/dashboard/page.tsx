@@ -657,7 +657,7 @@ export default function DashboardPage() {
                             <span className="text-xs text-gray-500 shrink-0 w-14">
                               {new Date(d.createdAt).toLocaleDateString("ja-JP", { year: "2-digit", month: "numeric", day: "numeric" })}
                             </span>
-                            <a href={d.filename} target="_blank" rel="noopener noreferrer"
+                            <a href={`/api/intake/view?id=${d.id}`} target="_blank" rel="noopener noreferrer"
                               className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-gray-200 hover:text-sky-300 transition">
                               <span className="shrink-0">📄</span>
                               <span className="truncate">{d.project?.title || d.originalName}</span>

@@ -30,14 +30,18 @@ export async function GET(req: NextRequest) {
   const docs = projectIds.length > 0
     ? await prisma.intakeDoc.findMany({
         where: { projectId: { in: projectIds }, status: "PROCESSED" },
-        select: { projectId: true, filename: true, originalName: true },
+        select: { id: true, projectId: true, originalName: true },
       })
     : [];
   const docMap = new Map(docs.map((d) => [d.projectId, d]));
-  const entriesWithDoc = entries.map((e) => ({
-    ...e,
-    docUrl: e.projectId ? docMap.get(e.projectId)?.filename || null : null,
-  }));
+  const entriesWithDoc = entries.map((e) => {
+    const doc = e.projectId ? docMap.get(e.projectId) : null;
+    return {
+      ...e,
+      docUrl: doc ? `/api/intake/view?id=${doc.id}` : null,
+      docName: doc?.originalName || null,
+    };
+  });
   return NextResponse.json({ entries: entriesWithDoc, expenses });
 }
 

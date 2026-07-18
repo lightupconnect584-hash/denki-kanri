@@ -16,6 +16,7 @@ interface SalesEntry {
   invoiced: boolean;
   projectId: string | null;
   docUrl: string | null;
+  docName: string | null;
 }
 
 interface ExpenseItem {
@@ -52,22 +53,13 @@ export default function SalesPage() {
   const [showExpenses, setShowExpenses] = useState(false);
   const [newExpLabel, setNewExpLabel] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
-  // 📄 依頼書原本の拡大ビューア（Blob直リンクはダウンロード扱いで黒画面になるため、取得してから表示）
-  const [viewerDoc, setViewerDoc] = useState<{ url: string; label: string; objUrl: string | null; isImage: boolean } | null>(null);
-  const openViewer = async (url: string, label: string) => {
-    setViewerDoc({ url, label, objUrl: null, isImage: false });
-    try {
-      const r = await fetch(url);
-      const b = await r.blob();
-      const isImage = b.type.startsWith("image/");
-      const typed = b.type ? b : new Blob([b], { type: "application/pdf" });
-      setViewerDoc({ url, label, objUrl: URL.createObjectURL(typed), isImage });
-    } catch { /* 取得失敗時は「別タブで開く」で対応 */ }
+  // 📄 依頼書原本の拡大ビューア（自前プロキシ経由で表示するので確実にインライン描画される）
+  const [viewerDoc, setViewerDoc] = useState<{ url: string; label: string; isImage: boolean } | null>(null);
+  const openViewer = (url: string, label: string, docName: string | null) => {
+    const isImage = /\.(png|jpe?g|webp|gif|heic)$/i.test(docName || "");
+    setViewerDoc({ url, label, isImage });
   };
-  const closeViewer = () => {
-    if (viewerDoc?.objUrl) URL.revokeObjectURL(viewerDoc.objUrl);
-    setViewerDoc(null);
-  };
+  const closeViewer = () => setViewerDoc(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -198,14 +190,12 @@ export default function SalesPage() {
             <button onClick={closeViewer}
               className="text-gray-400 hover:text-white text-xl leading-none px-2 shrink-0">✕</button>
           </div>
-          <div className="flex-1 min-h-0" onClick={(e) => e.stopPropagation()}>
-            {!viewerDoc.objUrl ? (
-              <p className="text-sm text-gray-400 text-center pt-16">読み込み中…</p>
-            ) : viewerDoc.isImage ? (
+          <div className="flex-1 min-h-0 overflow-auto" onClick={(e) => e.stopPropagation()}>
+            {viewerDoc.isImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={viewerDoc.objUrl} alt="依頼書原本" className="w-full h-full object-contain" />
+              <img src={viewerDoc.url} alt="依頼書原本" className="w-full h-full object-contain" />
             ) : (
-              <iframe src={viewerDoc.objUrl} title="依頼書原本" className="w-full h-full bg-white" />
+              <iframe src={viewerDoc.url} title="依頼書原本" className="w-full h-full bg-white" />
             )}
           </div>
         </div>
@@ -239,7 +229,7 @@ export default function SalesPage() {
         </div>
 
         {/* カテゴリ別明細（PCでは2列） */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-4 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 items-start">
           {CATEGORY_DEFS.map(({ key, name }) => {
             const rows = entries.filter((e) => e.category === key);
             const sub = {
@@ -298,7 +288,7 @@ export default function SalesPage() {
                             />
                             {e.docUrl ? (
                               <button
-                                onClick={() => openViewer(e.docUrl!, e.label || "依頼書")}
+                                onClick={() => openViewer(e.docUrl!, e.label || "依頼書", e.docName)}
                                 title="依頼書原本を表示"
                                 className="text-sky-500 hover:text-sky-300 text-sm leading-none transition"
                               >
@@ -355,7 +345,7 @@ export default function SalesPage() {
           })}
 
           {/* 経費一覧（毎月共通） */}
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden col-span-2">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden xl:col-span-2">
             <button
               onClick={() => setShowExpenses((v) => !v)}
               className="w-full px-4 py-2.5 bg-gray-800/50 flex items-center justify-between hover:bg-gray-700/50 transition"

@@ -871,8 +871,8 @@ export default function ProjectDetailPage() {
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-6 lg:items-start">
         <div className="min-w-0">
         {/* 基本情報 */}
-        <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3 space-y-3">
-          <div>
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3 grid grid-cols-2 gap-x-4 gap-y-3">
+          <div className="col-span-2">
             <h2 className="text-base font-bold text-gray-100 leading-snug">{project.title}</h2>
             {project.materialSupplied && (
               <span className="inline-block mt-1.5 text-xs bg-teal-900/40 text-teal-300 border border-teal-700 px-2 py-0.5 rounded-full font-bold">
@@ -880,7 +880,7 @@ export default function ProjectDetailPage() {
               </span>
             )}
           </div>
-          <div>
+          <div className="col-span-2">
             <p className="text-xs text-gray-400">住所</p>
             <p className="text-sm font-medium text-gray-100">📍 {project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</p>
           </div>
@@ -891,7 +891,7 @@ export default function ProjectDetailPage() {
             </div>
           )}
           {role === "ADMIN" && (project.managerName || project.afterManagerName) && (
-            <div className="flex gap-6 flex-wrap">
+            <div className="col-span-2 flex gap-6 flex-wrap">
               {project.managerName && (
                 <div>
                   <p className="text-xs text-gray-400">管理担当 <span className="text-gray-600">🔒</span></p>
@@ -931,7 +931,7 @@ export default function ProjectDetailPage() {
             </div>
           )}
           {project.contractorPhone && (
-            <div>
+            <div className="col-span-2">
               <p className="text-xs text-gray-400">折り返し先電話番号</p>
               <div className="flex items-center gap-3 flex-wrap">
                 <a
@@ -955,7 +955,7 @@ export default function ProjectDetailPage() {
             </div>
           )}
           {project.description && (
-            <div>
+            <div className="col-span-2">
               <p className="text-xs text-gray-400">依頼内容</p>
               <p className="text-sm text-gray-200 whitespace-pre-wrap break-words overflow-hidden">{project.description}</p>
             </div>
@@ -999,7 +999,7 @@ export default function ProjectDetailPage() {
             </div>
           )}
           {role === "ADMIN" && (project.salesAmount != null || project.materialCost != null) && (
-            <div className="flex gap-6 flex-wrap">
+            <div className="col-span-2 flex gap-6 flex-wrap">
               {project.salesAmount != null && (
                 <div>
                   <p className="text-xs text-gray-400">売上（積水請求・税別）<span className="ml-1">🔒</span></p>
@@ -1028,7 +1028,7 @@ export default function ProjectDetailPage() {
               </p>
             </div>
           )}
-          <div>
+          <div className="col-span-2">
             <p className="text-xs text-gray-400">依頼者</p>
             <div className="flex items-center gap-2 mt-1">
               {project.createdBy.avatarUrl ? (

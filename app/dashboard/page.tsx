@@ -419,7 +419,7 @@ export default function DashboardPage() {
         ) : partnerColor && (
           <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: partnerColor }} />
         )}
-        <div className="p-4">
+        <div className="p-2.5 sm:p-4">
           {/* タイトル行：タイトル＋ステータス */}
           <div className="flex items-start justify-between gap-3">
             <p className="font-semibold text-gray-100 break-words leading-snug flex-1 min-w-0">{p.title}</p>
@@ -733,7 +733,7 @@ export default function DashboardPage() {
                                   <span className={`text-xs font-bold ${textCls}`}>{reg || "エリア未設定"}</span>
                                   <span className="text-xs text-gray-600">{group.length}件</span>
                                 </div>
-                                <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{group.map(renderProject)}</div>
+                                <div className="grid grid-cols-2 gap-2 xl:gap-3">{group.map(renderProject)}</div>
                               </div>
                             );
                           })}
@@ -749,14 +749,14 @@ export default function DashboardPage() {
                             <span className="text-xs text-gray-500">（{partnerActive.length}件）</span>
                           </div>
                         )}
-                        <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{partnerActive.map(renderProject)}</div>
+                        <div className="grid grid-cols-2 gap-2 xl:gap-3">{partnerActive.map(renderProject)}</div>
                       </div>
                     )}
                   </div>
                 );
               })()
             ) : (
-              <div className="space-y-2.5 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-3">{sortedActive.map(renderProject)}</div>
+              <div className="grid grid-cols-2 gap-2 xl:gap-3">{sortedActive.map(renderProject)}</div>
             )}
 
           </div>

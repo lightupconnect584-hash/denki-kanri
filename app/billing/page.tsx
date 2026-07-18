@@ -515,7 +515,7 @@ export default function BillingPage() {
             <p>該当する金額データがありません</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 items-start">
             {grouped.map(([key, group]) => (
               <div key={group.name} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 {role === "ADMIN" && (

@@ -420,20 +420,16 @@ export default function DashboardPage() {
           <span className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: partnerColor }} />
         )}
         <div className="p-2.5 sm:p-4">
-          {/* タイトル行：タイトル＋ステータス */}
-          <div className="flex items-start justify-between gap-3">
-            <p className="font-semibold text-gray-100 break-words leading-snug flex-1 min-w-0">{p.title}</p>
-            <div className="shrink-0"><StatusBadge status={p.status} /></div>
+          {/* タイトル：1行（長い名前は省略） */}
+          <p className="font-semibold text-gray-100 truncate leading-snug" title={p.title}>{p.title}</p>
+          {/* ステータス＋バッジ行 */}
+          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+            <StatusBadge status={p.status} />
+            {p.contactRequired && !p.contactedAt && <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要アポ</span>}
+            {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium">緊急</span>}
+            {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium">中</span>}
+            {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium">📦 材料支給</span>}
           </div>
-          {/* バッジ行（該当時のみ。自社バッジは自社セクションに入っているので不要） */}
-          {(p.urgency === "HIGH" || p.urgency === "MEDIUM" || p.materialSupplied || (p.contactRequired && !p.contactedAt)) && (
-            <div className="flex items-center gap-1.5 flex-wrap mt-2">
-              {p.contactRequired && !p.contactedAt && <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要アポ</span>}
-              {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium">緊急</span>}
-              {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium">中</span>}
-              {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium">📦 材料支給</span>}
-            </div>
-          )}
           {/* 住所 */}
           <p className="text-sm text-gray-400 mt-2 truncate">📍 {p.location}</p>
           {/* メタ情報（依頼名・協力会社・訪問予定）を1行にまとめる */}

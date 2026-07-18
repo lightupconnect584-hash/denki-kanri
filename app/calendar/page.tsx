@@ -159,7 +159,7 @@ export default function CalendarPage() {
   return (
     <div className="min-h-full flex flex-col bg-gray-950">
       <Header />
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-3xl lg:max-w-[1700px] mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
           <h2 className="text-lg font-bold text-white flex-1">📅 カレンダー</h2>
@@ -177,6 +177,9 @@ export default function CalendarPage() {
           )}
         </div>
 
+        {/* PC: 左=カレンダー / 右=予定リスト の2カラム */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(380px,1fr)] lg:gap-6 lg:items-start">
+        <div className="min-w-0">
         {/* カレンダーグリッド */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-4">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
@@ -202,14 +205,15 @@ export default function CalendarPage() {
                 <button
                   key={day}
                   onClick={() => setSelectedDate(isSelected ? null : day)}
-                  className={`h-14 flex flex-col items-center pt-1.5 pb-1 border-b border-gray-700/40 transition ${isSelected ? "bg-blue-900/40" : "hover:bg-gray-700/60"}`}
+                  className={`h-14 lg:h-24 flex flex-col items-center pt-1.5 pb-1 border-b border-gray-700/40 transition overflow-hidden ${isSelected ? "bg-blue-900/40" : "hover:bg-gray-700/60"}`}
                 >
-                  <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium
+                  <span className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full text-sm font-medium
                     ${isToday ? "bg-blue-600 text-white" : weekday === 0 ? "text-red-400" : weekday === 6 ? "text-blue-400" : "text-gray-200"}`}>
                     {dayNum}
                   </span>
+                  {/* モバイル: ドット表示 */}
                   {dayProjects.length > 0 && (
-                    <div className="flex gap-0.5 mt-0.5 justify-center">
+                    <div className="flex gap-0.5 mt-0.5 justify-center lg:hidden">
                       {dayProjects.slice(0, 3).map((p, j) => (
                         <span
                           key={j}
@@ -218,6 +222,20 @@ export default function CalendarPage() {
                         />
                       ))}
                       {dayProjects.length > 3 && <span className="text-xs text-gray-400 leading-none font-bold">+</span>}
+                    </div>
+                  )}
+                  {/* PC: 物件名チップ表示 */}
+                  {dayProjects.length > 0 && (
+                    <div className="hidden lg:flex flex-col gap-0.5 mt-1 w-full px-1 min-h-0">
+                      {dayProjects.slice(0, 2).map((p, j) => (
+                        <span key={j} className="flex items-center gap-1 min-w-0">
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: eventColor(p) }} />
+                          <span className="text-[10px] text-gray-300 truncate leading-tight">{p.title}</span>
+                        </span>
+                      ))}
+                      {dayProjects.length > 2 && (
+                        <span className="text-[10px] text-gray-500 leading-none">＋{dayProjects.length - 2}件</span>
+                      )}
                     </div>
                   )}
                 </button>
@@ -244,6 +262,10 @@ export default function CalendarPage() {
           </div>
         )}
 
+        </div>
+
+        {/* 右カラム: 予定リスト */}
+        <div className="min-w-0 mt-2 lg:mt-0">
         {/* 選択日の案件 */}
         {selectedDate ? (
           <div>
@@ -326,6 +348,8 @@ export default function CalendarPage() {
             )}
           </div>
         )}
+        </div>
+        </div>
       </main>
     </div>
   );

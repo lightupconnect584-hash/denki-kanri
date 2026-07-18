@@ -598,7 +598,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-full flex flex-col bg-gray-900 [color-scheme:dark]">
       <Header />
-      <main className="flex-1 max-w-2xl lg:max-w-6xl mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-2xl lg:max-w-[1700px] mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => router.back()} className="text-gray-500 hover:text-white text-lg">
             ←
@@ -868,7 +868,7 @@ export default function ProjectDetailPage() {
         ) : null}
 
         {/* PC: 左=情報 / 右=チャット の2カラム。モバイルは従来順のまま */}
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-6 lg:items-start">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_480px] lg:gap-6 lg:items-start">
         <div className="min-w-0">
         {/* 基本情報 */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3 grid grid-cols-2 gap-x-4 gap-y-3">

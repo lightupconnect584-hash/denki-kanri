@@ -515,7 +515,7 @@ export default function DashboardPage() {
           <button onClick={() => setStorageWarning(null)} className="ml-4 text-yellow-800 hover:text-yellow-900">✕</button>
         </div>
       )}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 py-4 sm:py-6">
 
         {/* タイトルバー */}
         <div className="flex items-center justify-between mb-4">
@@ -781,7 +781,7 @@ export default function DashboardPage() {
                                   <span className={`text-xs font-bold ${textCls}`}>{reg || "エリア未設定"}</span>
                                   <span className="text-xs text-gray-600">{group.length}件</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2 xl:gap-3">{group.map(renderProject)}</div>
+                                <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2 xl:gap-3">{group.map(renderProject)}</div>
                               </div>
                             );
                           })}
@@ -797,14 +797,14 @@ export default function DashboardPage() {
                             <span className="text-xs text-gray-500">（{partnerActive.length}件）</span>
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2 xl:gap-3">{partnerActive.map(renderProject)}</div>
+                        <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2 xl:gap-3">{partnerActive.map(renderProject)}</div>
                       </div>
                     )}
                   </div>
                 );
               })()
             ) : (
-              <div className="grid grid-cols-2 gap-2 xl:gap-3">{sortedActive.map(renderProject)}</div>
+              <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2 xl:gap-3">{sortedActive.map(renderProject)}</div>
             )}
 
           </div>

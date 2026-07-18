@@ -67,7 +67,8 @@ export async function syncSalesEntryForProject(
         label: project.title,
         // 売上: 案件の売上（積水請求額）。自社施工で未入力なら金額を売上とみなす
         sales: project.salesAmount ?? (selfAssigned ? (project.amount ?? 0) : 0),
-        material: project.materialCost ?? 0,
+        // 材料費: 自社施工で未入力なら1,000円を既定値として計上
+        material: project.materialCost ?? (selfAssigned ? 1000 : 0),
         outsource: selfAssigned ? 0 : (project.amount ?? 0),
         projectId: project.id,
         order: (max._max.order ?? -1) + 1,

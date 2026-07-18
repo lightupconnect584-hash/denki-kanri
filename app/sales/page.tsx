@@ -15,6 +15,7 @@ interface SalesEntry {
   outsource: number;
   invoiced: boolean;
   projectId: string | null;
+  docUrl: string | null;
 }
 
 interface ExpenseItem {
@@ -51,6 +52,8 @@ export default function SalesPage() {
   const [showExpenses, setShowExpenses] = useState(false);
   const [newExpLabel, setNewExpLabel] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
+  // 📄 依頼書原本の拡大ビューア
+  const [viewerDoc, setViewerDoc] = useState<{ url: string; label: string } | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -169,6 +172,28 @@ export default function SalesPage() {
   return (
     <div className="min-h-full flex flex-col bg-gray-900">
       <Header />
+      {/* 📄 依頼書原本ビューア */}
+      {viewerDoc && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col" onClick={() => setViewerDoc(null)}>
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-950/90 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-bold text-gray-100 truncate flex-1 min-w-0">📄 {viewerDoc.label}</p>
+            <a href={viewerDoc.url} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-sky-400 border border-sky-700 rounded-lg px-3 py-1.5 hover:bg-sky-900/40 transition shrink-0">
+              別タブで開く
+            </a>
+            <button onClick={() => setViewerDoc(null)}
+              className="text-gray-400 hover:text-white text-xl leading-none px-2 shrink-0">✕</button>
+          </div>
+          <div className="flex-1 min-h-0" onClick={(e) => e.stopPropagation()}>
+            {/\.(png|jpe?g|webp|gif|heic)(\?|$)/i.test(viewerDoc.url) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={viewerDoc.url} alt="依頼書原本" className="w-full h-full object-contain" />
+            ) : (
+              <iframe src={viewerDoc.url} title="依頼書原本" className="w-full h-full bg-white" />
+            )}
+          </div>
+        </div>
+      )}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 sm:py-6">
         {/* ヘッダー行：タイトル・月切替 */}
         <div className="flex items-center gap-3 mb-4">
@@ -222,9 +247,10 @@ export default function SalesPage() {
                 {rows.length > 0 && (
                   <>
                     {/* 列見出し */}
-                    <div className="grid grid-cols-[16px_1fr_58px_14px] sm:grid-cols-[22px_1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-2 sm:px-3 pt-2 pb-1 text-[10px] text-gray-500">
+                    <div className="grid grid-cols-[16px_1fr_20px_58px_14px] sm:grid-cols-[22px_1fr_26px_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-2 sm:px-3 pt-2 pb-1 text-[10px] text-gray-500">
                       <span title="請求書送付済み">📨</span>
                       <span>建物名</span>
+                      <span title="依頼書原本"></span>
                       <span className="text-right">売上</span>
                       <span className="hidden sm:block text-right">材料費</span>
                       <span className="hidden sm:block text-right">外注費</span>
@@ -235,7 +261,7 @@ export default function SalesPage() {
                       {rows.map((e) => {
                         const profit = e.sales - e.material - e.outsource;
                         return (
-                          <div key={e.id} className={`grid grid-cols-[16px_1fr_58px_14px] sm:grid-cols-[22px_1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
+                          <div key={e.id} className={`grid grid-cols-[16px_1fr_20px_58px_14px] sm:grid-cols-[22px_1fr_26px_110px_100px_100px_95px_28px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
                             <button
                               onClick={() => patchEntry(e.id, { invoiced: !e.invoiced })}
                               title={e.invoiced ? "請求書送付済み（タップで取り消し）" : "請求書を送ったらタップ"}
@@ -254,6 +280,17 @@ export default function SalesPage() {
                               placeholder="建物名"
                               className={`min-w-0 bg-transparent text-xs sm:text-sm border-b border-transparent focus:border-blue-500 focus:outline-none py-1 truncate ${e.invoiced ? "text-gray-500" : "text-gray-100"}`}
                             />
+                            {e.docUrl ? (
+                              <button
+                                onClick={() => setViewerDoc({ url: e.docUrl!, label: e.label || "依頼書" })}
+                                title="依頼書原本を表示"
+                                className="text-sky-500 hover:text-sky-300 text-sm leading-none transition"
+                              >
+                                📄
+                              </button>
+                            ) : (
+                              <span></span>
+                            )}
                             {(["sales", "material", "outsource"] as const).map((f) => (
                               <input
                                 key={f}
@@ -278,9 +315,10 @@ export default function SalesPage() {
                       })}
                     </div>
                     {/* 小計 */}
-                    <div className="grid grid-cols-[16px_1fr_58px_14px] sm:grid-cols-[22px_1fr_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-2 sm:px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs sm:text-sm font-bold">
+                    <div className="grid grid-cols-[16px_1fr_20px_58px_14px] sm:grid-cols-[22px_1fr_26px_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-2 sm:px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs sm:text-sm font-bold">
                       <span></span>
                       <span className="text-gray-400">小計</span>
+                      <span></span>
                       <span className="text-right text-gray-100">{fmt(sub.sales)}</span>
                       <span className="hidden sm:block text-right text-gray-300">{fmt(sub.material)}</span>
                       <span className="hidden sm:block text-right text-gray-300">{fmt(sub.outsource)}</span>

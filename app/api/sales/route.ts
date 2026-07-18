@@ -24,7 +24,21 @@ export async function GET(req: NextRequest) {
     prisma.salesEntry.findMany({ where: { yearMonth: month }, orderBy: { order: "asc" } }),
     prisma.expenseItem.findMany({ orderBy: { order: "asc" } }),
   ]);
-  return NextResponse.json({ entries, expenses });
+
+  // 依頼書原本（受付アーカイブ）を各行に結合（請求書作成時に原本を見ながら作れるように）
+  const projectIds = entries.map((e) => e.projectId).filter((v): v is string => !!v);
+  const docs = projectIds.length > 0
+    ? await prisma.intakeDoc.findMany({
+        where: { projectId: { in: projectIds }, status: "PROCESSED" },
+        select: { projectId: true, filename: true, originalName: true },
+      })
+    : [];
+  const docMap = new Map(docs.map((d) => [d.projectId, d]));
+  const entriesWithDoc = entries.map((e) => ({
+    ...e,
+    docUrl: e.projectId ? docMap.get(e.projectId)?.filename || null : null,
+  }));
+  return NextResponse.json({ entries: entriesWithDoc, expenses });
 }
 
 // POST: 明細行を追加

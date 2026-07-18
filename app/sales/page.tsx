@@ -53,13 +53,26 @@ export default function SalesPage() {
   const [showExpenses, setShowExpenses] = useState(false);
   const [newExpLabel, setNewExpLabel] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
-  // 📄 依頼書原本の拡大ビューア（自前プロキシ経由で表示するので確実にインライン描画される）
-  const [viewerDoc, setViewerDoc] = useState<{ url: string; label: string; isImage: boolean } | null>(null);
-  const openViewer = (url: string, label: string, docName: string | null) => {
-    const isImage = /\.(png|jpe?g|webp|gif|heic)$/i.test(docName || "");
-    setViewerDoc({ url, label, isImage });
+  // 📄 依頼書原本の拡大ビューア
+  // 同一オリジンのプロキシから取得し、実際のContent-Typeで画像/PDFを判定して表示（黒画面対策）
+  const [viewerDoc, setViewerDoc] = useState<{ url: string; label: string; objUrl: string | null; isImage: boolean; error: boolean } | null>(null);
+  const openViewer = async (url: string, label: string, _docName: string | null) => {
+    void _docName;
+    setViewerDoc({ url, label, objUrl: null, isImage: false, error: false });
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw new Error();
+      const b = await r.blob();
+      const isImage = b.type.startsWith("image/");
+      setViewerDoc({ url, label, objUrl: URL.createObjectURL(b), isImage, error: false });
+    } catch {
+      setViewerDoc({ url, label, objUrl: null, isImage: false, error: true });
+    }
   };
-  const closeViewer = () => setViewerDoc(null);
+  const closeViewer = () => {
+    if (viewerDoc?.objUrl) URL.revokeObjectURL(viewerDoc.objUrl);
+    setViewerDoc(null);
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -190,17 +203,27 @@ export default function SalesPage() {
             <button onClick={closeViewer}
               className="text-gray-400 hover:text-white text-xl leading-none px-2 shrink-0">✕</button>
           </div>
-          <div className="flex-1 min-h-0 overflow-auto" onClick={(e) => e.stopPropagation()}>
-            {viewerDoc.isImage ? (
+          <div className="flex-1 min-h-0 overflow-auto bg-gray-900" onClick={(e) => e.stopPropagation()}>
+            {viewerDoc.error ? (
+              <div className="text-center pt-16 space-y-3">
+                <p className="text-sm text-gray-300">この画面では表示できませんでした</p>
+                <a href={viewerDoc.url} target="_blank" rel="noopener noreferrer"
+                  className="inline-block text-sm text-sky-300 border border-sky-700 rounded-lg px-4 py-2 hover:bg-sky-900/40 transition">
+                  別タブで開く
+                </a>
+              </div>
+            ) : !viewerDoc.objUrl ? (
+              <p className="text-sm text-gray-400 text-center pt-16">読み込み中…</p>
+            ) : viewerDoc.isImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={viewerDoc.url} alt="依頼書原本" className="w-full h-full object-contain" />
+              <img src={viewerDoc.objUrl} alt="依頼書原本" className="w-full h-full object-contain" />
             ) : (
-              <iframe src={viewerDoc.url} title="依頼書原本" className="w-full h-full bg-white" />
+              <iframe src={viewerDoc.objUrl} title="依頼書原本" className="w-full h-full bg-white" />
             )}
           </div>
         </div>
       )}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 sm:py-6">
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 py-4 sm:py-6">
         {/* ヘッダー行：タイトル・月切替 */}
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white text-lg">←</button>
@@ -253,7 +276,7 @@ export default function SalesPage() {
                 {rows.length > 0 && (
                   <>
                     {/* 列見出し */}
-                    <div className="grid grid-cols-[16px_1fr_20px_58px_14px] sm:grid-cols-[22px_1fr_26px_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-2 sm:px-3 pt-2 pb-1 text-[10px] text-gray-500">
+                    <div className="grid grid-cols-[16px_minmax(0,1fr)_20px_58px_14px] sm:grid-cols-[22px_minmax(160px,1fr)_26px_96px_90px_90px_84px_24px] sm:gap-2 gap-1 px-2 sm:px-3 pt-2 pb-1 text-[10px] text-gray-500">
                       <span title="請求書送付済み">📨</span>
                       <span>建物名</span>
                       <span title="依頼書原本"></span>
@@ -267,7 +290,7 @@ export default function SalesPage() {
                       {rows.map((e) => {
                         const profit = e.sales - e.material - e.outsource;
                         return (
-                          <div key={e.id} className={`grid grid-cols-[16px_1fr_20px_58px_14px] sm:grid-cols-[22px_1fr_26px_110px_100px_100px_95px_28px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
+                          <div key={e.id} className={`grid grid-cols-[16px_minmax(0,1fr)_20px_58px_14px] sm:grid-cols-[22px_minmax(160px,1fr)_26px_96px_90px_90px_84px_24px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
                             <button
                               onClick={() => patchEntry(e.id, { invoiced: !e.invoiced })}
                               title={e.invoiced ? "請求書送付済み（タップで取り消し）" : "請求書を送ったらタップ"}
@@ -321,7 +344,7 @@ export default function SalesPage() {
                       })}
                     </div>
                     {/* 小計 */}
-                    <div className="grid grid-cols-[16px_1fr_20px_58px_14px] sm:grid-cols-[22px_1fr_26px_110px_100px_100px_95px_28px] sm:gap-2 gap-1 px-2 sm:px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs sm:text-sm font-bold">
+                    <div className="grid grid-cols-[16px_minmax(0,1fr)_20px_58px_14px] sm:grid-cols-[22px_minmax(160px,1fr)_26px_96px_90px_90px_84px_24px] sm:gap-2 gap-1 px-2 sm:px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs sm:text-sm font-bold">
                       <span></span>
                       <span className="text-gray-400">小計</span>
                       <span></span>

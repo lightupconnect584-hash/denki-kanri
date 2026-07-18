@@ -80,6 +80,9 @@ export async function GET(req: NextRequest) {
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${esc(calName)}`,
     "X-WR-TIMEZONE:Asia/Tokyo",
+    // 更新間隔のヒント（Apple系は概ね尊重・Googleへの希望提示）
+    "REFRESH-INTERVAL;VALUE=DURATION:PT30M",
+    "X-PUBLISHED-TTL:PT30M",
   ];
 
   for (const p of projects) {

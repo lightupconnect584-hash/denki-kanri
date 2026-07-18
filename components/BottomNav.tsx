@@ -47,6 +47,31 @@ export default function BottomNav() {
     }
   }, [session?.user, fetchBadges]);
 
+  // 🔄 自動アップデート：新しいデプロイを検知したら画面を再読み込み
+  // （PWAが古い画面プログラムを持ち続けて「直したのに変わらない」を防ぐ）
+  useEffect(() => {
+    let initial: string | null = null;
+    let reloaded = false;
+    const check = async () => {
+      try {
+        const r = await fetch("/api/version", { cache: "no-store" });
+        if (!r.ok) return;
+        const { v } = await r.json();
+        if (!v || v === "dev") return;
+        if (initial === null) { initial = v; return; }
+        if (v !== initial && !reloaded) {
+          reloaded = true;
+          window.location.reload();
+        }
+      } catch { /* ignore */ }
+    };
+    check();
+    const t = setInterval(check, 10 * 60 * 1000); // 10分ごと
+    const onVisible = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", onVisible); };
+  }, []);
+
   // ログイン画面・未認証は非表示
   if (!session?.user || pathname === "/login") return null;
 

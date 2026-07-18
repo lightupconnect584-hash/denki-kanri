@@ -27,6 +27,26 @@ export async function GET(req: NextRequest) {
     if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(doc);
   }
+  // ?status=PROCESSED で受付済みアーカイブ（請求書作成時に原本を見返す用）
+  const statusParam = req.nextUrl.searchParams.get("status");
+  if (statusParam === "PROCESSED") {
+    const docs = await prisma.intakeDoc.findMany({
+      where: { status: "PROCESSED" },
+      orderBy: { createdAt: "desc" },
+      take: 300,
+    });
+    const projectIds = docs.map((d) => d.projectId).filter((v): v is string => !!v);
+    const projects = await prisma.project.findMany({
+      where: { id: { in: projectIds } },
+      select: { id: true, title: true, status: true },
+    });
+    const pmap = new Map(projects.map((p) => [p.id, p]));
+    return NextResponse.json(docs.map((d) => ({
+      ...d,
+      project: d.projectId ? pmap.get(d.projectId) || null : null,
+    })));
+  }
+
   const docs = await prisma.intakeDoc.findMany({
     where: { status: "PENDING" },
     orderBy: { createdAt: "asc" },

@@ -246,5 +246,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
+  // 協力会社には売上・材料費・管理者情報を返さない（GETと同じサニタイズ）
+  if (role === "PARTNER") {
+    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, ...rest } = project;
+    void _s; void _m; void _mn; void _an; void _memo;
+    return NextResponse.json(rest);
+  }
   return NextResponse.json(project);
 }

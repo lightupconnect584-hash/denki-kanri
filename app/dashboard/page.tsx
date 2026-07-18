@@ -80,6 +80,19 @@ export default function DashboardPage() {
   }, []);
 
   const [intakeDrag, setIntakeDrag] = useState(false);
+  // 📂 受付済みアーカイブ（請求書作成時に原本を見返す用）
+  const [showArchive, setShowArchive] = useState(false);
+  const [archiveDocs, setArchiveDocs] = useState<{ id: string; filename: string; originalName: string; createdAt: string; project: { id: string; title: string } | null }[] | null>(null);
+  const toggleArchive = async () => {
+    const next = !showArchive;
+    setShowArchive(next);
+    if (next && archiveDocs === null) {
+      try {
+        const res = await fetch("/api/intake?status=PROCESSED");
+        if (res.ok) setArchiveDocs(await res.json());
+      } catch { /* ignore */ }
+    }
+  };
   const [showIntakeMobile, setShowIntakeMobile] = useState(false); // モバイルで受付ボックスを開くか
   const [showHeldMobile, setShowHeldMobile] = useState(false); // モバイルで保留中を開くか
 
@@ -622,6 +635,45 @@ export default function DashboardPage() {
                   <span>✎</span>
                   <span>依頼書なしで作成（自社案件・電話受けなど）</span>
                 </Link>
+                {/* 📂 受付済みアーカイブ（原本を見返す・請求書作成用） */}
+                <button
+                  onClick={toggleArchive}
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 border-t border-sky-900/50 text-xs text-gray-400 hover:bg-sky-900/20 transition"
+                >
+                  <span>📂</span>
+                  <span>受付済みの依頼書（原本アーカイブ）</span>
+                  <span>{showArchive ? "▲" : "▼"}</span>
+                </button>
+                {showArchive && (
+                  <div className="border-t border-sky-900/50 max-h-80 overflow-y-auto">
+                    {archiveDocs === null ? (
+                      <p className="text-xs text-gray-500 px-4 py-2.5">読み込み中…</p>
+                    ) : archiveDocs.length === 0 ? (
+                      <p className="text-xs text-gray-500 px-4 py-2.5">受付済みの依頼書はまだありません</p>
+                    ) : (
+                      <div className="divide-y divide-sky-900/30">
+                        {archiveDocs.map((d) => (
+                          <div key={d.id} className="flex items-center gap-2 px-4 py-2">
+                            <span className="text-xs text-gray-500 shrink-0 w-14">
+                              {new Date(d.createdAt).toLocaleDateString("ja-JP", { year: "2-digit", month: "numeric", day: "numeric" })}
+                            </span>
+                            <a href={d.filename} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-gray-200 hover:text-sky-300 transition">
+                              <span className="shrink-0">📄</span>
+                              <span className="truncate">{d.project?.title || d.originalName}</span>
+                            </a>
+                            {d.project && (
+                              <Link href={`/projects/${d.project.id}`}
+                                className="text-xs text-sky-500 hover:text-sky-300 shrink-0">
+                                案件→
+                              </Link>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

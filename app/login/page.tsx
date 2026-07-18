@@ -26,7 +26,9 @@ export default function LoginPage() {
       setError("ログインIDまたはパスワードが正しくありません");
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      const params = new URLSearchParams(window.location.search);
+      const cb = params.get("callbackUrl");
+      router.push(cb && cb.startsWith("/") ? cb : "/dashboard");
     }
   };
 

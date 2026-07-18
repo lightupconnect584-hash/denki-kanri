@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 
 function renderWithLinks(text: string) {
@@ -127,6 +127,7 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessError, setAccessError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -205,22 +206,26 @@ export default function ProjectDetailPage() {
   const userId = (session?.user as { id?: string })?.id;
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-  }, [status, router]);
+    if (status === "unauthenticated") {
+      const back = typeof window !== "undefined" ? window.location.pathname : `/projects/${id}`;
+      router.push(`/login?callbackUrl=${encodeURIComponent(back)}`);
+    }
+  }, [status, router, id]);
 
   const fetchProject = (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     fetch(`/api/projects/${id}`)
       .then((r) => {
         if (r.status === 404 || r.status === 403) {
-          window.location.href = "/dashboard";
+          setAccessError(true);
+          setLoading(false);
           return null;
         }
         return r.json();
       })
       .then((data) => {
         if (!data) return;
-        if (data.error) { window.location.href = "/dashboard"; return; }
+        if (data.error) { setAccessError(true); setLoading(false); return; }
         setProject(data);
         // 管理者は memo、協力会社は partnerMemo を編集
         if (!isRefresh) setMemoInput((role === "PARTNER" ? data.partnerMemo : data.memo) || "");
@@ -567,6 +572,29 @@ export default function ProjectDetailPage() {
     setSavingVisit(false);
   };
 
+  if (accessError) {
+    return (
+      <div className="min-h-full flex flex-col bg-gray-900">
+        <Header />
+        <div className="flex-1 flex items-center justify-center px-6">
+          <div className="text-center max-w-sm">
+            <p className="text-4xl mb-3">🔒</p>
+            <p className="text-gray-200 font-medium mb-1">この案件は表示できません</p>
+            <p className="text-sm text-gray-400 mb-1">担当外の案件か、別のアカウントでログインしている可能性があります。</p>
+            <p className="text-xs text-gray-500 mb-5">
+              {role === "PARTNER"
+                ? "管理者アカウントの案件は協力会社アカウントでは開けません。管理者アカウントでログインし直してください。"
+                : "案件が削除されたか、URLが正しくない可能性があります。"}
+            </p>
+            <div className="flex flex-col gap-2">
+              <Link href="/dashboard" className="bg-blue-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-blue-700 transition">依頼一覧へ</Link>
+              <button onClick={() => signOut({ callbackUrl: "/login" })} className="text-xs text-gray-500 hover:text-gray-300 py-1">別のアカウントでログインし直す</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (loading || !project) {
     return (
       <div className="min-h-full flex items-center justify-center bg-gray-900">

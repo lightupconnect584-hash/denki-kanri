@@ -25,7 +25,7 @@ interface UploadedPhoto {
 }
 
 export default function InspectPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -69,7 +69,9 @@ export default function InspectPage() {
   const [simpleReport, setSimpleReport] = useState(false);
   const [projectWorkType, setProjectWorkType] = useState("");
   const [forceDetailed, setForceDetailed] = useState(false);
+  const [isSelfJob, setIsSelfJob] = useState(false); // 自社案件（担当=自分）は写真任意
   const isSimple = simpleReport && !forceDetailed;
+  const myId = (session?.user as { id?: string })?.id;
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -79,9 +81,10 @@ export default function InspectPage() {
         if (!data) return;
         setSimpleReport(data.simpleReport ?? false);
         setProjectWorkType(data.workType || "");
+        setIsSelfJob(!!myId && data.assignedTo?.id === myId);
       })
       .catch(() => {});
-  }, [status, id]);
+  }, [status, id, myId]);
 
   const toggleListening = () => {
     if (listening) {
@@ -253,7 +256,7 @@ export default function InspectPage() {
   };
 
   const canSubmit = isSimple
-    ? !!result && !!finalWorkDate && !!response.trim() && photos.length > 0
+    ? !!result && !!finalWorkDate && !!response.trim() && (isSelfJob || photos.length > 0)
     : !!result && !!finalWorkDate && !!situation.trim() && !!cause.trim() && !!response.trim();
 
   // 送信前のAIチェック（報告品質の採点）
@@ -585,7 +588,7 @@ export default function InspectPage() {
           {/* 写真（3セクション） */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 space-y-5">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-gray-200">作業写真</p>
+              <p className="text-sm font-bold text-gray-200">作業写真{isSelfJob && <span className="text-xs font-normal text-gray-500 ml-1">（任意）</span>}</p>
               <p className="text-xs text-gray-500">合計 {photos.length} / {MAX_PHOTOS_TOTAL}枚</p>
             </div>
             {(["before", "during", "after", "other"] as const).map((cat) => {
@@ -680,7 +683,7 @@ export default function InspectPage() {
             {submitting ? "送信中..." : "完了報告を送信する"}
           </button>
           {!canSubmit && (
-            <p className="text-xs text-center text-red-400">{isSimple ? "作業結果・作業日・実施内容・写真1枚以上が必要です" : "作業結果・作業日・詳細内容（状況・原因・対応）は必須です"}</p>
+            <p className="text-xs text-center text-red-400">{isSimple ? (isSelfJob ? "作業結果・作業日・実施内容が必要です" : "作業結果・作業日・実施内容・写真1枚以上が必要です") : "作業結果・作業日・詳細内容（状況・原因・対応）は必須です"}</p>
           )}
         </form>
       </main>

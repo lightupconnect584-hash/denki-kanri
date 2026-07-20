@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Header from "@/components/Header";
 
 interface SalesEntry {
@@ -302,15 +303,26 @@ export default function SalesPage() {
                             >
                               ✓
                             </button>
-                            <input
-                              value={e.label}
-                              disabled={e.invoiced}
-                              title={e.invoiced ? "請求済みのためロック中（✓を外すと編集できます）" : undefined}
-                              onChange={(ev) => setEntries((prev) => prev.map((x) => (x.id === e.id ? { ...x, label: ev.target.value } : x)))}
-                              onBlur={(ev) => patchEntry(e.id, { label: ev.target.value })}
-                              placeholder="建物名"
-                              className={`min-w-0 bg-transparent text-xs sm:text-sm border-b border-transparent focus:border-blue-500 focus:outline-none py-1 truncate ${e.invoiced ? "text-gray-500" : "text-gray-100"}`}
-                            />
+                            {e.projectId ? (
+                              <Link
+                                href={`/projects/${e.projectId}`}
+                                title={`${e.label || "案件"}（タップで案件情報を表示）`}
+                                className={`min-w-0 text-xs sm:text-sm py-1 truncate hover:underline flex items-center gap-1 ${e.invoiced ? "text-gray-400" : "text-sky-300"}`}
+                              >
+                                <span className="truncate">{e.label || "（無題）"}</span>
+                                <span className="text-sky-500 shrink-0">›</span>
+                              </Link>
+                            ) : (
+                              <input
+                                value={e.label}
+                                disabled={e.invoiced}
+                                title={e.invoiced ? "請求済みのためロック中（✓を外すと編集できます）" : undefined}
+                                onChange={(ev) => setEntries((prev) => prev.map((x) => (x.id === e.id ? { ...x, label: ev.target.value } : x)))}
+                                onBlur={(ev) => patchEntry(e.id, { label: ev.target.value })}
+                                placeholder="建物名"
+                                className={`min-w-0 bg-transparent text-xs sm:text-sm border-b border-transparent focus:border-blue-500 focus:outline-none py-1 truncate ${e.invoiced ? "text-gray-500" : "text-gray-100"}`}
+                              />
+                            )}
                             {e.docUrl ? (
                               <button
                                 onClick={() => openViewer(e.docUrl!, e.label || "依頼書", e.docName)}

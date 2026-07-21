@@ -459,22 +459,64 @@ export default function NewProjectPage() {
 
         <div className="min-w-0 lg:order-1">
 
-        {/* まず担当を決める */}
-        <div className={`rounded-xl border p-4 mb-4 ${form.assignedToId ? "bg-gray-800 border-gray-700" : "bg-gray-800 border-blue-600"}`}>
-          <label className="block text-sm font-bold text-gray-100 mb-2">① まず担当を選ぶ *</label>
-          <select required value={form.assignedToId}
-            onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
-            className={inputClass}>
-            <option value="">担当を選択してください</option>
-            {myId && <option value={myId}>🔧 自分で施工（{myName || "管理者"}）</option>}
-            {partners.map((p) => (
-              <option key={p.id} value={p.id}>{p.companyName || p.name}</option>
-            ))}
-          </select>
-          {form.assignedToId === myId && (
-            <p className="text-xs text-amber-300 mt-2">🔧 自分施工：依頼書の原本が自動添付され、以下の項目は<span className="font-bold">すべて任意</span>になります（空欄でも登録OK）</p>
-          )}
+        {/* ① まず取引先を選ぶ */}
+        <div className={`rounded-xl border p-4 mb-4 ${form.clientId ? "bg-gray-800 border-gray-700" : "bg-gray-800 border-blue-600"}`}>
+          <label className="block text-sm font-bold text-gray-100 mb-2">① まず取引先を選ぶ *</label>
+          <div className="grid grid-cols-2 gap-2">
+            {clients.map((c) => {
+              const sekisui = c.name.includes("積水");
+              return (
+                <button key={c.id} type="button"
+                  onClick={() => setForm({
+                    ...form,
+                    clientId: form.clientId === c.id ? "" : c.id,
+                    region: c.name.includes("埼玉") ? "埼玉" : c.name.includes("北関東") ? "北関東" : "",
+                    // 積水以外は自分で施工に自動設定。積水は担当を後で選ぶ
+                    assignedToId: form.clientId === c.id ? "" : (sekisui ? "" : (myId || "")),
+                  })}
+                  className={`py-2 px-2 text-sm rounded-lg border transition font-medium flex items-center justify-center gap-1.5 ${form.clientId === c.id ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
+                  {c.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />}
+                  <span className="truncate">{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* ② 担当を選ぶ（積水案件のみ。それ以外は自分で施工に自動設定） */}
+        {(() => {
+          const selectedClient = clients.find((c) => c.id === form.clientId);
+          const isSekisui = !!selectedClient && selectedClient.name.includes("積水");
+          if (!form.clientId) return null;
+          if (!isSekisui) {
+            // 積水以外：自分で施工に固定
+            return (
+              <div className="rounded-xl border border-gray-700 bg-gray-800 p-4 mb-4">
+                <p className="text-sm font-bold text-gray-100 mb-1">② 担当</p>
+                <p className="text-sm text-amber-300">🔧 自分で施工（{myName || "管理者"}）— {selectedClient?.name}は自分で対応</p>
+                <p className="text-xs text-gray-500 mt-1">以下の項目はすべて任意になります（空欄でも登録OK）</p>
+              </div>
+            );
+          }
+          // 積水：担当を選ぶ
+          return (
+            <div className={`rounded-xl border p-4 mb-4 ${form.assignedToId ? "bg-gray-800 border-gray-700" : "bg-gray-800 border-blue-600"}`}>
+              <label className="block text-sm font-bold text-gray-100 mb-2">② 担当を選ぶ *</label>
+              <select required value={form.assignedToId}
+                onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
+                className={inputClass}>
+                <option value="">担当を選択してください</option>
+                {myId && <option value={myId}>🔧 自分で施工（{myName || "管理者"}）</option>}
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>{p.companyName || p.name}</option>
+                ))}
+              </select>
+              {form.assignedToId === myId && (
+                <p className="text-xs text-amber-300 mt-2">🔧 自分施工：依頼書の原本が自動添付され、以下の項目は<span className="font-bold">すべて任意</span>になります（空欄でも登録OK）</p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* PDF/写真から自動入力（AI読み取り） */}
         <div
@@ -779,23 +821,6 @@ export default function NewProjectPage() {
                 {form.contactRequired && (
                   <p className="text-xs text-red-400 mt-1">アポが取れるまで「要対応」に表示されます</p>
                 )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">取引先 <span className="text-gray-500 font-normal text-xs">（積水はAI読み取りで自動判定）</span></label>
-                <div className="grid grid-cols-2 gap-2">
-                  {clients.map((c) => (
-                    <button key={c.id} type="button"
-                      onClick={() => setForm({
-                        ...form,
-                        clientId: form.clientId === c.id ? "" : c.id,
-                        region: c.name.includes("埼玉") ? "埼玉" : c.name.includes("北関東") ? "北関東" : "",
-                      })}
-                      className={`py-2 px-2 text-sm rounded-lg border transition font-medium flex items-center justify-center gap-1.5 ${form.clientId === c.id ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
-                      {c.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />}
-                      <span className="truncate">{c.name}</span>
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           </div>

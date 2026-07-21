@@ -193,6 +193,20 @@ export default function SettingsPage() {
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const toggleSection = (key: string) => setOpenSections(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
 
+  // 🔗 Googleカレンダー連携（OAuth・即時反映）
+  const [googleStatus, setGoogleStatus] = useState<{ configured: boolean; connected: boolean; email: string | null } | null>(null);
+  const loadGoogleStatus = async () => {
+    try {
+      const r = await fetch("/api/google/status");
+      if (r.ok) setGoogleStatus(await r.json());
+    } catch { /* ignore */ }
+  };
+  const disconnectGoogle = async () => {
+    if (!window.confirm("Googleカレンダー連携を解除しますか？\n（カレンダー上の既存の予定は残ります）")) return;
+    await fetch("/api/google/disconnect", { method: "POST" });
+    loadGoogleStatus();
+  };
+
   // 📅 カレンダー連携（ICS購読URL）
   const [calToken, setCalToken] = useState<string | null>(null);
   const [calCopied, setCalCopied] = useState(false);
@@ -1057,15 +1071,41 @@ export default function SettingsPage() {
 
         {/* 📅 カレンダー連携（ICS購読） */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
-          <button onClick={() => { toggleSection("calendar"); loadCalToken(); loadCalPartners(); }} className="w-full flex items-center justify-between px-4 py-3.5">
+          <button onClick={() => { toggleSection("calendar"); loadCalToken(); loadCalPartners(); loadGoogleStatus(); }} className="w-full flex items-center justify-between px-4 py-3.5">
             <span className="text-sm font-bold text-gray-100">📅 スマホのカレンダーと連携</span>
             <span className="text-gray-400 text-xs">{isOpen("calendar") ? "▲" : "▼"}</span>
           </button>
           {isOpen("calendar") && (
             <div className="px-4 pb-4 border-t border-gray-700 pt-3 space-y-3">
-              <p className="text-xs text-gray-400">
-                下のURLをカレンダーアプリに一度登録すると、アプリで入れた訪問予定が
-                iPhoneカレンダーやGoogleカレンダーに<span className="text-gray-200 font-medium">自動で表示</span>されます（手入力不要）。
+              {/* 🔗 Googleカレンダー連携（即時反映） */}
+              <div className="bg-blue-950/40 border border-blue-800 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-bold text-blue-300">🔗 Googleカレンダーと連携（即時反映・おすすめ）</p>
+                {googleStatus === null ? (
+                  <p className="text-xs text-gray-500">確認中…</p>
+                ) : !googleStatus.configured ? (
+                  <p className="text-xs text-gray-500">サーバー側の設定が完了すると使えるようになります</p>
+                ) : googleStatus.connected ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-green-400">✓ 連携中{googleStatus.email ? `（${googleStatus.email}）` : ""}</span>
+                    <button onClick={disconnectGoogle} className="text-xs text-gray-500 hover:text-red-400 transition ml-auto">解除</button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-400">
+                      連携すると、訪問予定が<span className="text-gray-200">あなたのGoogleカレンダーに直接・即時に</span>書き込まれます。
+                      住所タップでGoogleマップも開けます。
+                    </p>
+                    <a href="/api/google/auth"
+                      className="block text-center bg-blue-600 text-white text-sm rounded-lg py-2.5 font-medium hover:bg-blue-700 transition">
+                      Googleアカウントで連携する
+                    </a>
+                  </>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-400 border-t border-gray-700/60 pt-3">
+                または、下のURLをカレンダーアプリに登録する方式（購読）も使えます。
+                iPhoneカレンダー等に<span className="text-gray-200 font-medium">自動で表示</span>されます（反映はやや遅め）。
               </p>
               {calToken ? (
                 <>

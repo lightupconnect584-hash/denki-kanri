@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { syncSalesEntryForProject, currentMonthKey } from "@/lib/salesSync";
+import { syncProjectToGoogle, deleteProjectFromGoogle } from "@/lib/googleCalendar";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -77,6 +78,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
 
+  await deleteProjectFromGoogle(id).catch(() => {});
   await prisma.activityLog.deleteMany({ where: { projectId: id } });
   await prisma.comment.deleteMany({ where: { projectId: id } });
   await prisma.photo.deleteMany({ where: { inspection: { projectId: id } } });
@@ -246,6 +248,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         },
       });
     }
+  }
+
+  // Googleカレンダーへ即時反映（訪問日・時間・担当・ステータスの変化を同期）
+  if (body.visitDate !== undefined || body.visitTime !== undefined || body.assignedToId !== undefined || body.status !== undefined) {
+    await syncProjectToGoogle(id).catch(() => {});
   }
 
   // 協力会社には売上・材料費・管理者情報を返さない（GETと同じサニタイズ）

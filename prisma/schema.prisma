@@ -32,6 +32,8 @@ model User {
   licenseExpiry    DateTime?
   vehicleNumber    String?
   calendarToken String?  @unique // カレンダー購読（ICS）用の秘密トークン
+  googleRefreshToken String? // Googleカレンダー連携（リフレッシュトークン）
+  googleEmail        String? // 連携中のGoogleアカウント
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 
@@ -50,6 +52,7 @@ model User {
   receivedDMs      DirectMessage[] @relation("ReceivedDMs")
   invoices         Invoice[]
   monthlyInvoices  MonthlyInvoice[] @relation("PartnerMonthlyInvoices")
+  googleEvents     GoogleEvent[]
 }
 
 model LoginLog {
@@ -147,6 +150,17 @@ model Invoice {
 
   uploadedBy   User   @relation(fields: [uploadedById], references: [id])
   uploadedById String
+}
+
+// Googleカレンダーに書き込んだイベントのID（ユーザー×案件ごと）
+model GoogleEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  projectId     String
+  googleEventId String
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, projectId])
 }
 
 // 依頼書の受付ボックス（ペーパーレス受付→振り分け）

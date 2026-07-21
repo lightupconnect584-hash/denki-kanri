@@ -53,7 +53,42 @@ type ProjectForSync = {
   visitTime: string | null;
   status: string;
   assignedToId: string | null;
+  assignedColor?: string | null; // 担当協力会社の色（HEX）。自社案件はnull
 };
+
+// GoogleカレンダーのイベントカラーID（11色パレット）とおおよそのHEX
+const GOOGLE_COLORS: { id: string; hex: [number, number, number] }[] = [
+  { id: "1", hex: [0x7a, 0x86, 0xcb] }, // ラベンダー
+  { id: "2", hex: [0x33, 0xb6, 0x79] }, // セージ（緑）
+  { id: "3", hex: [0x8e, 0x24, 0xaa] }, // ブドウ（紫）
+  { id: "4", hex: [0xe6, 0x7c, 0x73] }, // フラミンゴ（薄赤）
+  { id: "5", hex: [0xf6, 0xbf, 0x26] }, // バナナ（黄）
+  { id: "6", hex: [0xf4, 0x51, 0x1e] }, // ミカン（橙）
+  { id: "7", hex: [0x03, 0x9b, 0xe5] }, // クジャク（水色）
+  { id: "8", hex: [0x61, 0x61, 0x61] }, // グラファイト（灰）
+  { id: "9", hex: [0x30, 0x4f, 0xfe] }, // ブルーベリー（濃青）
+  { id: "10", hex: [0x0b, 0x80, 0x43] }, // バジル（濃緑）
+  { id: "11", hex: [0xd5, 0x00, 0x00] }, // トマト（赤）
+];
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = hex.replace("#", "").match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (!m) return null;
+  return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+}
+
+// 担当色（HEX）に一番近いGoogleカラーIDを返す。自社案件（色なし）は白に近い薄灰=グラファイト
+function colorIdForHex(hex: string | null | undefined): string | undefined {
+  if (!hex) return "8"; // 自社案件はグラファイト（グレー）
+  const rgb = hexToRgb(hex);
+  if (!rgb) return undefined;
+  let best = GOOGLE_COLORS[0], bestD = Infinity;
+  for (const c of GOOGLE_COLORS) {
+    const d = (c.hex[0] - rgb[0]) ** 2 + (c.hex[1] - rgb[1]) ** 2 + (c.hex[2] - rgb[2]) ** 2;
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  return best.id;
+}
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -85,6 +120,7 @@ function buildEventBody(p: ProjectForSync) {
     description: [p.workType ? `依頼名: ${p.workType}` : "", `${baseUrl}/projects/${p.id}`].filter(Boolean).join("\n"),
     start,
     end,
+    colorId: colorIdForHex(p.assignedColor),
   };
 }
 
@@ -141,14 +177,16 @@ async function syncForUser(userId: string, refreshToken: string, p: ProjectForSy
 export async function syncProjectToGoogle(projectId: string): Promise<void> {
   if (!googleConfigured()) return;
   try {
-    const p = await prisma.project.findUnique({
+    const raw = await prisma.project.findUnique({
       where: { id: projectId },
       select: {
         id: true, title: true, location: true, roomNumber: true, workType: true,
         visitDate: true, visitTime: true, status: true, assignedToId: true,
+        assignedTo: { select: { color: true } },
       },
     });
-    if (!p) return;
+    if (!raw) return;
+    const p: ProjectForSync = { ...raw, assignedColor: raw.assignedTo?.color ?? null };
 
     // 予定が存在すべき条件: 訪問日あり・却下でない
     const shouldExist = !!p.visitDate && p.status !== "REJECTED";

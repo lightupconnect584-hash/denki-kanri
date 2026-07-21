@@ -608,6 +608,7 @@ export default function ProjectDetailPage() {
   // 担当者（協力会社、または自分担当の管理者）は報告・受注操作が可能
   const canInspect = isAssigned && (role === "PARTNER" || role === "ADMIN");
   const isSelfJob = role === "ADMIN" && isAssigned; // 自社施工案件
+  const isSekisui = !!project.client?.name?.includes("積水"); // 積水案件（管理ページに機密を集約）
 
   // 訪問予定日のラベル
   const getVisitLabel = (dateStr: string | null) => {
@@ -919,7 +920,7 @@ export default function ProjectDetailPage() {
               <p className="text-sm text-gray-200">{project.receivedAt}</p>
             </div>
           )}
-          {role === "ADMIN" && (project.managerName || project.afterManagerName) && (
+          {role === "ADMIN" && !isSekisui && (project.managerName || project.afterManagerName) && (
             <div className="col-span-2 flex gap-6 flex-wrap">
               {project.managerName && (
                 <div>
@@ -1036,7 +1037,7 @@ export default function ProjectDetailPage() {
               })()}
             </div>
           )}
-          {role === "ADMIN" && (project.salesAmount != null || project.materialCost != null) && (
+          {role === "ADMIN" && !isSekisui && (project.salesAmount != null || project.materialCost != null) && (
             <div className="col-span-2 flex gap-6 flex-wrap">
               {project.salesAmount != null && (
                 <div>
@@ -1085,6 +1086,21 @@ export default function ProjectDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* 🔒 管理ページ（積水案件・管理者のみ。協力会社には非公開の情報を集約） */}
+        {role === "ADMIN" && isSekisui && (
+          <Link
+            href={`/projects/${id}/manage`}
+            className="flex items-center gap-3 bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 mb-4 hover:border-blue-500 hover:bg-gray-750 transition"
+          >
+            <span className="text-lg">🔒</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-100">管理ページを開く</p>
+              <p className="text-xs text-gray-400">依頼書原本・管理担当・積水請求売上・材料費（協力会社には非公開）</p>
+            </div>
+            <span className="text-gray-500">→</span>
+          </Link>
+        )}
 
         {/* 訪問予定日 */}
         {!(role === "PARTNER" && ["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status)) && (
@@ -1198,8 +1214,9 @@ export default function ProjectDetailPage() {
           {photoUploadError && <p className="text-xs text-red-500 mb-2">{photoUploadError}</p>}
           {project.projectPhotos && project.projectPhotos.length > 0 ? (
             (() => {
-              const images = project.projectPhotos.filter((f) => !f.originalName.toLowerCase().endsWith(".pdf"));
-              const pdfs = project.projectPhotos.filter((f) => f.originalName.toLowerCase().endsWith(".pdf"));
+              const visiblePhotos = project.projectPhotos.filter((f) => !f.originalName.includes("依頼書原本"));
+              const images = visiblePhotos.filter((f) => !f.originalName.toLowerCase().endsWith(".pdf"));
+              const pdfs = visiblePhotos.filter((f) => f.originalName.toLowerCase().endsWith(".pdf"));
               return (
                 <>
                   {images.length > 0 && (

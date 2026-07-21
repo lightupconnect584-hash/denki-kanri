@@ -77,9 +77,9 @@ function hexToRgb(hex: string): [number, number, number] | null {
   return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
 }
 
-// 担当色（HEX）に一番近いGoogleカラーIDを返す。自社案件（色なし）は白に近い薄灰=グラファイト
+// 担当色（HEX）に一番近いGoogleカラーIDを返す。自社案件（色なし）は青（ブルーベリー）
 function colorIdForHex(hex: string | null | undefined): string | undefined {
-  if (!hex) return "8"; // 自社案件はグラファイト（グレー）
+  if (!hex) return "9"; // 自社案件（積水など）はブルーベリー（青）
   const rgb = hexToRgb(hex);
   if (!rgb) return undefined;
   let best = GOOGLE_COLORS[0], bestD = Infinity;

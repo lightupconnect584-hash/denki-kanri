@@ -15,6 +15,7 @@ interface SalesEntry {
   material: number;
   outsource: number;
   invoiced: boolean;
+  clientId: string | null;
   projectId: string | null;
   docUrl: string | null;
   docName: string | null;
@@ -26,12 +27,11 @@ interface ExpenseItem {
   amount: number;
 }
 
-const CATEGORY_DEFS: { key: string; name: string; short: string }[] = [
-  { key: "SEKISUI_KITA", name: "積水ハウス 北関東", short: "北" },
-  { key: "SEKISUI_SAITAMA", name: "積水ハウス 埼玉", short: "埼" },
-  { key: "PERSONAL", name: "個人", short: "個" },
-  { key: "OTHER", name: "その他", short: "他" },
-];
+interface SalesClient {
+  id: string;
+  name: string;
+  color: string | null;
+}
 
 const fmt = (n: number) => n.toLocaleString();
 
@@ -50,6 +50,7 @@ export default function SalesPage() {
   );
   const [entries, setEntries] = useState<SalesEntry[]>([]);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [salesClients, setSalesClients] = useState<SalesClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showExpenses, setShowExpenses] = useState(false);
   const [newExpLabel, setNewExpLabel] = useState("");
@@ -87,6 +88,7 @@ export default function SalesPage() {
       const data = await res.json();
       setEntries(data.entries || []);
       setExpenses(data.expenses || []);
+      setSalesClients(data.clients || []);
     }
     setLoading(false);
   }, []);
@@ -116,11 +118,11 @@ export default function SalesPage() {
     }).catch(() => {});
   };
 
-  const addEntry = async (category: string) => {
+  const addEntry = async (clientId: string | null) => {
     const res = await fetch("/api/sales", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ yearMonth: month, category }),
+      body: JSON.stringify({ yearMonth: month, clientId }),
     });
     if (res.ok) {
       const entry = await res.json();
@@ -254,8 +256,11 @@ export default function SalesPage() {
 
         {/* カテゴリ別明細（PCでは2列） */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 items-start">
-          {CATEGORY_DEFS.map(({ key, name }) => {
-            const rows = entries.filter((e) => e.category === key);
+          {[
+            ...salesClients.map((c) => ({ key: c.id as string | null, name: c.name, color: c.color })),
+            { key: null as string | null, name: "その他", color: null },
+          ].filter((card) => card.key !== null || entries.some((e) => !e.clientId)).map(({ key, name, color }) => {
+            const rows = entries.filter((e) => (key === null ? !e.clientId : e.clientId === key));
             const sub = {
               sales: rows.reduce((s, e) => s + e.sales, 0),
               material: rows.reduce((s, e) => s + e.material, 0),
@@ -263,9 +268,12 @@ export default function SalesPage() {
             };
             const subProfit = sub.sales - sub.material - sub.outsource;
             return (
-              <div key={key} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              <div key={key ?? "__other__"} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 <div className="px-2.5 sm:px-4 py-2.5 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between gap-1">
-                  <p className="text-xs sm:text-sm font-bold text-gray-100 truncate">{name}</p>
+                  <p className="text-xs sm:text-sm font-bold text-gray-100 truncate flex items-center gap-1.5">
+                    {color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />}
+                    <span className="truncate">{name}</span>
+                  </p>
                   <p className="text-[10px] sm:text-xs text-gray-400 shrink-0">
                     {rows.filter((e) => e.invoiced).length > 0 && (
                       <span className="text-green-400 mr-1">請求済{rows.filter((e) => e.invoiced).length}</span>

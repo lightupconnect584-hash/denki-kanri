@@ -164,6 +164,7 @@ model Client {
   archived  Boolean   @default(false)
   createdAt DateTime  @default(now())
   projects  Project[]
+  salesEntries SalesEntry[]
 }
 
 // Googleカレンダーに書き込んだイベントのID（ユーザー×案件ごと）
@@ -198,6 +199,8 @@ model SalesEntry {
   material  Int      @default(0)  // 材料費
   outsource Int      @default(0)  // 外注工費
   invoiced  Boolean  @default(false) // 請求書送付済み
+  clientId  String?  // 取引先（nullは「その他」扱い）
+  client    Client?  @relation(fields: [clientId], references: [id])
   projectId String?  @unique      // 完了案件から取り込んだ場合の元案件
   order     Int      @default(0)
   createdAt DateTime @default(now())

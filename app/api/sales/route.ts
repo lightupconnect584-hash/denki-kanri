@@ -20,9 +20,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "月が不正です" }, { status: 400 });
   }
 
-  const [entries, expenses] = await Promise.all([
+  const [entries, expenses, clients] = await Promise.all([
     prisma.salesEntry.findMany({ where: { yearMonth: month }, orderBy: { order: "asc" } }),
     prisma.expenseItem.findMany({ orderBy: { order: "asc" } }),
+    prisma.client.findMany({ where: { archived: false }, orderBy: { order: "asc" } }),
   ]);
 
   // 依頼書原本（受付アーカイブ）を各行に結合（請求書作成時に原本を見ながら作れるように）
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
       docName: doc?.originalName || null,
     };
   });
-  return NextResponse.json({ entries: entriesWithDoc, expenses });
+  return NextResponse.json({ entries: entriesWithDoc, expenses, clients });
 }
 
 // POST: 明細行を追加
@@ -53,7 +54,8 @@ export async function POST(req: NextRequest) {
   if (!/^\d{4}-\d{2}$/.test(month)) {
     return NextResponse.json({ error: "月が不正です" }, { status: 400 });
   }
-  const category = CATEGORIES.includes(body.category) ? body.category : "SEKISUI_KITA";
+  const category = CATEGORIES.includes(body.category) ? body.category : "OTHER";
+  const clientId = body.clientId ? String(body.clientId) : null;
 
   const max = await prisma.salesEntry.aggregate({
     where: { yearMonth: month },
@@ -64,6 +66,7 @@ export async function POST(req: NextRequest) {
     data: {
       yearMonth: month,
       category,
+      clientId,
       label: String(body.label ?? ""),
       sales: Number(body.sales) || 0,
       material: Number(body.material) || 0,

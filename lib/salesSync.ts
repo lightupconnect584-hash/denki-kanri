@@ -75,6 +75,7 @@ export async function syncSalesEntryForProject(
     await prisma.salesEntry.create({
       data: {
         yearMonth: month,
+        clientId: project.clientId ?? null,
         category: guessCategory(project.location, project.region, clientName),
         label: project.title,
         // 売上: 案件の売上（積水請求額）。自社施工で未入力なら金額を売上とみなす

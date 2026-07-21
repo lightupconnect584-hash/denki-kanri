@@ -23,6 +23,7 @@ export default function NewProjectPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string; color: string | null }[]>([]);
   const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultSales?: number | null; defaultUrgency: string | null; defaultSimpleReport?: boolean }[]>([]);
   const [showWorkTypeList, setShowWorkTypeList] = useState(false);
   const [form, setForm] = useState({
@@ -43,6 +44,7 @@ export default function NewProjectPage() {
     dueDate: "",
     parkingInfo: "",
     region: "",
+    clientId: "",
     contactRequired: false,
     assignedToId: "",
     preferredContactAt: "",
@@ -81,14 +83,20 @@ export default function NewProjectPage() {
       afterManagerName: s(d.afterManagerName) || prev.afterManagerName,
       smsAllowed: typeof d.smsAllowed === "boolean" ? d.smsAllowed : prev.smsAllowed,
       contactRequired: typeof d.contactRequired === "boolean" ? d.contactRequired : prev.contactRequired,
-      region: (() => {
+      ...(() => {
         const r = s(d.region);
-        if (r === "埼玉" || r === "北関東") return r;
-        // 住所から判定（埼玉県→埼玉、栃木/茨城/群馬→北関東）
         const loc = s(d.location);
-        if (loc.includes("埼玉")) return "埼玉";
-        if (/栃木|茨城|群馬/.test(loc)) return "北関東";
-        return prev.region;
+        const reg = (r === "埼玉" || r === "北関東") ? r
+          : loc.includes("埼玉") ? "埼玉"
+          : /栃木|茨城|群馬/.test(loc) ? "北関東"
+          : prev.region;
+        // 取引先も自動選択（積水の依頼書AI読み取り時）
+        const cli = reg === "埼玉"
+          ? clients.find((c) => c.name.includes("埼玉"))
+          : reg === "北関東"
+          ? clients.find((c) => c.name.includes("北関東"))
+          : null;
+        return { region: reg, clientId: cli?.id || prev.clientId };
       })(),
     }));
     const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt", "description"].filter((k) => s(d[k])).length;
@@ -286,6 +294,7 @@ export default function NewProjectPage() {
   useEffect(() => {
     if (status === "authenticated") {
       fetch("/api/users").then((r) => r.json()).then((data) => setPartners(data.filter((u: Partner) => u.role === "PARTNER")));
+      fetch("/api/clients").then((r) => (r.ok ? r.json() : [])).then(setClients).catch(() => {});
       fetch("/api/work-types").then((r) => r.json()).then(setWorkTypeMasters);
     }
   }, [status]);
@@ -772,13 +781,18 @@ export default function NewProjectPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">エリア <span className="text-gray-500 font-normal text-xs">（AI読み取りで自動判定）</span></label>
-                <div className="flex gap-2">
-                  {["埼玉", "北関東"].map((r) => (
-                    <button key={r} type="button"
-                      onClick={() => setForm({ ...form, region: form.region === r ? "" : r })}
-                      className={`flex-1 py-2 text-sm rounded-lg border transition font-medium ${form.region === r ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
-                      {r}
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">取引先 <span className="text-gray-500 font-normal text-xs">（積水はAI読み取りで自動判定）</span></label>
+                <div className="grid grid-cols-2 gap-2">
+                  {clients.map((c) => (
+                    <button key={c.id} type="button"
+                      onClick={() => setForm({
+                        ...form,
+                        clientId: form.clientId === c.id ? "" : c.id,
+                        region: c.name.includes("埼玉") ? "埼玉" : c.name.includes("北関東") ? "北関東" : "",
+                      })}
+                      className={`py-2 px-2 text-sm rounded-lg border transition font-medium flex items-center justify-center gap-1.5 ${form.clientId === c.id ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
+                      {c.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />}
+                      <span className="truncate">{c.name}</span>
                     </button>
                   ))}
                 </div>

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   const projects = await prisma.project.findMany({
     where: { status: { in: DONE_STATUSES } },
-    select: { id: true, title: true, location: true, amount: true, billingMonth: true, assignedToId: true, salesAmount: true, materialCost: true, region: true },
+    select: { id: true, title: true, location: true, amount: true, billingMonth: true, assignedToId: true, salesAmount: true, materialCost: true, region: true, clientId: true },
     orderBy: { createdAt: "asc" },
   });
   const targets = projects.filter((p) => !importedIds.has(p.id));

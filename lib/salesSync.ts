@@ -8,8 +8,14 @@ export const SAITAMA_HINTS = [
   "朝霞", "志木", "富士見", "ふじみ野", "三郷", "八潮", "吉川", "戸田", "鶴ヶ島", "坂戸", "飯能",
 ];
 
-// エリア（明示指定）を優先し、なければ住所から推定
-export function guessCategory(location: string, region?: string | null): string {
+// 取引先名→エリア→住所の優先順でカテゴリ判定
+export function guessCategory(location: string, region?: string | null, clientName?: string | null): string {
+  if (clientName) {
+    if (clientName.includes("埼玉")) return "SEKISUI_SAITAMA";
+    if (clientName.includes("北関東")) return "SEKISUI_KITA";
+    if (clientName === "個人") return "PERSONAL";
+    return "OTHER"; // くらしのマーケット・リベシティ等
+  }
   if (region === "埼玉") return "SEKISUI_SAITAMA";
   if (region === "北関東") return "SEKISUI_KITA";
   return SAITAMA_HINTS.some((h) => location.includes(h)) ? "SEKISUI_SAITAMA" : "SEKISUI_KITA";
@@ -28,7 +34,7 @@ export async function syncSalesEntryForProject(
   project: {
     id: string; title: string; location: string; amount: number | null;
     assignedToId?: string | null; salesAmount?: number | null; materialCost?: number | null;
-    region?: string | null;
+    region?: string | null; clientId?: string | null;
   },
   month: string
 ): Promise<void> {
@@ -41,6 +47,12 @@ export async function syncSalesEntryForProject(
         select: { role: true },
       });
       selfAssigned = assignee?.role === "ADMIN";
+    }
+    // 取引先名を取得（カテゴリ判定用）
+    let clientName: string | null = null;
+    if (project.clientId) {
+      const c = await prisma.client.findUnique({ where: { id: project.clientId }, select: { name: true } });
+      clientName = c?.name ?? null;
     }
     const existing = await prisma.salesEntry.findUnique({ where: { projectId: project.id } });
     if (existing) {
@@ -63,7 +75,7 @@ export async function syncSalesEntryForProject(
     await prisma.salesEntry.create({
       data: {
         yearMonth: month,
-        category: guessCategory(project.location, project.region),
+        category: guessCategory(project.location, project.region, clientName),
         label: project.title,
         // 売上: 案件の売上（積水請求額）。自社施工で未入力なら金額を売上とみなす
         sales: project.salesAmount ?? (selfAssigned ? (project.amount ?? 0) : 0),

@@ -90,6 +90,7 @@ interface Project {
   moveInDate: string | null;
   receivedAt: string | null;
   parkingInfo: string | null;
+  client: { id: string; name: string; color: string | null } | null;
   managerName: string | null;
   afterManagerName: string | null;
   urgency: string;
@@ -986,6 +987,15 @@ export default function ProjectDetailPage() {
             <div className="col-span-2">
               <p className="text-xs text-gray-400">依頼内容</p>
               <p className="text-sm text-gray-200 whitespace-pre-wrap break-words overflow-hidden">{project.description}</p>
+            </div>
+          )}
+          {role === "ADMIN" && project.client && (
+            <div>
+              <p className="text-xs text-gray-400">取引先</p>
+              <p className="text-sm text-gray-200 flex items-center gap-1.5">
+                {project.client.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.client.color }} />}
+                {project.client.name}
+              </p>
             </div>
           )}
           <div>

@@ -21,6 +21,7 @@ interface Project {
   visitDate: string | null;
   visitTime: string | null;
   region: string | null;
+  client: { id: string; name: string; color: string | null } | null;
   contactRequired: boolean;
   contactedAt: string | null;
   onHold: boolean;
@@ -769,22 +770,26 @@ export default function DashboardPage() {
                           <h3 className="text-sm font-bold text-white">🔧 自社案件</h3>
                           <span className="text-xs text-gray-500">（{selfActive.length}件）</span>
                         </div>
-                        {/* エリア別（埼玉 / 北関東 / 未分類）に分けて表示 */}
+                        {/* 取引先別に分けて表示 */}
                         <div className="space-y-4">
-                          {([["埼玉", "text-pink-300", "bg-pink-400"], ["北関東", "text-emerald-300", "bg-emerald-400"], ["", "text-gray-400", "bg-gray-500"]] as const).map(([reg, textCls, barCls]) => {
-                            const group = selfActive.filter((p) => (p.region || "") === reg);
-                            if (group.length === 0) return null;
-                            return (
-                              <div key={reg || "none"}>
+                          {(() => {
+                            const groups = new Map<string, { name: string; color: string | null; items: Project[] }>();
+                            for (const p of selfActive) {
+                              const key = p.client?.id || "__none__";
+                              if (!groups.has(key)) groups.set(key, { name: p.client?.name || "取引先未設定", color: p.client?.color || null, items: [] });
+                              groups.get(key)!.items.push(p);
+                            }
+                            return Array.from(groups.entries()).map(([key, g]) => (
+                              <div key={key}>
                                 <div className="flex items-center gap-1.5 mb-2">
-                                  <span className={`w-2 h-2 rounded-full ${barCls}`} />
-                                  <span className={`text-xs font-bold ${textCls}`}>{reg || "エリア未設定"}</span>
-                                  <span className="text-xs text-gray-600">{group.length}件</span>
+                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: g.color || "#6b7280" }} />
+                                  <span className="text-xs font-bold text-gray-200">{g.name}</span>
+                                  <span className="text-xs text-gray-600">{g.items.length}件</span>
                                 </div>
-                                <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2 xl:gap-3">{group.map(renderProject)}</div>
+                                <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2 xl:gap-3">{g.items.map(renderProject)}</div>
                               </div>
-                            );
-                          })}
+                            ));
+                          })()}
                         </div>
                       </div>
                     )}

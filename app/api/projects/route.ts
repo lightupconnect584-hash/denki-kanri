@@ -14,6 +14,7 @@ export async function GET() {
   const projects = await prisma.project.findMany({
     where: role === "ADMIN" ? {} : { assignedToId: userId, status: { not: "REJECTED" } },
     include: {
+      client: { select: { id: true, name: true, color: true } },
       assignedTo: { select: { id: true, name: true, companyName: true, color: true } },
       createdBy: { select: { name: true, avatarUrl: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true } },
       inspections: { include: { photos: true } },
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
       receivedAt: body.receivedAt || null,
       parkingInfo: body.parkingInfo || null,
       region: body.region || null,
+      clientId: body.clientId || null,
       contactRequired: Boolean(body.contactRequired),
       createdById: userId,
       // 自社案件（担当＝作成者）は受注済みで作成

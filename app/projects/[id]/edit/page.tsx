@@ -19,6 +19,7 @@ export default function EditProjectPage() {
   const id = params.id as string;
 
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string; color: string | null }[]>([]);
   const [workTypeMasters, setWorkTypeMasters] = useState<{ id: string; name: string; defaultAmount: number | null; defaultSales?: number | null; defaultUrgency: string | null }[]>([]);
   const [showWorkTypeList, setShowWorkTypeList] = useState(false);
   const [form, setForm] = useState({
@@ -44,6 +45,7 @@ export default function EditProjectPage() {
     receivedAt: "",
     parkingInfo: "",
     region: "",
+    clientId: "",
     contactRequired: false,
     managerName: "",
     afterManagerName: "",
@@ -66,6 +68,7 @@ export default function EditProjectPage() {
   useEffect(() => {
     if (status === "authenticated") {
       fetch("/api/users").then((r) => r.json()).then((data) => setPartners(data.filter((u: Partner) => u.role === "PARTNER")));
+      fetch("/api/clients").then((r) => (r.ok ? r.json() : [])).then(setClients).catch(() => {});
       fetch("/api/work-types").then((r) => r.json()).then(setWorkTypeMasters);
       fetch(`/api/projects/${id}`)
         .then((r) => r.json())
@@ -92,6 +95,7 @@ export default function EditProjectPage() {
             receivedAt: data.receivedAt || "",
             parkingInfo: data.parkingInfo || "",
             region: data.region || "",
+            clientId: data.client?.id || "",
             contactRequired: Boolean(data.contactRequired),
             managerName: data.managerName || "",
             afterManagerName: data.afterManagerName || "",
@@ -398,13 +402,18 @@ export default function EditProjectPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1.5">エリア</label>
-            <div className="flex gap-2">
-              {["埼玉", "北関東"].map((r) => (
-                <button key={r} type="button"
-                  onClick={() => setForm({ ...form, region: form.region === r ? "" : r })}
-                  className={`flex-1 py-2 text-sm rounded-lg border transition font-medium ${form.region === r ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
-                  {r}
+            <label className="block text-sm font-medium text-gray-200 mb-1.5">取引先</label>
+            <div className="grid grid-cols-2 gap-2">
+              {clients.map((c) => (
+                <button key={c.id} type="button"
+                  onClick={() => setForm({
+                    ...form,
+                    clientId: form.clientId === c.id ? "" : c.id,
+                    region: c.name.includes("埼玉") ? "埼玉" : c.name.includes("北関東") ? "北関東" : "",
+                  })}
+                  className={`py-2 px-2 text-sm rounded-lg border transition font-medium flex items-center justify-center gap-1.5 ${form.clientId === c.id ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
+                  {c.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />}
+                  <span className="truncate">{c.name}</span>
                 </button>
               ))}
             </div>

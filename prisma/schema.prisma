@@ -121,6 +121,9 @@ model Project {
   createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
   createdById String
 
+  client   Client? @relation(fields: [clientId], references: [id])
+  clientId String?
+
   inspections   Inspection[]
   quotes        Quote[]
   projectPhotos ProjectPhoto[]
@@ -150,6 +153,17 @@ model Invoice {
 
   uploadedBy   User   @relation(fields: [uploadedById], references: [id])
   uploadedById String
+}
+
+// 取引先マスター（積水ハウス埼玉/北関東・くらしのマーケット・リベシティ・個人 など）
+model Client {
+  id        String    @id @default(cuid())
+  name      String
+  color     String?   // 表示色（HEX）
+  order     Int       @default(0)
+  archived  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  projects  Project[]
 }
 
 // Googleカレンダーに書き込んだイベントのID（ユーザー×案件ごと）

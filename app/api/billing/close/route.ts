@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
         salesAmount: true,
         materialCost: true,
         region: true,
+        clientId: true,
         dueDate: true,
         createdAt: true,
         inspections: { select: { workDate: true } },
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
       ...(projectIds ? { id: { in: projectIds } } : {}),
       ...(body.partnerId ? { assignedToId: body.partnerId } : {}),
     },
-    select: { id: true, title: true, location: true, amount: true, assignedToId: true, salesAmount: true, materialCost: true, region: true },
+    select: { id: true, title: true, location: true, amount: true, assignedToId: true, salesAmount: true, materialCost: true, region: true, clientId: true },
   });
 
   for (const p of targets) {

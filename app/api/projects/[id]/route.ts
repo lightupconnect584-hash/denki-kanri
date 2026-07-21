@@ -18,6 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const project = await prisma.project.findUnique({
     where: role === "PARTNER" ? { id, assignedToId: userId } : { id },
     include: {
+      client: { select: { id: true, name: true, color: true } },
       assignedTo: { select: { id: true, name: true, companyName: true, email: true } },
       createdBy: { select: { name: true, avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true } },
       projectPhotos: true,
@@ -177,6 +178,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.receivedAt !== undefined) updateData.receivedAt = body.receivedAt || null;
   if (body.parkingInfo !== undefined) updateData.parkingInfo = body.parkingInfo || null;
   if (body.region !== undefined) updateData.region = body.region || null;
+  if (body.clientId !== undefined && role === "ADMIN") updateData.clientId = body.clientId || null;
   if (body.contactRequired !== undefined && role === "ADMIN") updateData.contactRequired = Boolean(body.contactRequired);
   // 入居者と連絡が取れた／取り消し（担当者・管理者）
   if (body.contacted !== undefined) {
@@ -228,7 +230,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 完了になったら売上集計に自動登録（今の月に仮置き。月末の締めで最終調整）
   if (["CONFIRMED", "COMPLETED"].includes(body.status)) {
     await syncSalesEntryForProject(
-      { id: project.id, title: project.title, location: project.location, amount: project.amount, assignedToId: project.assignedToId, salesAmount: project.salesAmount, materialCost: project.materialCost, region: project.region },
+      { id: project.id, title: project.title, location: project.location, amount: project.amount, assignedToId: project.assignedToId, salesAmount: project.salesAmount, materialCost: project.materialCost, region: project.region, clientId: project.clientId },
       currentMonthKey()
     );
   }

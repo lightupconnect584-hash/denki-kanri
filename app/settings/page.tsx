@@ -193,6 +193,31 @@ export default function SettingsPage() {
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const toggleSection = (key: string) => setOpenSections(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
 
+  // 🏢 取引先管理
+  const [clientList, setClientList] = useState<{ id: string; name: string; color: string | null; archived: boolean }[]>([]);
+  const [newClientName, setNewClientName] = useState("");
+  const loadClients = async () => {
+    const r = await fetch("/api/clients?all=1");
+    if (r.ok) setClientList(await r.json());
+  };
+  const addClient = async () => {
+    if (!newClientName.trim()) return;
+    const r = await fetch("/api/clients", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newClientName.trim() }),
+    });
+    if (r.ok) { setNewClientName(""); loadClients(); }
+  };
+  const patchClient = async (id: string, fields: Record<string, unknown>) => {
+    setClientList((prev) => prev.map((c) => (c.id === id ? { ...c, ...fields } : c)));
+    await fetch("/api/clients", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...fields }),
+    }).catch(() => {});
+  };
+
   // 🔗 Googleカレンダー連携（OAuth・即時反映）
   const [googleStatus, setGoogleStatus] = useState<{ configured: boolean; connected: boolean; email: string | null } | null>(null);
   const loadGoogleStatus = async () => {
@@ -1068,6 +1093,59 @@ export default function SettingsPage() {
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">設定</h2>
         </div>
+
+        {/* 🏢 取引先管理（管理者のみ） */}
+        {role === "ADMIN" && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
+            <button onClick={() => { toggleSection("clients"); loadClients(); }} className="w-full flex items-center justify-between px-4 py-3.5">
+              <span className="text-sm font-bold text-gray-100">🏢 取引先管理</span>
+              <span className="text-gray-400 text-xs">{isOpen("clients") ? "▲" : "▼"}</span>
+            </button>
+            {isOpen("clients") && (
+              <div className="px-4 pb-4 border-t border-gray-700 pt-3 space-y-2">
+                <p className="text-xs text-gray-500">依頼の登録時に選ぶ取引先です。色は一覧・カレンダーの表示に使われます。</p>
+                <div className="divide-y divide-gray-700/60">
+                  {clientList.map((c) => (
+                    <div key={c.id} className={`flex items-center gap-2 py-2 ${c.archived ? "opacity-40" : ""}`}>
+                      <input
+                        type="color"
+                        value={c.color || "#3b82f6"}
+                        onChange={(e) => patchClient(c.id, { color: e.target.value })}
+                        className="w-7 h-7 rounded border border-gray-600 bg-transparent shrink-0 cursor-pointer"
+                        title="表示色"
+                      />
+                      <input
+                        value={c.name}
+                        onChange={(e) => setClientList((prev) => prev.map((x) => (x.id === c.id ? { ...x, name: e.target.value } : x)))}
+                        onBlur={(e) => patchClient(c.id, { name: e.target.value })}
+                        className="flex-1 min-w-0 bg-transparent text-sm text-gray-100 border-b border-transparent focus:border-blue-500 focus:outline-none py-1"
+                      />
+                      <button
+                        onClick={() => patchClient(c.id, { archived: !c.archived })}
+                        className="text-xs text-gray-500 hover:text-gray-300 shrink-0"
+                      >
+                        {c.archived ? "復活" : "非表示"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    value={newClientName}
+                    onChange={(e) => setNewClientName(e.target.value)}
+                    placeholder="新しい取引先名"
+                    className="flex-1 min-w-0 bg-gray-900/60 text-sm text-gray-100 rounded px-3 py-2 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={addClient}
+                    disabled={!newClientName.trim()}
+                    className="text-xs bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700 disabled:opacity-40 transition shrink-0"
+                  >追加</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 📅 カレンダー連携（ICS購読） */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">

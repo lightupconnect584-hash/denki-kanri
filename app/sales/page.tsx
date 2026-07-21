@@ -31,6 +31,7 @@ interface SalesClient {
   id: string;
   name: string;
   color: string | null;
+  feePercent: number;
 }
 
 const fmt = (n: number) => n.toLocaleString();
@@ -176,15 +177,27 @@ export default function SalesPage() {
     }).catch(() => {});
   };
 
+  // 取引先ごとの手数料％
+  const feePctById = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of salesClients) m.set(c.id, c.feePercent || 0);
+    return m;
+  }, [salesClients]);
+  const feeOf = (e: SalesEntry) => {
+    const pct = e.clientId ? (feePctById.get(e.clientId) || 0) : 0;
+    return pct > 0 ? Math.round((e.sales * pct) / 100) : 0;
+  };
+
   // ── 集計 ──
   const totals = useMemo(() => {
     const revenue = entries.reduce((s, e) => s + e.sales, 0);
     const material = entries.reduce((s, e) => s + e.material, 0);
     const outsource = entries.reduce((s, e) => s + e.outsource, 0);
+    const fee = entries.reduce((s, e) => s + feeOf(e), 0);
     const expenseTotal = expenses.reduce((s, e) => s + e.amount, 0);
-    const cost = material + outsource + expenseTotal;
-    return { revenue, material, outsource, expenseTotal, cost, profit: revenue - cost };
-  }, [entries, expenses]);
+    const cost = material + outsource + fee + expenseTotal;
+    return { revenue, material, outsource, fee, expenseTotal, cost, profit: revenue - cost };
+  }, [entries, expenses, feePctById]);
 
   if (status === "loading" || loading) {
     return <div className="min-h-full flex items-center justify-center bg-gray-900"><p className="text-gray-400">読み込み中...</p></div>;
@@ -257,22 +270,24 @@ export default function SalesPage() {
         {/* カテゴリ別明細（PCでは2列） */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 items-start">
           {[
-            ...salesClients.map((c) => ({ key: c.id as string | null, name: c.name, color: c.color })),
-            { key: null as string | null, name: "その他", color: null },
-          ].filter((card) => card.key !== null || entries.some((e) => !e.clientId)).map(({ key, name, color }) => {
+            ...salesClients.map((c) => ({ key: c.id as string | null, name: c.name, color: c.color, fee: c.feePercent || 0 })),
+            { key: null as string | null, name: "その他", color: null, fee: 0 },
+          ].filter((card) => card.key !== null || entries.some((e) => !e.clientId)).map(({ key, name, color, fee: cardFee }) => {
             const rows = entries.filter((e) => (key === null ? !e.clientId : e.clientId === key));
             const sub = {
               sales: rows.reduce((s, e) => s + e.sales, 0),
               material: rows.reduce((s, e) => s + e.material, 0),
               outsource: rows.reduce((s, e) => s + e.outsource, 0),
             };
-            const subProfit = sub.sales - sub.material - sub.outsource;
+            const subFee = cardFee > 0 ? Math.round((sub.sales * cardFee) / 100) : 0;
+            const subProfit = sub.sales - sub.material - sub.outsource - subFee;
             return (
               <div key={key ?? "__other__"} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 <div className="px-2.5 sm:px-4 py-2.5 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between gap-1">
                   <p className="text-xs sm:text-sm font-bold text-gray-100 truncate flex items-center gap-1.5">
                     {color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />}
                     <span className="truncate">{name}</span>
+                    {cardFee > 0 && <span className="text-[10px] font-normal text-orange-300 bg-orange-900/40 border border-orange-800 rounded px-1 shrink-0">手数料{cardFee}%</span>}
                   </p>
                   <p className="text-[10px] sm:text-xs text-gray-400 shrink-0">
                     {rows.filter((e) => e.invoiced).length > 0 && (
@@ -297,7 +312,8 @@ export default function SalesPage() {
                     </div>
                     <div className="divide-y divide-gray-700/60">
                       {rows.map((e) => {
-                        const profit = e.sales - e.material - e.outsource;
+                        const rowFee = feeOf(e);
+                        const profit = e.sales - e.material - e.outsource - rowFee;
                         return (
                           <div key={e.id} className={`grid grid-cols-[16px_minmax(0,1fr)_20px_58px_14px] sm:grid-cols-[22px_minmax(160px,1fr)_26px_96px_90px_90px_84px_24px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
                             <button
@@ -371,6 +387,13 @@ export default function SalesPage() {
                         );
                       })}
                     </div>
+                    {/* 手数料（取引先に手数料設定がある場合） */}
+                    {cardFee > 0 && (
+                      <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 bg-gray-900/30 border-t border-gray-700/60 text-xs">
+                        <span className="text-orange-300">プラットフォーム手数料（{cardFee}%）</span>
+                        <span className="text-orange-300 font-medium">-¥{fmt(subFee)}</span>
+                      </div>
+                    )}
                     {/* 小計 */}
                     <div className="grid grid-cols-[16px_minmax(0,1fr)_20px_58px_14px] sm:grid-cols-[22px_minmax(160px,1fr)_26px_96px_90px_90px_84px_24px] sm:gap-2 gap-1 px-2 sm:px-3 py-2 bg-gray-900/50 border-t border-gray-700 text-xs sm:text-sm font-bold">
                       <span></span>

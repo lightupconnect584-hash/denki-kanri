@@ -194,7 +194,7 @@ export default function SettingsPage() {
   const toggleSection = (key: string) => setOpenSections(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
 
   // 🏢 取引先管理
-  const [clientList, setClientList] = useState<{ id: string; name: string; color: string | null; archived: boolean }[]>([]);
+  const [clientList, setClientList] = useState<{ id: string; name: string; color: string | null; archived: boolean; feePercent: number }[]>([]);
   const [newClientName, setNewClientName] = useState("");
   const loadClients = async () => {
     const r = await fetch("/api/clients?all=1");
@@ -1103,7 +1103,7 @@ export default function SettingsPage() {
             </button>
             {isOpen("clients") && (
               <div className="px-4 pb-4 border-t border-gray-700 pt-3 space-y-2">
-                <p className="text-xs text-gray-500">依頼の登録時に選ぶ取引先です。色は一覧・カレンダーの表示に使われます。</p>
+                <p className="text-xs text-gray-500">依頼の登録時に選ぶ取引先です。色は一覧・カレンダーの表示に、%はプラットフォーム手数料（売上から自動で差し引き）に使われます。</p>
                 <div className="divide-y divide-gray-700/60">
                   {clientList.map((c) => (
                     <div key={c.id} className={`flex items-center gap-2 py-2 ${c.archived ? "opacity-40" : ""}`}>
@@ -1120,6 +1120,18 @@ export default function SettingsPage() {
                         onBlur={(e) => patchClient(c.id, { name: e.target.value })}
                         className="flex-1 min-w-0 bg-transparent text-sm text-gray-100 border-b border-transparent focus:border-blue-500 focus:outline-none py-1"
                       />
+                      <div className="flex items-center gap-0.5 shrink-0" title="プラットフォーム手数料（%）">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={c.feePercent ? String(c.feePercent) : ""}
+                          onChange={(e) => setClientList((prev) => prev.map((x) => (x.id === c.id ? { ...x, feePercent: Number(e.target.value.replace(/[^0-9]/g, "")) || 0 } : x)))}
+                          onBlur={(e) => patchClient(c.id, { feePercent: Number(e.target.value.replace(/[^0-9]/g, "")) || 0 })}
+                          placeholder="0"
+                          className="w-9 bg-gray-900/60 text-xs text-gray-100 text-right rounded px-1 py-1 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                        />
+                        <span className="text-xs text-gray-500">%</span>
+                      </div>
                       <button
                         onClick={() => patchClient(c.id, { archived: !c.archived })}
                         className="text-xs text-gray-500 hover:text-gray-300 shrink-0"

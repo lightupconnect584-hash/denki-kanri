@@ -160,6 +160,7 @@ model Client {
   id        String    @id @default(cuid())
   name      String
   color     String?   // 表示色（HEX）
+  feePercent Int      @default(0) // プラットフォーム手数料％（くらしのマーケット=20など）。売上から自動控除
   order     Int       @default(0)
   archived  Boolean   @default(false)
   createdAt DateTime  @default(now())

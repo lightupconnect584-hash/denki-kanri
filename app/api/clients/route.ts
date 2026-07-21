@@ -46,6 +46,7 @@ export async function PATCH(req: NextRequest) {
   if (body.color !== undefined) data.color = body.color || null;
   if (body.archived !== undefined) data.archived = Boolean(body.archived);
   if (body.order !== undefined) data.order = Number(body.order) || 0;
+  if (body.feePercent !== undefined) data.feePercent = Math.max(0, Math.min(100, Number(body.feePercent) || 0));
   const client = await prisma.client.update({ where: { id: body.id }, data });
   return NextResponse.json(client);
 }

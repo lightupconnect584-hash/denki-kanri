@@ -227,7 +227,6 @@ export default function EditProjectPage() {
                 className={inputClass} placeholder="アフター担当" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 -mt-2">🔒 担当者名は協力会社には表示されません</p>
           </>)}
 
           <div>
@@ -317,7 +316,7 @@ export default function EditProjectPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
+            <label className="block text-sm font-medium text-gray-200 mb-1">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
               <input type="text" inputMode="numeric" value={form.salesAmount}
@@ -330,7 +329,7 @@ export default function EditProjectPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">材料費（税別）<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
+            <label className="block text-sm font-medium text-gray-200 mb-1">材料費（税別）</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
               <input type="text" inputMode="numeric" value={form.materialCost}

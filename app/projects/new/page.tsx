@@ -549,7 +549,37 @@ export default function NewProjectPage() {
 
         <form onSubmit={handleSubmit} className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
 
-          {/* 物件情報 */}
+          {/* お客様情報（積水以外） */}
+          {!isSekisui && form.clientId && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            <div className="bg-gray-800/60 px-4 py-2 border-b border-gray-700">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">お客様情報</p>
+            </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">氏名 / 会社名</label>
+                <input type="text" value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className={inputClass} placeholder="例: 山田太郎 / ○○商店" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">連絡先</label>
+                <input type="tel" value={form.contractorPhone}
+                  onChange={(e) => setForm({ ...form, contractorPhone: e.target.value })}
+                  className={inputClass} placeholder="090-1234-5678" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">住所</label>
+                <input type="text" value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  className={inputClass} placeholder="例: 東京都渋谷区○○1-2-3" />
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* 物件情報（積水のみ） */}
+          {isSekisui && (
           <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
             <div className="bg-gray-800/60 px-4 py-2 border-b border-gray-700">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">物件情報</p>
@@ -575,8 +605,10 @@ export default function NewProjectPage() {
               </div>
             </div>
           </div>
+          )}
 
-          {/* 契約者情報 */}
+          {/* 契約者情報（積水のみ） */}
+          {isSekisui && (
           <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
             <div className="bg-gray-800/60 px-4 py-2 border-b border-gray-700">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">契約者情報</p>
@@ -603,7 +635,6 @@ export default function NewProjectPage() {
                     className={inputClass} placeholder="アフター担当" />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 -mt-1">🔒 担当者名は協力会社には表示されません</p>
               </>)}
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -668,6 +699,7 @@ export default function NewProjectPage() {
               </>)}
             </div>
           </div>
+          )}
 
           {/* 依頼内容 */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
@@ -739,7 +771,7 @@ export default function NewProjectPage() {
               </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
                   <input type="text" inputMode="numeric" value={form.salesAmount}
@@ -752,7 +784,7 @@ export default function NewProjectPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">材料費（税別）<span className="text-gray-500 font-normal text-xs ml-1">材料支給時など。協力会社には表示されません</span></label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">材料費（税別）</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
                   <input type="text" inputMode="numeric" value={form.materialCost}

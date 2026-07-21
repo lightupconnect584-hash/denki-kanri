@@ -191,14 +191,14 @@ export async function syncProjectToGoogle(projectId: string): Promise<void> {
     // 予定が存在すべき条件: 訪問日あり・却下でない
     const shouldExist = !!p.visitDate && p.status !== "REJECTED";
 
-    // 対象ユーザー: 連携済みの管理者 + 連携済みの担当者
-    const users = await prisma.user.findMany({
-      where: {
-        googleRefreshToken: { not: null },
-        OR: [{ role: "ADMIN" }, { id: p.assignedToId ?? "__none__" }],
-      },
-      select: { id: true, googleRefreshToken: true },
-    });
+    // 対象ユーザー: 担当者本人のみ（連携済み）。
+    // 管理者のGoogleには自社案件（担当=自分）だけ入り、協力会社の予定は入らない。
+    const users = p.assignedToId
+      ? await prisma.user.findMany({
+          where: { googleRefreshToken: { not: null }, id: p.assignedToId },
+          select: { id: true, googleRefreshToken: true },
+        })
+      : [];
     const targetIds = new Set(users.map((u) => u.id));
 
     // 担当変更などで対象外になったユーザーのイベントを削除

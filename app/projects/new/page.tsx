@@ -203,6 +203,8 @@ export default function NewProjectPage() {
   const myId = (session?.user as { id?: string })?.id;
   const myName = session?.user?.name;
   const isSelf = !!myId && form.assignedToId === myId; // 自分施工の案件
+  const selectedClientTop = clients.find((c) => c.id === form.clientId);
+  const isSekisui = !!selectedClientTop && selectedClientTop.name.includes("積水"); // 積水案件のみ表示する項目の判定
 
   // 受付ボックスからの振り分け：?intake=ID の依頼書を自動で読み取り
   useEffect(() => {
@@ -586,6 +588,7 @@ export default function NewProjectPage() {
                   onChange={(e) => setForm({ ...form, receivedAt: e.target.value })}
                   className={inputClass} placeholder="例: 7/10 10:30" maxLength={20} />
               </div>
+              {isSekisui && (<>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-300 mb-1">管理担当者名</label>
@@ -601,6 +604,7 @@ export default function NewProjectPage() {
                 </div>
               </div>
               <p className="text-xs text-gray-500 -mt-1">🔒 担当者名は協力会社には表示されません</p>
+              </>)}
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-300 mb-1">折り返し先名カナ</label>
@@ -634,6 +638,7 @@ export default function NewProjectPage() {
                     }`}>不可</button>
                 </div>
               </div>
+              {isSekisui && (<>
               <div className="space-y-2 pt-1">
                 <p className="text-sm font-medium text-gray-300">入居者への連絡・訪問希望 <span className="text-gray-500 font-normal text-xs">（任意）</span></p>
                 <div className="flex gap-2">
@@ -660,6 +665,7 @@ export default function NewProjectPage() {
                   className={inputClass}
                   placeholder="例: R7.6.1" maxLength={12} />
               </div>
+              </>)}
             </div>
           </div>
 
@@ -733,7 +739,7 @@ export default function NewProjectPage() {
               </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">売上（積水請求・税別）<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
                   <input type="text" inputMode="numeric" value={form.salesAmount}
@@ -801,12 +807,15 @@ export default function NewProjectPage() {
                 </button>
                 <p className="text-xs text-gray-500 mt-1">依頼名マスターで設定しておくと自動で切り替わります</p>
               </div>
+              {isSekisui && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">駐車場空き区画 <span className="text-gray-500 font-normal text-xs">（任意）</span></label>
                 <input type="text" value={form.parkingInfo}
                   onChange={(e) => setForm({ ...form, parkingInfo: e.target.value })}
                   className={inputClass} placeholder="例: 12番・来客用" maxLength={30} />
               </div>
+              )}
+              {isSekisui && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">入居者アポイント <span className="text-gray-500 font-normal text-xs">（AI読み取りで自動判定）</span></label>
                 <button type="button"
@@ -822,6 +831,7 @@ export default function NewProjectPage() {
                   <p className="text-xs text-red-400 mt-1">アポが取れるまで「要対応」に表示されます</p>
                 )}
               </div>
+              )}
             </div>
           </div>
 

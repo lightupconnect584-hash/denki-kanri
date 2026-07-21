@@ -55,6 +55,8 @@ export default function EditProjectPage() {
 
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
+  const editSelectedClient = clients.find((c) => c.id === form.clientId);
+  const isSekisui = !!editSelectedClient && editSelectedClient.name.includes("積水");
   // 自社案件（担当=自分）は金額・材料支給が不要
 
   const myName = session?.user?.name;
@@ -210,6 +212,7 @@ export default function EditProjectPage() {
               className={inputClass} placeholder="例: 7/10 10:30" />
           </div>
 
+          {isSekisui && (<>
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-200 mb-1">管理担当者名</label>
@@ -225,6 +228,7 @@ export default function EditProjectPage() {
             </div>
           </div>
           <p className="text-xs text-gray-500 -mt-2">🔒 担当者名は協力会社には表示されません</p>
+          </>)}
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">折り返し先名カナ</label>
@@ -260,7 +264,8 @@ export default function EditProjectPage() {
             </div>
           </div>
 
-          {/* 入居者への連絡・訪問希望 */}
+          {/* 入居者への連絡・訪問希望（積水のみ） */}
+          {isSekisui && (
           <div className="border border-gray-700 rounded-xl p-4 space-y-3">
             <p className="text-sm font-medium text-gray-200">入居者への連絡・訪問希望 <span className="text-gray-500 font-normal text-xs">（任意）</span></p>
             <div>
@@ -282,6 +287,7 @@ export default function EditProjectPage() {
                 className={inputClass} placeholder="例: R7.6.1" maxLength={12} />
             </div>
           </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">依頼内容</label>
@@ -311,7 +317,7 @@ export default function EditProjectPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">売上（積水請求・税別）<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
+            <label className="block text-sm font-medium text-gray-200 mb-1">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}<span className="text-gray-500 font-normal text-xs ml-1">協力会社には表示されません</span></label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
               <input type="text" inputMode="numeric" value={form.salesAmount}
@@ -381,13 +387,16 @@ export default function EditProjectPage() {
             </button>
           </div>
 
+          {isSekisui && (
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">駐車場空き区画</label>
             <input type="text" value={form.parkingInfo}
               onChange={(e) => setForm({ ...form, parkingInfo: e.target.value })}
               className={inputClass} placeholder="例: 12番・来客用" />
           </div>
+          )}
 
+          {isSekisui && (
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1.5">入居者アポイント</label>
             <button type="button"
@@ -400,6 +409,7 @@ export default function EditProjectPage() {
               📞 {form.contactRequired ? "アポイント必要" : "アポイント不要"}
             </button>
           </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1.5">取引先</label>

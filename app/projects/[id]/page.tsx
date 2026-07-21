@@ -1040,7 +1040,7 @@ export default function ProjectDetailPage() {
             <div className="col-span-2 flex gap-6 flex-wrap">
               {project.salesAmount != null && (
                 <div>
-                  <p className="text-xs text-gray-400">売上（積水請求・税別）<span className="ml-1">🔒</span></p>
+                  <p className="text-xs text-gray-400">売上{project.client?.name?.includes("積水") ? "（積水請求・税別）" : "（税別）"}<span className="ml-1">🔒</span></p>
                   <p className="text-sm font-medium text-gray-100">¥{project.salesAmount.toLocaleString()}</p>
                 </div>
               )}

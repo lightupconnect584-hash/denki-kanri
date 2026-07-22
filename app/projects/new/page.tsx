@@ -203,6 +203,18 @@ export default function NewProjectPage() {
   const myId = (session?.user as { id?: string })?.id;
   const myName = session?.user?.name;
   const isSelf = !!myId && form.assignedToId === myId; // 自分施工の案件
+
+  // AI読み取りで埼玉/北関東を判定済みだが取引先未選択なら、対応する積水取引先を自動選択
+  // （受付→振り分けの自動読み取りは取引先リストの読み込みが後になることがあるため後追いで紐づける）
+  useEffect(() => {
+    if (form.clientId || !form.region || clients.length === 0) return;
+    const cli = form.region === "埼玉"
+      ? clients.find((c) => c.name.includes("埼玉"))
+      : form.region === "北関東"
+      ? clients.find((c) => c.name.includes("北関東"))
+      : null;
+    if (cli) setForm((prev) => ({ ...prev, clientId: cli.id }));
+  }, [clients, form.region, form.clientId]);
   const selectedClientTop = clients.find((c) => c.id === form.clientId);
   const isSekisui = !!selectedClientTop && selectedClientTop.name.includes("積水"); // 積水案件のみ表示する項目の判定
 
@@ -472,7 +484,7 @@ export default function NewProjectPage() {
                   onClick={() => setForm({
                     ...form,
                     clientId: form.clientId === c.id ? "" : c.id,
-                    region: c.name.includes("埼玉") ? "埼玉" : c.name.includes("北関東") ? "北関東" : "",
+                    region: form.clientId === c.id ? "" : (c.name.includes("埼玉") ? "埼玉" : c.name.includes("北関東") ? "北関東" : ""),
                     // 積水以外は自分で施工に自動設定。積水は担当を後で選ぶ
                     assignedToId: form.clientId === c.id ? "" : (sekisui ? "" : (myId || "")),
                   })}

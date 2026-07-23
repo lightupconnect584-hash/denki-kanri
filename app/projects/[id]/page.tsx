@@ -547,6 +547,18 @@ export default function ProjectDetailPage() {
     setSavingContact(false);
   };
 
+  // SMSで連絡した → アポ完了扱い（要対応・バッジが消える）
+  const confirmSms = async () => {
+    setSavingContact(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contacted: true, contactMethod: "sms" }),
+    });
+    fetchProject();
+    setSavingContact(false);
+  };
+
   const saveMemo = async () => {
     setSavingMemo(true);
     const field = role === "PARTNER" ? "partnerMemo" : "memo";
@@ -700,8 +712,8 @@ export default function ProjectDetailPage() {
               {(role === "ADMIN" || isAssigned) && (
                 <div className="mt-3">
                   <p className="text-xs text-red-400 mb-1.5">連絡した結果を記録：</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {["☎ 不出・留守電吹き込み済", "☎ 不出・留守電なし", ...(project.smsAllowed ? ["💬 SMS送信済"] : [])].map((label) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {["☎ 不出・留守電吹き込み済", "☎ 不出・留守電なし"].map((label) => (
                       <button key={label}
                         onClick={() => logAttempt(label)}
                         disabled={loggingAttempt !== null}
@@ -710,6 +722,15 @@ export default function ProjectDetailPage() {
                       </button>
                     ))}
                   </div>
+                  {project.smsAllowed && (
+                    <button
+                      onClick={confirmSms}
+                      disabled={savingContact}
+                      className="mt-2 w-full text-xs bg-green-700/40 text-green-200 border border-green-700 rounded-lg py-2 px-2 hover:bg-green-700/60 disabled:opacity-50 transition font-medium"
+                    >
+                      💬 SMSで連絡した（これでアポ完了・表示を消す）
+                    </button>
+                  )}
                 </div>
               )}
               {/* 連絡履歴 */}
@@ -810,7 +831,7 @@ export default function ProjectDetailPage() {
           ) : (
             <div className="mb-4 flex items-center gap-2 bg-green-950/40 border border-green-800 rounded-xl px-4 py-2.5">
               <span className="text-sm text-green-300">
-                {project.contactMethod === "note" ? "📮 完了後メモ投函予定（共用部）" : "✓ アポイント済み"}（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）
+                {project.contactMethod === "note" ? "📮 完了後メモ投函予定（共用部）" : project.contactMethod === "sms" ? "💬 SMSで連絡済み" : "✓ アポイント済み"}（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）
               </span>
               {(role === "ADMIN" || isAssigned) && (
                 <button onClick={() => setContacted(false)} disabled={savingContact}

@@ -182,7 +182,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.contactRequired !== undefined && role === "ADMIN") updateData.contactRequired = Boolean(body.contactRequired);
   // 入居者と連絡が取れた／取り消し（担当者・管理者）
   if (body.contacted !== undefined) {
-    const method = body.contacted ? (body.contactMethod === "note" ? "note" : "appointment") : null;
+    const method = body.contacted
+      ? (body.contactMethod === "note" ? "note" : body.contactMethod === "sms" ? "sms" : "appointment")
+      : null;
     updateData.contactedAt = body.contacted ? new Date() : null;
     updateData.contactMethod = method;
     await prisma.activityLog.create({
@@ -191,7 +193,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         userId,
         action: "CONTACT_ATTEMPT",
         detail: body.contacted
-          ? (method === "note" ? "📮 完了後メモ投函予定にした（共用部・不出のため）" : "✓ アポイントが取れた")
+          ? (method === "note" ? "📮 完了後メモ投函予定にした（共用部・不出のため）" : method === "sms" ? "💬 SMSで連絡（アポ完了）" : "✓ アポイントが取れた")
           : "アポイント記録を取り消し",
       },
     }).catch(() => {});

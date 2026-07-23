@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     where: { id },
     select: {
       id: true, title: true,
-      managerName: true, afterManagerName: true,
+      sekisuiNumber: true, managerName: true, afterManagerName: true,
       salesAmount: true, materialCost: true, memo: true,
       client: { select: { name: true } },
       projectPhotos: { select: { id: true, filename: true, originalName: true } },
@@ -38,6 +38,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     id: project.id,
     title: project.title,
     clientName: project.client?.name || null,
+    sekisuiNumber: project.sekisuiNumber,
     managerName: project.managerName,
     afterManagerName: project.afterManagerName,
     salesAmount: project.salesAmount,

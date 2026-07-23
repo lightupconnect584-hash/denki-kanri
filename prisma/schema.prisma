@@ -103,6 +103,7 @@ model Project {
   amount           Int?
   salesAmount      Int?      // 売上（積水への請求額・税別）。協力会社には非公開
   materialCost     Int?      // 材料費（税別）。協力会社には非公開
+  sekisuiNumber    String?   // 積水の依頼管理システムの受付番号。協力会社には非公開
   managerName      String?   // 管理担当者名（依頼元）。協力会社には非公開
   afterManagerName String?   // アフター担当者名（依頼元）。協力会社には非公開
   billingMonth     String?   // 請求月の上書き（YYYY-MM）。未設定なら作業月を使用

@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       preferredContactAt: { type: "string", description: "連絡希望日時（あれば）。不明なら空文字" },
       receivedAt: { type: "string", description: "受付日時（依頼を受け付けた日時。文字列そのまま）。不明なら空文字" },
       smsAllowed: { type: "boolean", description: "ショートメッセージ（SMS）での連絡が可能か。可・OK等の記載があればtrue、不可・記載なしはfalse" },
+      sekisuiNumber: { type: "string", description: "依頼書の受付番号・依頼No・管理番号（積水の依頼管理システムの番号。書類上部などに記載）。数字や英数字の番号をそのまま。不明なら空文字" },
       managerName: { type: "string", description: "管理担当者名（依頼元の管理担当者。『管理担当』等の項目）。不明なら空文字" },
       afterManagerName: { type: "string", description: "アフター担当者名（『アフター担当』等の項目）。不明なら空文字" },
       contactRequired: { type: "boolean", description: "入居者とのアポイント（立ち会い・在宅・日程調整）が必要な作業か。『立ち会い』『在宅』『入居者と日程調整』などの記載があればtrue。空室・立ち会い不要ならfalse" },
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
       "title", "location", "roomNumber",
       "contractorName", "contractorPhone", "description",
       "moveInDate", "preferredContactAt", "receivedAt", "smsAllowed",
-      "managerName", "afterManagerName", "region", "contactRequired",
+      "managerName", "afterManagerName", "region", "contactRequired", "sekisuiNumber",
     ],
   };
 
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
               type: "text",
               text:
                 "これは電気工事の依頼元から届いた依頼書です。記載内容から、指定のJSON項目だけを抽出してください。" +
-                "金額・料金・社内管理番号などは抽出しないでください（管理担当者名・アフター担当者名は抽出対象です）。" +
+                "金額・料金は抽出しないでください（管理担当者名・アフター担当者名・受付番号は抽出対象です）。" +
                 "location（住所）は、工事対象の物件（現場）の住所だけを抽出してください。書類には依頼元・支店・管理会社・折り返し先・積水ハウスの会社住所など複数の住所が載っていることがありますが、それらは絶対に入れないでください。建物名・部屋番号がある物件そのものの所在地を選んでください。物件の住所が判別できなければ空文字にしてください。" +
                 "moveInDate（入居開始日）には日付のみを入れてください。『入居区分』『入居状況』『空室/入居中』などの区分・状態は入居開始日ではないので絶対に入れないでください。" +
                 "入居開始日の日付が書かれていない場合は必ず空文字にしてください。" +

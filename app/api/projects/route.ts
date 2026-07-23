@@ -28,8 +28,8 @@ export async function GET() {
   // 協力会社には売上（積水請求額）・材料費を見せない
   if (role === "PARTNER") {
     const sanitized = projects.map((p) => {
-      const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, ...rest } = p as typeof p & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null };
-      void _s; void _m; void _mn; void _an; void _memo;
+      const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, ...rest } = p as typeof p & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
+      void _s; void _m; void _mn; void _an; void _memo; void _sn;
       return rest;
     });
     return NextResponse.json(sanitized);
@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
       amount: body.amount !== undefined && body.amount !== "" && body.amount !== null ? parseInt(body.amount) : null,
       salesAmount: body.salesAmount !== undefined && body.salesAmount !== "" && body.salesAmount !== null ? parseInt(body.salesAmount) : null,
       materialCost: body.materialCost !== undefined && body.materialCost !== "" && body.materialCost !== null ? parseInt(body.materialCost) : null,
+      sekisuiNumber: body.sekisuiNumber || null,
       managerName: body.managerName || null,
       afterManagerName: body.afterManagerName || null,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,

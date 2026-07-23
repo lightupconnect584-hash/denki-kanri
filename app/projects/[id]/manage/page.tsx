@@ -10,6 +10,7 @@ interface ManageData {
   id: string;
   title: string;
   clientName: string | null;
+  sekisuiNumber: string | null;
   managerName: string | null;
   afterManagerName: string | null;
   salesAmount: number | null;
@@ -31,6 +32,7 @@ export default function ManagePage() {
   const [data, setData] = useState<ManageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [sekisuiNumber, setSekisuiNumber] = useState("");
   const [managerName, setManagerName] = useState("");
   const [afterManagerName, setAfterManagerName] = useState("");
   const [salesAmount, setSalesAmount] = useState("");
@@ -44,6 +46,7 @@ export default function ManagePage() {
     if (r.status === 404 || r.status === 401) { setNotFound(true); setLoading(false); return; }
     const d: ManageData = await r.json();
     setData(d);
+    setSekisuiNumber(d.sekisuiNumber || "");
     setManagerName(d.managerName || "");
     setAfterManagerName(d.afterManagerName || "");
     setSalesAmount(d.salesAmount != null ? String(d.salesAmount) : "");
@@ -130,6 +133,15 @@ export default function ManagePage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* 積水受付番号 */}
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3">
+          <p className="text-sm font-bold text-gray-100 mb-2">🔢 積水受付番号</p>
+          <input value={sekisuiNumber} onChange={(e) => setSekisuiNumber(e.target.value)} onBlur={() => save({ sekisuiNumber })}
+            className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+            placeholder="依頼書の受付番号（AI読み取りで自動入力）" />
+          <p className="text-xs text-gray-500 mt-1.5">積水の依頼管理システムでこの番号を検索すると該当依頼を照合できます</p>
         </div>
 
         {/* 担当者 */}

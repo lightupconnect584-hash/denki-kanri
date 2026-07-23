@@ -53,6 +53,7 @@ export default function NewProjectPage() {
     receivedAt: "",
     managerName: "",
     afterManagerName: "",
+    sekisuiNumber: "",
   });
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -81,6 +82,7 @@ export default function NewProjectPage() {
       receivedAt: s(d.receivedAt) || prev.receivedAt,
       managerName: s(d.managerName) || prev.managerName,
       afterManagerName: s(d.afterManagerName) || prev.afterManagerName,
+      sekisuiNumber: s(d.sekisuiNumber) || prev.sekisuiNumber,
       smsAllowed: typeof d.smsAllowed === "boolean" ? d.smsAllowed : prev.smsAllowed,
       contactRequired: typeof d.contactRequired === "boolean" ? d.contactRequired : prev.contactRequired,
       ...(() => {

@@ -78,15 +78,38 @@ function hexToRgb(hex: string): [number, number, number] | null {
   return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
 }
 
-// 担当色（HEX）に一番近いGoogleカラーIDを返す。自社案件（色なし）は水色（ピーコック）
+// RGB → HSL（h:0-360, s/l:0-1）
+function rgbToHsl([r, g, b]: [number, number, number]): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return [h, s, l];
+}
+
+// 担当色/取引先色（HEX）に一番近いGoogleカラーIDを返す（色相ベース）。色なしは水色（ピーコック）
 function colorIdForHex(hex: string | null | undefined): string | undefined {
-  if (!hex) return "7"; // 自社案件（積水など）はピーコック（水色寄りの青）
+  if (!hex) return "7";
   const rgb = hexToRgb(hex);
   if (!rgb) return undefined;
-  let best = GOOGLE_COLORS[0], bestD = Infinity;
+  const [h, s] = rgbToHsl(rgb);
+  // 彩度がとても低い（灰色寄り）はグラファイト
+  if (s < 0.12) return "8";
+  let best = GOOGLE_COLORS[0], bestScore = Infinity;
   for (const c of GOOGLE_COLORS) {
-    const d = (c.hex[0] - rgb[0]) ** 2 + (c.hex[1] - rgb[1]) ** 2 + (c.hex[2] - rgb[2]) ** 2;
-    if (d < bestD) { bestD = d; best = c; }
+    const [ch, cs] = rgbToHsl(c.hex);
+    if (cs < 0.12) continue; // グラファイト等は色付き対象から除外
+    let hueDist = Math.abs(h - ch);
+    if (hueDist > 180) hueDist = 360 - hueDist; // 円環
+    if (hueDist < bestScore) { bestScore = hueDist; best = c; }
   }
   return best.id;
 }

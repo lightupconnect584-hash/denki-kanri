@@ -42,31 +42,56 @@ export async function GET(req: NextRequest) {
   const timeMin = new Date(y, m - 1, 1).toISOString();
   const timeMax = new Date(y, m, 1).toISOString();
 
-  const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
-  url.searchParams.set("timeMin", timeMin);
-  url.searchParams.set("timeMax", timeMax);
-  url.searchParams.set("singleEvents", "true");
-  url.searchParams.set("orderBy", "startTime");
-  url.searchParams.set("maxResults", "250");
-
-  const er = await fetch(url.toString(), { headers: { Authorization: `Bearer ${access_token}` } });
-  if (!er.ok) return NextResponse.json({ events: [] });
-  const json = await er.json();
+  // 読み込むカレンダー一覧を取得（権限があれば全カレンダー、なければprimaryのみ）
+  let calendarIds: string[] = ["primary"];
+  try {
+    const clRes = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+    if (clRes.ok) {
+      const cl = await clRes.json();
+      const ids = (cl.items || [])
+        .filter((c: { selected?: boolean; id: string }) => c.selected !== false) // 非表示カレンダーは除外
+        .map((c: { id: string }) => c.id);
+      if (ids.length > 0) calendarIds = ids;
+    }
+  } catch { /* primaryのみで続行 */ }
 
   // アプリが書き込んだ予定（訪問予定）は除外して二重表示を防ぐ
   const mine = await prisma.googleEvent.findMany({ where: { userId }, select: { googleEventId: true } });
   const mineIds = new Set(mine.map((x) => x.googleEventId));
 
-  const events = (json.items || [])
-    .filter((ev: { id: string; status?: string }) => !mineIds.has(ev.id) && ev.status !== "cancelled")
-    .map((ev: { id: string; summary?: string; start?: { date?: string; dateTime?: string }; end?: { date?: string; dateTime?: string } }) => ({
-      id: ev.id,
-      title: ev.summary || "（無題）",
-      start: ev.start?.dateTime || ev.start?.date || null,
-      end: ev.end?.dateTime || ev.end?.date || null,
-      allDay: !ev.start?.dateTime,
-    }))
-    .filter((ev: { start: string | null }) => ev.start);
+  type GEvent = { id: string; title: string; start: string; end: string | null; allDay: boolean };
+  const all: GEvent[] = [];
+  const seen = new Set<string>();
 
-  return NextResponse.json({ events, connected: true });
+  for (const calId of calendarIds) {
+    const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`);
+    url.searchParams.set("timeMin", timeMin);
+    url.searchParams.set("timeMax", timeMax);
+    url.searchParams.set("singleEvents", "true");
+    url.searchParams.set("orderBy", "startTime");
+    url.searchParams.set("maxResults", "250");
+    const er = await fetch(url.toString(), { headers: { Authorization: `Bearer ${access_token}` } });
+    if (!er.ok) continue;
+    const json = await er.json();
+    for (const ev of json.items || []) {
+      if (mineIds.has(ev.id) || ev.status === "cancelled" || seen.has(ev.id)) continue;
+      // アプリの訪問予定（🔌）は購読フィード等から重複しても除外
+      const title = ev.summary || "（無題）";
+      if (title.startsWith("🔌")) continue;
+      const start = ev.start?.dateTime || ev.start?.date || null;
+      if (!start) continue;
+      seen.add(ev.id);
+      all.push({
+        id: ev.id,
+        title,
+        start,
+        end: ev.end?.dateTime || ev.end?.date || null,
+        allDay: !ev.start?.dateTime,
+      });
+    }
+  }
+
+  return NextResponse.json({ events: all, connected: true });
 }

@@ -18,7 +18,7 @@ export async function GET() {
     client_id: process.env.GOOGLE_CLIENT_ID,
     redirect_uri: `${baseUrl}/api/google/callback`,
     response_type: "code",
-    scope: "https://www.googleapis.com/auth/calendar.events email",
+    scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly email",
     access_type: "offline",
     prompt: "consent", // 毎回refresh_tokenを確実に取得
     state,

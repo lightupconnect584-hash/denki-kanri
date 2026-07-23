@@ -16,6 +16,7 @@ interface Project {
   visitTime: string | null;
   status: string;
   assignedTo: { id: string; name: string; companyName: string | null; color: string | null } | null;
+  client: { name: string; color: string | null } | null;
 }
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -37,7 +38,7 @@ export default function CalendarPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [filterPartner, setFilterPartner] = useState("all");
+  const [filterPartner, setFilterPartner] = useState("self"); // 既定は自社＋プライベート
   // 🔒 自分のGoogleカレンダーのプライベート予定（連携中のみ・本人にだけ表示）
   const [gEvents, setGEvents] = useState<{ id: string; title: string; start: string; allDay: boolean }[]>([]);
 
@@ -49,9 +50,9 @@ export default function CalendarPage() {
   const role = (session?.user as { role?: string })?.role;
   const myId = (session?.user as { id?: string })?.id;
 
-  // 自社案件（担当＝自分）は白。それ以外は担当協力会社の色
+  // 自社案件（担当＝自分）は取引先カラー。協力会社案件は担当協力会社の色
   const eventColor = (p: Project) => {
-    if (role === "ADMIN" && myId && p.assignedTo?.id === myId) return "#ffffff";
+    if (role === "ADMIN" && myId && p.assignedTo?.id === myId) return p.client?.color || "#4b5563";
     return p.assignedTo?.color || "#4b5563";
   };
 
@@ -102,8 +103,9 @@ export default function CalendarPage() {
 
   const filtered = useMemo(() => {
     if (filterPartner === "all") return projects;
+    if (filterPartner === "self") return projects.filter((p) => !!myId && p.assignedTo?.id === myId);
     return projects.filter((p) => p.assignedTo?.id === filterPartner);
-  }, [projects, filterPartner]);
+  }, [projects, filterPartner, myId]);
 
   const gEventsByDate = useMemo(() => {
     const map = new Map<string, { id: string; title: string; start: string; allDay: boolean }[]>();
@@ -191,7 +193,8 @@ export default function CalendarPage() {
               onChange={(e) => setFilterPartner(e.target.value)}
               className="border border-gray-600 bg-gray-700 text-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">全協力会社</option>
+              <option value="self">🔧 自社＋プライベート</option>
+              <option value="all">すべて（協力会社込み）</option>
               {partners.map(([id, name]) => (
                 <option key={id} value={id}>{name}</option>
               ))}
@@ -275,16 +278,33 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* 凡例（管理者のみ・カラー設定済み会社） */}
-        {role === "ADMIN" && (legend.length > 0 || projects.some((p) => p.assignedTo?.id === myId)) && (
+        {/* 凡例（管理者のみ） */}
+        {role === "ADMIN" && (
           <div className="flex gap-3 flex-wrap mb-4">
-            {projects.some((p) => p.assignedTo?.id === myId) && (
+            {/* プライベート予定 */}
+            {gEvents.length > 0 && (
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-gray-500" style={{ backgroundColor: "#ffffff" }} />
-                <span className="text-xs text-gray-400">自社</span>
+                <span className="w-2.5 h-2.5 rounded-full shrink-0 bg-pink-400" />
+                <span className="text-xs text-gray-400">プライベート</span>
               </div>
             )}
-            {legend.map(({ id, name, color }) => (
+            {/* 自社案件の取引先カラー（表示中の自社案件から生成） */}
+            {(() => {
+              const seen = new Map<string, string>();
+              for (const p of filtered) {
+                if (!!myId && p.assignedTo?.id === myId && p.client) {
+                  if (!seen.has(p.client.name)) seen.set(p.client.name, p.client.color || "#4b5563");
+                }
+              }
+              return Array.from(seen.entries()).map(([name, color]) => (
+                <div key={`c-${name}`} className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  <span className="text-xs text-gray-400">{name}</span>
+                </div>
+              ));
+            })()}
+            {/* 協力会社カラー（すべて／協力会社ビュー時のみ意味を持つ） */}
+            {filterPartner !== "self" && legend.map(({ id, name, color }) => (
               <div key={id} className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
                 <span className="text-xs text-gray-400">{name}</span>

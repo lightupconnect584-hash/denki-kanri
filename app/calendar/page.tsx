@@ -38,6 +38,8 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterPartner, setFilterPartner] = useState("all");
+  // 🔒 自分のGoogleカレンダーのプライベート予定（連携中のみ・本人にだけ表示）
+  const [gEvents, setGEvents] = useState<{ id: string; title: string; start: string; allDay: boolean }[]>([]);
 
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -67,6 +69,16 @@ export default function CalendarPage() {
       });
   }, [status]);
 
+  // 表示中の月のGoogle予定を取得
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const month = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
+    fetch(`/api/google/events?month=${month}`)
+      .then((r) => (r.ok ? r.json() : { events: [] }))
+      .then((d) => setGEvents(d.events || []))
+      .catch(() => setGEvents([]));
+  }, [status, viewYear, viewMonth]);
+
   const partners = useMemo(() => {
     if (role !== "ADMIN") return [];
     const map = new Map<string, string>();
@@ -92,6 +104,16 @@ export default function CalendarPage() {
     if (filterPartner === "all") return projects;
     return projects.filter((p) => p.assignedTo?.id === filterPartner);
   }, [projects, filterPartner]);
+
+  const gEventsByDate = useMemo(() => {
+    const map = new Map<string, { id: string; title: string; start: string; allDay: boolean }[]>();
+    for (const ev of gEvents) {
+      const key = toDateKey(ev.start);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(ev);
+    }
+    return map;
+  }, [gEvents]);
 
   const projectsByDate = useMemo(() => {
     const map = new Map<string, Project[]>();
@@ -212,8 +234,11 @@ export default function CalendarPage() {
                     {dayNum}
                   </span>
                   {/* モバイル: ドット表示 */}
-                  {dayProjects.length > 0 && (
+                  {(dayProjects.length > 0 || (gEventsByDate.get(day) || []).length > 0) && (
                     <div className="flex gap-0.5 mt-0.5 justify-center lg:hidden">
+                      {(gEventsByDate.get(day) || []).slice(0, 2).map((_, j) => (
+                        <span key={`g-${j}`} className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-500" />
+                      ))}
                       {dayProjects.slice(0, 3).map((p, j) => (
                         <span
                           key={j}
@@ -225,8 +250,14 @@ export default function CalendarPage() {
                     </div>
                   )}
                   {/* PC: 物件名チップ表示 */}
-                  {dayProjects.length > 0 && (
+                  {(dayProjects.length > 0 || (gEventsByDate.get(day) || []).length > 0) && (
                     <div className="hidden lg:flex flex-col gap-0.5 mt-1 w-full px-1 min-h-0">
+                      {(gEventsByDate.get(day) || []).slice(0, 1).map((ev) => (
+                        <span key={ev.id} className="flex items-center gap-1 min-w-0">
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-500" />
+                          <span className="text-[10px] text-gray-500 truncate leading-tight">{ev.title}</span>
+                        </span>
+                      ))}
                       {dayProjects.slice(0, 2).map((p, j) => (
                         <span key={j} className="flex items-center gap-1 min-w-0">
                           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: eventColor(p) }} />
@@ -273,6 +304,20 @@ export default function CalendarPage() {
               {new Date(selectedDate + "T00:00:00").toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short" })} の訪問予定
               <span className="ml-2 text-gray-500 text-xs">{selectedProjects.length}件</span>
             </p>
+            {(gEventsByDate.get(selectedDate) || []).length > 0 && (
+              <div className="space-y-1.5 mb-3">
+                {(gEventsByDate.get(selectedDate) || []).map((ev) => (
+                  <div key={ev.id} className="flex items-center gap-2 bg-gray-800/60 border border-gray-700/60 rounded-lg px-3 py-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0" />
+                    <span className="text-xs text-gray-400 shrink-0 w-12">
+                      {ev.allDay ? "終日" : new Date(ev.start).toLocaleTimeString("ja-JP", { hour: "numeric", minute: "2-digit" })}
+                    </span>
+                    <span className="text-sm text-gray-300 truncate flex-1 min-w-0">{ev.title}</span>
+                    <span className="text-[10px] text-gray-600 shrink-0">Google</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {selectedProjects.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-8">この日の訪問予定はありません</p>
             ) : (

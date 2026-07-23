@@ -237,7 +237,7 @@ export default function CalendarPage() {
                   {(dayProjects.length > 0 || (gEventsByDate.get(day) || []).length > 0) && (
                     <div className="flex gap-0.5 mt-0.5 justify-center lg:hidden">
                       {(gEventsByDate.get(day) || []).slice(0, 2).map((_, j) => (
-                        <span key={`g-${j}`} className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-500" />
+                        <span key={`g-${j}`} className="w-1.5 h-1.5 rounded-full shrink-0 bg-pink-400" />
                       ))}
                       {dayProjects.slice(0, 3).map((p, j) => (
                         <span
@@ -254,8 +254,8 @@ export default function CalendarPage() {
                     <div className="hidden lg:flex flex-col gap-0.5 mt-1 w-full px-1 min-h-0">
                       {(gEventsByDate.get(day) || []).slice(0, 1).map((ev) => (
                         <span key={ev.id} className="flex items-center gap-1 min-w-0">
-                          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-500" />
-                          <span className="text-[10px] text-gray-500 truncate leading-tight">{ev.title}</span>
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-pink-400" />
+                          <span className="text-[10px] text-pink-300/80 truncate leading-tight">{ev.title}</span>
                         </span>
                       ))}
                       {dayProjects.slice(0, 2).map((p, j) => (
@@ -307,13 +307,13 @@ export default function CalendarPage() {
             {(gEventsByDate.get(selectedDate) || []).length > 0 && (
               <div className="space-y-1.5 mb-3">
                 {(gEventsByDate.get(selectedDate) || []).map((ev) => (
-                  <div key={ev.id} className="flex items-center gap-2 bg-gray-800/60 border border-gray-700/60 rounded-lg px-3 py-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0" />
-                    <span className="text-xs text-gray-400 shrink-0 w-12">
+                  <div key={ev.id} className="flex items-center gap-2 bg-pink-950/30 border border-pink-800/50 rounded-lg px-3 py-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 shrink-0" />
+                    <span className="text-xs text-pink-300/80 shrink-0 w-12">
                       {ev.allDay ? "終日" : new Date(ev.start).toLocaleTimeString("ja-JP", { hour: "numeric", minute: "2-digit" })}
                     </span>
-                    <span className="text-sm text-gray-300 truncate flex-1 min-w-0">{ev.title}</span>
-                    <span className="text-[10px] text-gray-600 shrink-0">Google</span>
+                    <span className="text-sm text-pink-100/90 truncate flex-1 min-w-0">{ev.title}</span>
+                    <span className="text-[10px] text-pink-500/70 shrink-0">Google</span>
                   </div>
                 ))}
               </div>

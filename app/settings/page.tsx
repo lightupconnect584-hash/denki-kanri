@@ -220,9 +220,27 @@ export default function SettingsPage() {
 
   // 🔗 Googleカレンダー連携（OAuth・即時反映）
   const [googleStatus, setGoogleStatus] = useState<{ configured: boolean; connected: boolean; email: string | null } | null>(null);
+  const [gcCalendars, setGcCalendars] = useState<{ id: string; name: string; primary: boolean }[]>([]);
+  const [gcSelected, setGcSelected] = useState<string>("");
+  const loadGcCalendars = async () => {
+    const r = await fetch("/api/google/calendars");
+    if (!r.ok) return;
+    const d = await r.json();
+    setGcCalendars(d.calendars || []);
+    setGcSelected(d.selected || "");
+  };
+  const setGcTarget = async (calendarId: string) => {
+    setGcSelected(calendarId);
+    await fetch("/api/google/calendars", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ calendarId: calendarId || null }),
+    }).catch(() => {});
+  };
   const loadGoogleStatus = async () => {
     try {
       const r = await fetch("/api/google/status");
+      // 連携中なら書き込み先カレンダー一覧も取得
       if (r.ok) setGoogleStatus(await r.json());
     } catch { /* ignore */ }
   };
@@ -1175,9 +1193,31 @@ export default function SettingsPage() {
                 ) : !googleStatus.configured ? (
                   <p className="text-xs text-gray-500">サーバー側の設定が完了すると使えるようになります</p>
                 ) : googleStatus.connected ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-green-400">✓ 連携中{googleStatus.email ? `（${googleStatus.email}）` : ""}</span>
-                    <button onClick={disconnectGoogle} className="text-xs text-gray-500 hover:text-red-400 transition ml-auto">解除</button>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-green-400">✓ 連携中{googleStatus.email ? `（${googleStatus.email}）` : ""}</span>
+                      <button onClick={disconnectGoogle} className="text-xs text-gray-500 hover:text-red-400 transition ml-auto">解除</button>
+                    </div>
+                    {gcCalendars.length === 0 ? (
+                      <button onClick={loadGcCalendars} className="text-xs text-blue-400 hover:text-blue-300">▸ 書き込み先カレンダーを設定（家族共有用）</button>
+                    ) : (
+                      <div className="bg-gray-900/50 rounded-lg p-3 space-y-1.5">
+                        <p className="text-xs text-gray-300 font-medium">📅 訪問予定の書き込み先</p>
+                        <select
+                          value={gcSelected}
+                          onChange={(e) => setGcTarget(e.target.value)}
+                          className="w-full border border-gray-600 bg-gray-800 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">マイカレンダー（primary）</option>
+                          {gcCalendars.filter((c) => !c.primary).map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                        <p className="text-[11px] text-gray-500">
+                          家族と共有したい時は、Googleで「仕事の訪問予定」など専用カレンダーを作り、ここで選択→そのカレンダーをGoogleの共有設定で家族に共有すると、プライベート予定は見せずに仕事の予定だけ共有できます。
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <>

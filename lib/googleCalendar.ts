@@ -6,7 +6,7 @@ import { prisma } from "./prisma";
 // 環境変数 GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET が未設定なら全て何もしない
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const CAL_API = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+const calApi = (calId: string | null | undefined) => `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId || "primary")}/events`;
 
 export function googleConfigured(): boolean {
   return !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
@@ -149,7 +149,7 @@ function buildEventBody(p: ProjectForSync) {
 }
 
 // 1ユーザー分のイベントを作成/更新/削除
-async function syncForUser(userId: string, refreshToken: string, p: ProjectForSync, shouldExist: boolean): Promise<void> {
+async function syncForUser(userId: string, refreshToken: string, calId: string | null, p: ProjectForSync, shouldExist: boolean): Promise<void> {
   const mapping = await prisma.googleEvent.findUnique({
     where: { userId_projectId: { userId, projectId: p.id } },
   });
@@ -158,7 +158,7 @@ async function syncForUser(userId: string, refreshToken: string, p: ProjectForSy
     if (!mapping) return;
     const token = await getAccessToken(refreshToken);
     if (token) {
-      await fetch(`${CAL_API}/${mapping.googleEventId}`, {
+      await fetch(`${calApi(calId)}/${mapping.googleEventId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       }).catch(() => {});
@@ -172,7 +172,7 @@ async function syncForUser(userId: string, refreshToken: string, p: ProjectForSy
   const body = JSON.stringify(buildEventBody(p));
 
   if (mapping) {
-    const res = await fetch(`${CAL_API}/${mapping.googleEventId}`, {
+    const res = await fetch(`${calApi(calId)}/${mapping.googleEventId}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body,
@@ -182,7 +182,7 @@ async function syncForUser(userId: string, refreshToken: string, p: ProjectForSy
     await prisma.googleEvent.delete({ where: { id: mapping.id } }).catch(() => {});
   }
 
-  const res = await fetch(CAL_API, {
+  const res = await fetch(calApi(calId), {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body,
@@ -221,7 +221,7 @@ export async function syncProjectToGoogle(projectId: string): Promise<void> {
     const users = p.assignedToId
       ? await prisma.user.findMany({
           where: { googleRefreshToken: { not: null }, id: p.assignedToId },
-          select: { id: true, googleRefreshToken: true },
+          select: { id: true, googleRefreshToken: true, googleCalendarId: true },
         })
       : [];
     const targetIds = new Set(users.map((u) => u.id));
@@ -230,11 +230,11 @@ export async function syncProjectToGoogle(projectId: string): Promise<void> {
     const mappings = await prisma.googleEvent.findMany({ where: { projectId } });
     for (const m of mappings) {
       if (!targetIds.has(m.userId)) {
-        const u = await prisma.user.findUnique({ where: { id: m.userId }, select: { googleRefreshToken: true } });
+        const u = await prisma.user.findUnique({ where: { id: m.userId }, select: { googleRefreshToken: true, googleCalendarId: true } });
         if (u?.googleRefreshToken) {
           const token = await getAccessToken(u.googleRefreshToken);
           if (token) {
-            await fetch(`${CAL_API}/${m.googleEventId}`, {
+            await fetch(`${calApi(u.googleCalendarId)}/${m.googleEventId}`, {
               method: "DELETE",
               headers: { Authorization: `Bearer ${token}` },
             }).catch(() => {});
@@ -245,7 +245,7 @@ export async function syncProjectToGoogle(projectId: string): Promise<void> {
     }
 
     await Promise.all(
-      users.map((u) => syncForUser(u.id, u.googleRefreshToken!, p, shouldExist).catch(() => {}))
+      users.map((u) => syncForUser(u.id, u.googleRefreshToken!, u.googleCalendarId, p, shouldExist).catch(() => {}))
     );
   } catch {
     // 同期失敗で本処理を止めない
@@ -258,11 +258,11 @@ export async function deleteProjectFromGoogle(projectId: string): Promise<void> 
   try {
     const mappings = await prisma.googleEvent.findMany({ where: { projectId } });
     for (const m of mappings) {
-      const u = await prisma.user.findUnique({ where: { id: m.userId }, select: { googleRefreshToken: true } });
+      const u = await prisma.user.findUnique({ where: { id: m.userId }, select: { googleRefreshToken: true, googleCalendarId: true } });
       if (u?.googleRefreshToken) {
         const token = await getAccessToken(u.googleRefreshToken);
         if (token) {
-          await fetch(`${CAL_API}/${m.googleEventId}`, {
+          await fetch(`${calApi(u.googleCalendarId)}/${m.googleEventId}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
           }).catch(() => {});

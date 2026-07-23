@@ -32,6 +32,7 @@ model User {
   licenseExpiry    DateTime?
   vehicleNumber    String?
   calendarToken String?  @unique // カレンダー購読（ICS）用の秘密トークン
+  googleCalendarId String? // 訪問予定の書き込み先GoogleカレンダーID（未設定はprimary）
   googleRefreshToken String? // Googleカレンダー連携（リフレッシュトークン）
   googleEmail        String? // 連携中のGoogleアカウント
   createdAt    DateTime  @default(now())

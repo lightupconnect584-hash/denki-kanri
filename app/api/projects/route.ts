@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUsers } from "@/lib/push";
+import { stripPostal } from "@/lib/stripPostal";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
   const project = await prisma.project.create({
     data: {
       title: body.title,
-      location: body.location,
+      location: stripPostal(body.location),
       roomNumber: body.roomNumber || null,
       workType: body.workType || null,
       contractorName: body.contractorName || null,

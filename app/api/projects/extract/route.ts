@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     additionalProperties: false,
     properties: {
       title: { type: "string", description: "物件名・建物名（例: ブリリアントヴィレッジ）。不明なら空文字" },
-      location: { type: "string", description: "工事対象の【物件（現場）の住所】。建物名・部屋番号がある物件そのものの所在地。依頼元・支店・管理会社・折り返し先・積水ハウスの会社住所は絶対に入れない。物件住所が読み取れなければ空文字" },
+      location: { type: "string", description: "工事対象の【物件（現場）の住所】。建物名・部屋番号がある物件そのものの所在地。郵便番号（〒や123-4567）は含めず、都道府県以降の住所だけにする。依頼元・支店・管理会社・折り返し先・積水ハウスの会社住所は絶対に入れない。物件住所が読み取れなければ空文字" },
       roomNumber: { type: "string", description: "部屋番号・号室。不明なら空文字" },
       contractorName: { type: "string", description: "『折り返し先』『連絡先』欄に書かれた氏名（カナ）。管理担当者名・アフター担当者名・入居者名など他の氏名欄とは混同しない。文字が不鮮明で確実に読めない場合は推測せず空文字。読めた文字だけを正確に書き写す" },
       contractorPhone: { type: "string", description: "折り返し先電話番号。不明なら空文字" },

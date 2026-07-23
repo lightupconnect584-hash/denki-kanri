@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { syncSalesEntryForProject, currentMonthKey } from "@/lib/salesSync";
+import { stripPostal } from "@/lib/stripPostal";
 import { syncProjectToGoogle, deleteProjectFromGoogle } from "@/lib/googleCalendar";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -148,7 +149,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const contentEdited = role === "ADMIN" && contentFields.some(f => body[f] !== undefined);
   if (contentEdited) updateData.notifyPartnerAt = new Date();
   if (body.title !== undefined) updateData.title = body.title;
-  if (body.location !== undefined) updateData.location = body.location;
+  if (body.location !== undefined) updateData.location = stripPostal(body.location);
   if (body.roomNumber !== undefined) updateData.roomNumber = body.roomNumber || null;
   if (body.workType !== undefined) updateData.workType = body.workType || null;
   if (body.contractorName !== undefined) updateData.contractorName = body.contractorName || null;

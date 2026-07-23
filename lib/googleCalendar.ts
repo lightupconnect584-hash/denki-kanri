@@ -54,6 +54,7 @@ type ProjectForSync = {
   status: string;
   assignedToId: string | null;
   assignedColor?: string | null; // 担当協力会社の色（HEX）。自社案件はnull
+  clientColor?: string | null; // 取引先の色（HEX）
 };
 
 // GoogleカレンダーのイベントカラーID（11色パレット）とおおよそのHEX
@@ -120,7 +121,7 @@ function buildEventBody(p: ProjectForSync) {
     description: [p.workType ? `依頼名: ${p.workType}` : "", `${baseUrl}/projects/${p.id}`].filter(Boolean).join("\n"),
     start,
     end,
-    colorId: colorIdForHex(p.assignedColor),
+    colorId: colorIdForHex(p.clientColor ?? p.assignedColor),
   };
 }
 
@@ -183,10 +184,11 @@ export async function syncProjectToGoogle(projectId: string): Promise<void> {
         id: true, title: true, location: true, roomNumber: true, workType: true,
         visitDate: true, visitTime: true, status: true, assignedToId: true,
         assignedTo: { select: { color: true } },
+        client: { select: { color: true } },
       },
     });
     if (!raw) return;
-    const p: ProjectForSync = { ...raw, assignedColor: raw.assignedTo?.color ?? null };
+    const p: ProjectForSync = { ...raw, assignedColor: raw.assignedTo?.color ?? null, clientColor: raw.client?.color ?? null };
 
     // 予定が存在すべき条件: 訪問日あり・却下でない
     const shouldExist = !!p.visitDate && p.status !== "REJECTED";

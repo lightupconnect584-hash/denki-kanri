@@ -96,6 +96,8 @@ export default function DashboardPage() {
   };
   const [showIntakeMobile, setShowIntakeMobile] = useState(false); // モバイルで受付ボックスを開くか
   const [showHeldMobile, setShowHeldMobile] = useState(false); // モバイルで保留中を開くか
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   const uploadIntakeFiles = useCallback(async (files: File[]) => {
     const targets = files.filter((f) => f.type === "application/pdf" || f.type.startsWith("image/") || f.name.toLowerCase().endsWith(".pdf"));
@@ -362,7 +364,15 @@ export default function DashboardPage() {
     });
   const rejectedProjects = projects.filter((p) => p.status === "REJECTED");
 
-  const sortedActive = [...activeProjects].sort((a, b) => {
+  const searchQ = search.trim().toLowerCase();
+  const searchedActive = searchQ
+    ? activeProjects.filter((p) => {
+        const hay = [p.title, p.location, p.workType, p.client?.name, p.assignedTo?.companyName, p.assignedTo?.name]
+          .filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(searchQ);
+      })
+    : activeProjects;
+  const sortedActive = [...searchedActive].sort((a, b) => {
     // 未読を常に上位
     const aU = isUnread(a) ? 0 : 1;
     const bU = isUnread(b) ? 0 : 1;
@@ -533,6 +543,13 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => { setShowSearch((v) => !v); if (showSearch) setSearch(""); }}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition ${showSearch || searchQ ? "bg-blue-600/20 text-blue-300 border-blue-600" : "bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500"}`}
+              title="案件を検索"
+            >
+              <span className="text-sm">🔍</span>
+            </button>
 {role === "ADMIN" && (
               <button
                 onClick={() => setShowIntakeMobile((v) => !v)}
@@ -549,6 +566,28 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* 省スペース検索バー（🔍で開閉） */}
+        {showSearch && (
+          <div className="flex items-center gap-2 mb-3 -mt-1">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="物件名・住所・依頼名・取引先・協力会社で検索"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            {searchQ && <span className="text-xs text-gray-400 shrink-0">{sortedActive.length}件</span>}
+            <button
+              onClick={() => { setSearch(""); setShowSearch(false); }}
+              className="text-gray-500 hover:text-gray-300 text-sm shrink-0 px-1"
+              title="閉じる"
+            >✕</button>
+          </div>
+        )}
 
         {/* 基本情報未入力バナー（パートナー用） */}
         {role === "PARTNER" && profileIncomplete && (
@@ -755,7 +794,7 @@ export default function DashboardPage() {
             {sortedActive.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 <p className="text-4xl mb-3">📋</p>
-                <p>進行中の依頼がありません</p>
+                <p>{searchQ ? `「${search}」に一致する依頼はありません` : "進行中の依頼がありません"}</p>
               </div>
             ) : role === "ADMIN" ? (
               (() => {

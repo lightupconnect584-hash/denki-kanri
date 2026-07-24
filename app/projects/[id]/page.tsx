@@ -933,7 +933,15 @@ export default function ProjectDetailPage() {
           </div>
           <div className="col-span-2">
             <p className="text-xs text-gray-400">住所</p>
-            <p className="text-sm font-medium text-gray-100">📍 {project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</p>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-start gap-1 text-sm font-medium text-blue-300 hover:text-blue-200 hover:underline transition"
+            >
+              <span>📍</span>
+              <span>{project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</span>
+            </a>
           </div>
           {project.receivedAt && (
             <div>

@@ -236,6 +236,9 @@ model Inspection {
   workDate  DateTime
   workDates String[] @default([])
   notes     String?
+  originalNotes String? // 編集された場合の「最初の報告本文」。差分表示用（未編集はnull）
+  editedAt      DateTime? // 完了報告本文が編集された日時（未編集はnull）
+  editedByName  String?   // 最後に編集した人の表示名
   polishedReport String? // AI清書（積水ハウス向け報告文）
   createdAt DateTime @default(now())
 

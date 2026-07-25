@@ -102,9 +102,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const userName = (session.user as { name?: string }).name || "担当者";
   const data: Record<string, unknown> = {};
   if (body.result !== undefined) data.result = String(body.result);
-  if (body.notes !== undefined) data.notes = String(body.notes ?? "");
+  if (body.notes !== undefined) {
+    const newNotes = String(body.notes ?? "");
+    // 本文が実際に変わったときだけ差分情報を記録
+    if (newNotes !== (inspection.notes || "")) {
+      // 最初の編集時に「元の報告」を保存（以降は保持）
+      if (!inspection.originalNotes && inspection.editedAt === null) {
+        data.originalNotes = inspection.notes || "";
+      }
+      data.notes = newNotes;
+      data.editedAt = new Date();
+      data.editedByName = userName;
+    }
+  }
   if (Array.isArray(body.workDates)) {
     const dates = body.workDates.filter(Boolean).sort() as string[];
     if (dates.length > 0) {

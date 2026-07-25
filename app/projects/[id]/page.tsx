@@ -35,6 +35,9 @@ interface Inspection {
   workDates: string[];
   inspectorId: string;
   notes: string | null;
+  originalNotes: string | null;
+  editedAt: string | null;
+  editedByName: string | null;
   polishedReport: string | null;
   createdAt: string;
   inspector: { name: string; companyName: string | null };
@@ -206,6 +209,7 @@ export default function ProjectDetailPage() {
 
   // ── 完了報告そのものの編集（結果・作業日・本文） ──
   const [editingInspId, setEditingInspId] = useState<string | null>(null);
+  const [showFinalOnly, setShowFinalOnly] = useState<Record<string, boolean>>({});
   const [inspResult, setInspResult] = useState<string>("");
   const [inspDates, setInspDates] = useState<string[]>([""]);
   const [inspNotes, setInspNotes] = useState("");
@@ -1546,6 +1550,34 @@ export default function ProjectDetailPage() {
                         className="text-xs bg-blue-600 text-white rounded-lg px-4 py-1.5 hover:bg-blue-700 disabled:opacity-50 transition">{savingInsp ? "保存中…" : "保存"}</button>
                     </div>
                   </div>
+                ) : insp.editedAt && insp.originalNotes !== null ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs bg-amber-900/40 text-amber-300 border border-amber-700/60 rounded-full px-2 py-0.5 font-medium">
+                        ✏️ 編集済み
+                      </span>
+                      <span className="text-[11px] text-gray-500">
+                        {insp.editedByName ? `${insp.editedByName}が ` : ""}{new Date(insp.editedAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}に修正
+                      </span>
+                      <button
+                        onClick={() => setShowFinalOnly((p) => ({ ...p, [insp.id]: !p[insp.id] }))}
+                        className="ml-auto text-[11px] text-gray-400 border border-gray-600 rounded px-2 py-0.5 hover:bg-gray-700 transition"
+                      >
+                        {showFinalOnly[insp.id] ? "差分を表示" : "修正後のみ表示"}
+                      </button>
+                    </div>
+                    {showFinalOnly[insp.id] ? (
+                      <p className="text-sm text-gray-200 whitespace-pre-wrap bg-gray-700/40 rounded-lg p-3">{insp.notes}</p>
+                    ) : (
+                      <>
+                        <ReportDiff original={insp.originalNotes} edited={insp.notes || ""} />
+                        <p className="text-[11px] text-gray-500">
+                          <span className="text-red-400/70 line-through">取り消し線</span>＝元の報告、
+                          <span className="text-emerald-300">緑</span>＝修正で追加した箇所
+                        </p>
+                      </>
+                    )}
+                  </div>
                 ) : insp.notes && (
                   <p className="text-sm text-gray-200 whitespace-pre-wrap bg-gray-700/40 rounded-lg p-3">
                     {insp.notes}
@@ -1972,5 +2004,49 @@ export default function ProjectDetailPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// ── 完了報告の差分表示（文字単位のLCS）──
+type DiffSeg = { t: "eq" | "del" | "ins"; s: string };
+function diffChars(oldStr: string, newStr: string): DiffSeg[] {
+  const a = Array.from(oldStr), b = Array.from(newStr);
+  const n = a.length, m = b.length;
+  // 巨大テキストは全置換扱い（計算量ガード）
+  if (n * m > 400000) return [{ t: "del", s: oldStr }, { t: "ins", s: newStr }];
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const out: DiffSeg[] = [];
+  const push = (t: DiffSeg["t"], ch: string) => {
+    const last = out[out.length - 1];
+    if (last && last.t === t) last.s += ch; else out.push({ t, s: ch });
+  };
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { push("eq", a[i]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { push("del", a[i]); i++; }
+    else { push("ins", b[j]); j++; }
+  }
+  while (i < n) { push("del", a[i]); i++; }
+  while (j < m) { push("ins", b[j]); j++; }
+  return out;
+}
+
+function ReportDiff({ original, edited }: { original: string; edited: string }) {
+  const segs = diffChars(original, edited);
+  return (
+    <p className="text-sm whitespace-pre-wrap bg-gray-700/40 rounded-lg p-3 leading-relaxed">
+      {segs.map((seg, i) =>
+        seg.t === "eq" ? (
+          <span key={i} className="text-gray-200">{seg.s}</span>
+        ) : seg.t === "del" ? (
+          <span key={i} className="text-red-400/70 line-through decoration-red-500/70">{seg.s}</span>
+        ) : (
+          <span key={i} className="text-emerald-300 bg-emerald-900/30 rounded-sm">{seg.s}</span>
+        )
+      )}
+    </p>
   );
 }

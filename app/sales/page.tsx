@@ -209,7 +209,8 @@ export default function SalesPage() {
     const fee = entries.reduce((s, e) => s + feeOf(e), 0);
     const expenseTotal = expenses.reduce((s, e) => s + e.amount, 0);
     const cost = material + outsource + fee + expenseTotal;
-    return { revenue, material, outsource, fee, expenseTotal, cost, profit: revenue - cost };
+    const gross = revenue - material - outsource - fee; // 粗利（固定費を引く前）
+    return { revenue, material, outsource, fee, expenseTotal, cost, profit: revenue - cost, gross };
   }, [entries, expenses, feePctById]);
 
   if (status === "loading" || loading) {
@@ -265,10 +266,17 @@ export default function SalesPage() {
         </div>
 
         {/* サマリー */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-5">
           <div className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 sm:py-4 text-center">
             <p className="text-xs sm:text-sm text-gray-400 mb-0.5">収益</p>
             <p className="text-base sm:text-2xl font-bold text-white">¥{fmt(totals.revenue)}</p>
+          </div>
+          <div className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 sm:py-4 text-center">
+            <p className="text-xs sm:text-sm text-gray-400 mb-0.5">粗利率</p>
+            <p className={`text-base sm:text-2xl font-bold ${totals.gross >= 0 ? "text-white" : "text-red-300"}`}>
+              {totals.revenue > 0 ? `${Math.round((totals.gross / totals.revenue) * 100)}%` : "-"}
+            </p>
+            <p className="text-[10px] sm:text-xs text-gray-500">粗利 ¥{fmt(totals.gross)}</p>
           </div>
           <div className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 sm:py-4 text-center">
             <p className="text-xs sm:text-sm text-gray-400 mb-0.5">経費</p>

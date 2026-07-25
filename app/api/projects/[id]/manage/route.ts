@@ -25,11 +25,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // 依頼書原本（受付ボックス経由で紐づいたもの）
-  const intake = await prisma.intakeDoc.findFirst({
+  // 依頼書原本（受付ボックス経由で紐づいたもの・複数枚対応）
+  const intakes = await prisma.intakeDoc.findMany({
     where: { projectId: id },
     select: { id: true, originalName: true },
+    orderBy: { createdAt: "asc" },
   });
+  const intake = intakes[0] ?? null;
 
   // 添付された依頼書原本（自社案件で自動添付されたもの）
   const attachedOriginals = project.projectPhotos.filter((ph) => ph.originalName.includes("依頼書原本"));
@@ -44,7 +46,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     salesAmount: project.salesAmount,
     materialCost: project.materialCost,
     memo: project.memo,
-    intake, // { id, originalName } | null
+    intake, // { id, originalName } | null（後方互換）
+    intakes, // [{ id, originalName }] 複数枚対応
     attachedOriginals, // [{ id, filename, originalName }]
   });
 }

@@ -17,8 +17,12 @@ interface ManageData {
   materialCost: number | null;
   memo: string | null;
   intake: { id: string; originalName: string } | null;
+  intakes: { id: string; originalName: string }[];
   attachedOriginals: { id: string; filename: string; originalName: string }[];
 }
+
+// 表示用: PDFかどうか（PDFはiframe、画像は幅フィットのimgで表示）
+const isPdfName = (name: string) => name.toLowerCase().endsWith(".pdf");
 
 const numClean = (v: string) =>
   v.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[^0-9]/g, "");
@@ -40,6 +44,33 @@ export default function ManagePage() {
   const [memo, setMemo] = useState("");
   const [saved, setSaved] = useState(false);
   const [viewer, setViewer] = useState<{ url: string; label: string } | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+
+  // 依頼書原本を後から追加（2枚目など）。【依頼書原本】マーカー付きで添付＝協力会社には非表示
+  const uploadOriginal = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingDoc(true);
+    for (const f of Array.from(files)) {
+      const renamed = new File([f], `【依頼書原本】${f.name}`, { type: f.type });
+      const fd = new FormData();
+      fd.append("file", renamed);
+      await fetch(`/api/projects/${id}/photos`, { method: "POST", body: fd }).catch(() => {});
+    }
+    setUploadingDoc(false);
+    e.target.value = "";
+    fetchData();
+  };
+
+  const deleteOriginal = async (photoId: string, name: string) => {
+    if (!confirm(`「${name}」を削除しますか？`)) return;
+    await fetch(`/api/projects/${id}/photos`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoId }),
+    });
+    fetchData();
+  };
 
   const fetchData = useCallback(async () => {
     const r = await fetch(`/api/projects/${id}/manage`);
@@ -102,7 +133,15 @@ export default function ManagePage() {
             <a href={viewer.url} target="_blank" rel="noopener noreferrer" className="text-xs text-sky-400 border border-sky-700 rounded-lg px-3 py-1.5 hover:bg-sky-900/40 shrink-0">別タブで開く</a>
             <button onClick={() => setViewer(null)} className="text-gray-400 hover:text-white text-xl px-2 shrink-0">✕</button>
           </div>
-          <iframe src={viewer.url} title="依頼書原本" className="flex-1 min-h-0 bg-white" onClick={(e) => e.stopPropagation()} />
+          {isPdfName(viewer.label) ? (
+            <iframe src={viewer.url} title="依頼書原本" className="flex-1 min-h-0 bg-white" onClick={(e) => e.stopPropagation()} />
+          ) : (
+            // 画像は幅フィットで全体表示（モバイルで拡大されない）。縦に長い依頼書はスクロールで読む
+            <div className="flex-1 min-h-0 overflow-auto bg-gray-950" onClick={(e) => e.stopPropagation()}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={viewer.url} alt="依頼書原本" className="w-full h-auto" />
+            </div>
+          )}
         </div>
       )}
       <main className="flex-1 max-w-lg lg:max-w-2xl mx-auto w-full px-4 py-4 sm:py-6">
@@ -114,22 +153,32 @@ export default function ManagePage() {
 
         {/* 依頼書原本 */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3">
-          <p className="text-sm font-bold text-gray-100 mb-3">📄 依頼書原本</p>
-          {!data.intake && data.attachedOriginals.length === 0 ? (
-            <p className="text-xs text-gray-500">紐づいた依頼書原本はありません</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold text-gray-100">📄 依頼書原本</p>
+            <label className={`text-xs rounded-lg px-3 py-1.5 cursor-pointer transition ${uploadingDoc ? "bg-gray-700 text-gray-400" : "bg-sky-600 text-white hover:bg-sky-700"}`}>
+              {uploadingDoc ? "追加中…" : "＋ 依頼書を追加"}
+              <input type="file" accept="application/pdf,image/*" multiple className="hidden" disabled={uploadingDoc} onChange={uploadOriginal} />
+            </label>
+          </div>
+          {(data.intakes?.length ?? 0) === 0 && data.attachedOriginals.length === 0 ? (
+            <p className="text-xs text-gray-500">紐づいた依頼書原本はありません。2枚目がある場合も「＋ 依頼書を追加」から登録できます</p>
           ) : (
             <div className="space-y-2">
-              {data.intake && (
-                <button onClick={() => openDoc(`/api/intake/view?id=${data.intake!.id}`, data.intake!.originalName)}
+              {(data.intakes ?? []).map((doc) => (
+                <button key={doc.id} onClick={() => openDoc(`/api/intake/view?id=${doc.id}`, doc.originalName)}
                   className="flex items-center gap-2 w-full text-left text-sm text-sky-300 hover:text-sky-200 bg-gray-900/50 border border-sky-800 rounded-lg px-3 py-2 transition">
-                  <span>📄</span><span className="truncate flex-1 min-w-0">{data.intake.originalName}</span><span className="text-sky-500">開く ›</span>
+                  <span>📄</span><span className="truncate flex-1 min-w-0">{doc.originalName}</span><span className="text-sky-500">開く ›</span>
                 </button>
-              )}
+              ))}
               {data.attachedOriginals.map((ph) => (
-                <button key={ph.id} onClick={() => openDoc(`/api/projects/${id}/photo-view?photo=${ph.id}`, ph.originalName)}
-                  className="flex items-center gap-2 w-full text-left text-sm text-sky-300 hover:text-sky-200 bg-gray-900/50 border border-sky-800 rounded-lg px-3 py-2 transition">
-                  <span>📄</span><span className="truncate flex-1 min-w-0">{ph.originalName.replace("【依頼書原本】", "")}</span><span className="text-sky-500">開く ›</span>
-                </button>
+                <div key={ph.id} className="flex items-center gap-1 bg-gray-900/50 border border-sky-800 rounded-lg pr-2">
+                  <button onClick={() => openDoc(`/api/projects/${id}/photo-view?photo=${ph.id}`, ph.originalName)}
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left text-sm text-sky-300 hover:text-sky-200 px-3 py-2 transition">
+                    <span>📄</span><span className="truncate flex-1 min-w-0">{ph.originalName.replace("【依頼書原本】", "")}</span><span className="text-sky-500">開く ›</span>
+                  </button>
+                  <button onClick={() => deleteOriginal(ph.id, ph.originalName.replace("【依頼書原本】", ""))}
+                    className="text-gray-600 hover:text-red-400 text-xs px-1.5 shrink-0" title="削除">✕</button>
+                </div>
               ))}
             </div>
           )}

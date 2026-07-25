@@ -956,6 +956,51 @@ export default function ProjectDetailPage() {
           </div>
         ) : null}
 
+        {/* ▶ 次にやること（協力会社向け・ステータス連動で次の1手だけ提示） */}
+        {role === "PARTNER" && isAssigned && !project.onHold && (() => {
+          const s = project.status;
+          const btn = "shrink-0 text-sm font-bold rounded-lg px-4 py-2.5 transition text-center";
+          // 完了・確認待ちは「何もしなくていい」ことを伝える（安心表示）
+          if (["CONFIRMED", "COMPLETED"].includes(s)) {
+            return (
+              <div className="flex items-center gap-3 bg-green-950/40 border border-green-800 rounded-xl px-4 py-3 mb-4">
+                <span className="text-lg shrink-0">✅</span>
+                <p className="text-sm text-green-300 font-medium">この依頼は完了済みです。おつかれさまでした！</p>
+              </div>
+            );
+          }
+          if (s === "INSPECTED" || s === "QUOTE_REVIEWING") {
+            return (
+              <div className="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mb-4">
+                <span className="text-lg shrink-0">⏳</span>
+                <p className="text-sm text-gray-300">{s === "INSPECTED" ? "報告を確認中です。今やることはありません。" : "見積もりを確認中です。連絡をお待ちください。"}</p>
+              </div>
+            );
+          }
+          const action =
+            s === "PENDING" ? { text: "この依頼を受けるか選んでください", label: "✓ 受注する", onClick: () => changeStatus("ACCEPTED") } :
+            s === "REWORK" ? { text: "管理者から修正のお願いがあります", label: "📋 再報告する", href: `/projects/${id}/inspect` } :
+            s === "QUOTE_REQUESTED" ? { text: "見積もりの提出をお願いします", label: "💰 見積もりを出す", href: `/projects/${id}/quote` } :
+            s === "ACCEPTED" && !project.visitDate ? { text: "訪問日を決めて入力してください", label: "📅 訪問日を入れる", scrollTo: "visit-section" } :
+            s === "ACCEPTED" ? { text: `訪問予定 ${new Date(project.visitDate!).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}${project.visitTime ? ` ${project.visitTime}` : ""} — 作業が終わったら報告してください`, label: "📋 完了報告する", href: `/projects/${id}/inspect` } :
+            null;
+          if (!action) return null;
+          return (
+            <div className="flex items-center gap-3 bg-blue-950/50 border border-blue-700 rounded-xl px-4 py-3 mb-4">
+              <span className="text-lg shrink-0">▶</span>
+              <p className="text-sm text-blue-200 flex-1 min-w-0">{action.text}</p>
+              {action.href ? (
+                <Link href={action.href} className={`${btn} bg-blue-600 text-white hover:bg-blue-700`}>{action.label}</Link>
+              ) : action.scrollTo ? (
+                <button onClick={() => document.getElementById(action.scrollTo!)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                  className={`${btn} bg-blue-600 text-white hover:bg-blue-700`}>{action.label}</button>
+              ) : (
+                <button onClick={action.onClick} disabled={updating} className={`${btn} bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50`}>{action.label}</button>
+              )}
+            </div>
+          );
+        })()}
+
         {/* PC: 左=情報 / 右=チャット の2カラム。モバイルは従来順のまま */}
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_480px] lg:gap-6 lg:items-start">
         <div className="min-w-0">
@@ -981,6 +1026,18 @@ export default function ProjectDetailPage() {
               <span>{project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</span>
             </a>
           </div>
+          {project.workType && (
+            <div>
+              <p className="text-xs text-gray-400">依頼名</p>
+              <p className="text-sm text-gray-200 font-medium">{project.workType}</p>
+            </div>
+          )}
+          {project.description && (
+            <div className="col-span-2">
+              <p className="text-xs text-gray-400">依頼内容</p>
+              <p className="text-sm text-gray-200 whitespace-pre-wrap break-words overflow-hidden">{project.description}</p>
+            </div>
+          )}
           {project.receivedAt && (
             <div>
               <p className="text-xs text-gray-400">受付日時</p>
@@ -1043,18 +1100,6 @@ export default function ProjectDetailPage() {
                   SMS {project.smsAllowed ? "可" : "不可"}
                 </span>
               </div>
-            </div>
-          )}
-          {project.workType && (
-            <div>
-              <p className="text-xs text-gray-400">依頼名</p>
-              <p className="text-sm text-gray-200 font-medium">{project.workType}</p>
-            </div>
-          )}
-          {project.description && (
-            <div className="col-span-2">
-              <p className="text-xs text-gray-400">依頼内容</p>
-              <p className="text-sm text-gray-200 whitespace-pre-wrap break-words overflow-hidden">{project.description}</p>
             </div>
           )}
           {role === "ADMIN" && project.client && (
@@ -1171,7 +1216,7 @@ export default function ProjectDetailPage() {
 
         {/* 訪問予定日 */}
         {!(role === "PARTNER" && ["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status)) && (
-        <div className={`rounded-xl border p-5 mb-4 ${!project.visitDate && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? "bg-amber-900/30 border-amber-700" : "bg-gray-800 border-gray-700"}`}>
+        <div id="visit-section" className={`rounded-xl border p-5 mb-4 scroll-mt-20 ${!project.visitDate && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? "bg-amber-900/30 border-amber-700" : "bg-gray-800 border-gray-700"}`}>
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-sm font-bold text-gray-100">📅 訪問予定日</h3>
             {!project.visitDate && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (

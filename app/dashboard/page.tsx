@@ -473,6 +473,12 @@ export default function DashboardPage() {
                   {visitBadge.text}
                 </span>
               )}
+              {/* 受注済みなのに訪問日が未入力 → 次にやることをカード上で気づける */}
+              {!p.visitDate && p.status === "ACCEPTED" && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-900/40 text-amber-300 border border-amber-700">
+                  📅 訪問日未定
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -623,6 +629,11 @@ export default function DashboardPage() {
                     >
                       <span className={`text-xs font-bold shrink-0 ${p.visitTime ? "text-blue-300" : "text-gray-500"}`}>{p.visitTime || "時間未定"}</span>
                       <span className="text-sm text-gray-200 truncate flex-1 min-w-0">{p.title}</span>
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.location)}`, "_blank"); }}
+                        className="shrink-0 text-xs bg-blue-900/50 text-blue-300 border border-blue-700 rounded-lg px-2 py-1 hover:bg-blue-800/60 transition"
+                        title="Googleマップで開く"
+                      >🗺 地図</button>
                       <span className="hidden sm:inline text-xs text-gray-500 truncate max-w-[160px] shrink-0">📍 {abbrevAddr(p.location)}</span>
                       {role === "ADMIN" && p.assignedTo && (
                         <span className="text-xs text-gray-500 truncate max-w-[90px] shrink-0">{p.assignedTo.companyName || p.assignedTo.name}</span>

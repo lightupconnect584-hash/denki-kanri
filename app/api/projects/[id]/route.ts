@@ -43,7 +43,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       comments: {
         select: {
           id: true, content: true, createdAt: true, authorId: true, readAt: true,
-          author: { select: { name: true, companyName: true, role: true, avatarUrl: true } },
+          author: { select: { name: true, companyName: true, role: true, avatarUrl: true, phone: true } },
           reactions: { select: { emoji: true, userId: true } },
         },
         orderBy: { createdAt: "asc" },

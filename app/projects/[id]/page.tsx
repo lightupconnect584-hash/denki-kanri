@@ -67,7 +67,7 @@ interface Comment {
   createdAt: string;
   authorId: string;
   readAt: string | null;
-  author: { name: string; companyName: string | null; role: string; avatarUrl: string | null };
+  author: { name: string; companyName: string | null; role: string; avatarUrl: string | null; phone: string | null };
   reactions: { emoji: string; userId: string }[];
 }
 
@@ -1927,15 +1927,26 @@ export default function ProjectDetailPage() {
                   : null;
                 return (
                   <div key={c.id} className={`flex gap-2 items-end ${isAdmin ? "flex-row" : "flex-row-reverse"}`}>
-                    {/* アバター */}
-                    {avatarSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={avatarSrc} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-gray-700 shrink-0" />
-                    ) : (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${isAdmin ? "bg-blue-900/50 text-blue-400 border-blue-700" : "bg-gray-700 text-gray-300 border-gray-700"}`}>
-                        {displayName[0]?.toUpperCase()}
-                      </div>
-                    )}
+                    {/* アバター（自分以外で電話番号があればタップで発信） */}
+                    {(() => {
+                      const tel = !isMine ? c.author.phone?.replace(/[^0-9+]/g, "") : "";
+                      const avatar = avatarSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={avatarSrc} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-gray-700" />
+                      ) : (
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border ${isAdmin ? "bg-blue-900/50 text-blue-400 border-blue-700" : "bg-gray-700 text-gray-300 border-gray-700"}`}>
+                          {displayName[0]?.toUpperCase()}
+                        </div>
+                      );
+                      return tel ? (
+                        <a href={`tel:${tel}`} className="relative shrink-0 block active:scale-95 transition" title={`${displayName}に電話（${c.author.phone}）`}>
+                          {avatar}
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-600 border border-gray-800 flex items-center justify-center text-[8px] leading-none">📞</span>
+                        </a>
+                      ) : (
+                        <div className="shrink-0">{avatar}</div>
+                      );
+                    })()}
                     <div className={`flex flex-col max-w-[75%] ${isAdmin ? "items-start" : "items-end"}`}>
                       <div className={`rounded-xl px-3 py-2 text-sm ${
                         isAdmin

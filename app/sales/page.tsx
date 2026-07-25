@@ -273,7 +273,7 @@ export default function SalesPage() {
           </div>
           <div className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 sm:py-4 text-center">
             <p className="text-xs sm:text-sm text-gray-400 mb-0.5">粗利率</p>
-            <p className={`text-base sm:text-2xl font-bold ${(totals.revenue > 0 ? (totals.gross / totals.revenue) * 100 <= 20 : totals.gross < 0) ? "text-red-300" : "text-white"}`}>
+            <p className={`text-base sm:text-2xl font-bold ${totals.gross < 0 ? "text-red-300" : (totals.revenue > 0 && (totals.gross / totals.revenue) * 100 <= 20) ? "text-orange-300" : "text-white"}`}>
               {totals.revenue > 0 ? `${Math.round((totals.gross / totals.revenue) * 100)}%` : "-"}
             </p>
             <p className="text-[10px] sm:text-xs text-gray-500">粗利 ¥{fmt(totals.gross)}</p>
@@ -415,7 +415,7 @@ export default function SalesPage() {
                                 className={`min-w-0 text-xs sm:text-sm text-right rounded px-1.5 py-1 border focus:border-blue-500 focus:outline-none ${f !== "sales" ? "hidden sm:block" : ""} ${e.invoiced ? "bg-gray-900/30 text-gray-500 border-gray-800" : "bg-gray-900/60 text-gray-100 border-gray-700"}`}
                               />
                             ))}
-                            <span className={`hidden sm:block text-right font-medium ${(e.sales > 0 ? (profit / e.sales) * 100 <= 20 : profit < 0) ? "text-red-400" : "text-emerald-400"}`}>
+                            <span className={`hidden sm:block text-right font-medium ${profit < 0 ? "text-red-400" : (e.sales > 0 && (profit / e.sales) * 100 <= 20) ? "text-orange-400" : "text-emerald-400"}`}>
                               <span className="text-xs sm:text-sm">{fmt(profit)}</span>
                               {e.sales > 0 && (
                                 <span className="block text-[10px] leading-tight opacity-70">{Math.round((profit / e.sales) * 100)}%</span>
@@ -445,7 +445,7 @@ export default function SalesPage() {
                       <span className="text-right text-gray-100">{fmt(sub.sales)}</span>
                       <span className="hidden sm:block text-right text-gray-300">{fmt(sub.material)}</span>
                       <span className="hidden sm:block text-right text-gray-300">{fmt(sub.outsource)}</span>
-                      <span className={`hidden sm:block text-right ${(sub.sales > 0 ? (subProfit / sub.sales) * 100 <= 20 : subProfit < 0) ? "text-red-400" : "text-emerald-400"}`}>
+                      <span className={`hidden sm:block text-right ${subProfit < 0 ? "text-red-400" : (sub.sales > 0 && (subProfit / sub.sales) * 100 <= 20) ? "text-orange-400" : "text-emerald-400"}`}>
                         {fmt(subProfit)}
                         {sub.sales > 0 && <span className="block text-[10px] font-normal leading-tight opacity-70">{Math.round((subProfit / sub.sales) * 100)}%</span>}
                       </span>

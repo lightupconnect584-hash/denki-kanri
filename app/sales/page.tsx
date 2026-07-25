@@ -52,6 +52,19 @@ export default function SalesPage() {
   const [entries, setEntries] = useState<SalesEntry[]>([]);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [salesClients, setSalesClients] = useState<SalesClient[]>([]);
+  // 📈 推移グラフ
+  const [showTrend, setShowTrend] = useState(false);
+  const [trend, setTrend] = useState<{ month: string; revenue: number; cost: number; profit: number; profitRate: number | null }[] | null>(null);
+  const toggleTrend = async () => {
+    const next = !showTrend;
+    setShowTrend(next);
+    if (next && trend === null) {
+      try {
+        const r = await fetch("/api/sales/trend");
+        if (r.ok) setTrend((await r.json()).trend || []);
+      } catch { setTrend([]); }
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [showExpenses, setShowExpenses] = useState(false);
   const [newExpLabel, setNewExpLabel] = useState("");
@@ -265,6 +278,25 @@ export default function SalesPage() {
             <p className="text-xs sm:text-sm text-gray-400 mb-0.5">利益</p>
             <p className={`text-base sm:text-2xl font-bold ${totals.profit >= 0 ? "text-emerald-300" : "text-red-300"}`}>¥{fmt(totals.profit)}</p>
           </div>
+        </div>
+
+        {/* 📈 推移グラフ（折りたたみ） */}
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-5">
+          <button onClick={toggleTrend} className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/40 transition">
+            <p className="text-sm font-bold text-gray-100">📈 売上・経費・利益の推移</p>
+            <span className="text-xs text-gray-400">{showTrend ? "▲" : "▼"}</span>
+          </button>
+          {showTrend && (
+            <div className="border-t border-gray-700 px-2 sm:px-4 py-3">
+              {trend === null ? (
+                <p className="text-xs text-gray-500 text-center py-6">読み込み中…</p>
+              ) : trend.length < 2 ? (
+                <p className="text-xs text-gray-500 text-center py-6">まだ2ヶ月分のデータがありません</p>
+              ) : (
+                <TrendChart data={trend} />
+              )}
+            </div>
+          )}
         </div>
 
         {/* カテゴリ別明細（PCでは2列） */}
@@ -483,6 +515,85 @@ export default function SalesPage() {
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+
+// ── 📈 推移グラフ（SVG・ライブラリ不使用） ──
+function TrendChart({ data }: { data: { month: string; revenue: number; cost: number; profit: number; profitRate: number | null }[] }) {
+  // 検証済みパレット（ダーク面 #1f2937）: 売上=青 / 経費=アンバー / 利益=緑
+  const C = { revenue: "#3b82f6", cost: "#d97706", profit: "#059669" };
+  const W = Math.max(360, data.length * 56);
+  const H = 220;
+  const PAD_L = 44, PAD_R = 12, PAD_T = 12, PAD_B = 44;
+  const plotW = W - PAD_L - PAD_R;
+  const plotH = H - PAD_T - PAD_B;
+
+  const vals = data.flatMap((d) => [d.revenue, d.cost, d.profit]);
+  const maxV = Math.max(...vals, 1);
+  const minV = Math.min(...vals, 0);
+  const span = maxV - minV || 1;
+  const y = (v: number) => PAD_T + plotH - ((v - minV) / span) * plotH;
+  const x = (i: number) => PAD_L + (data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW);
+
+  // y軸目盛り（万円単位で4本）
+  const ticks = [0, 1, 2, 3, 4].map((i) => minV + (span * i) / 4);
+  const fmtMan = (v: number) => `${Math.round(v / 10000)}万`;
+  const fmtYen = (v: number) => `¥${v.toLocaleString()}`;
+  const line = (key: "revenue" | "cost" | "profit") =>
+    data.map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(" ");
+  const monthLabel = (m: string) => `${parseInt(m.split("-")[1])}月`;
+
+  return (
+    <div>
+      {/* 凡例 */}
+      <div className="flex gap-4 flex-wrap px-2 mb-1">
+        {([["revenue", "売上"], ["cost", "経費"], ["profit", "利益"]] as const).map(([k, label]) => (
+          <span key={k} className="flex items-center gap-1.5 text-xs text-gray-300">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: C[k] }} />
+            {label}
+          </span>
+        ))}
+        <span className="flex items-center gap-1 text-xs text-gray-500 ml-auto">下段：利益率</span>
+      </div>
+      <div className="overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ minWidth: W }} className="w-full h-auto" role="img" aria-label="売上・経費・利益の月別推移">
+          {/* グリッド＋y軸ラベル */}
+          {ticks.map((t, i) => (
+            <g key={i}>
+              <line x1={PAD_L} x2={W - PAD_R} y1={y(t)} y2={y(t)} stroke="#374151" strokeWidth="1" />
+              <text x={PAD_L - 6} y={y(t) + 3} textAnchor="end" fontSize="9" fill="#6b7280">{fmtMan(t)}</text>
+            </g>
+          ))}
+          {/* 0ライン強調（マイナス月がある場合） */}
+          {minV < 0 && <line x1={PAD_L} x2={W - PAD_R} y1={y(0)} y2={y(0)} stroke="#4b5563" strokeWidth="1.5" />}
+          {/* ライン */}
+          <path d={line("revenue")} fill="none" stroke={C.revenue} strokeWidth="2" />
+          <path d={line("cost")} fill="none" stroke={C.cost} strokeWidth="2" strokeDasharray="5 3" />
+          <path d={line("profit")} fill="none" stroke={C.profit} strokeWidth="2.5" />
+          {/* マーカー（形状でも区別: 売上=丸 / 経費=四角 / 利益=丸大） */}
+          {data.map((d, i) => (
+            <g key={d.month}>
+              <circle cx={x(i)} cy={y(d.revenue)} r="3.5" fill={C.revenue} stroke="#1f2937" strokeWidth="1.5">
+                <title>{`${monthLabel(d.month)} 売上 ${fmtYen(d.revenue)}`}</title>
+              </circle>
+              <rect x={x(i) - 3} y={y(d.cost) - 3} width="6" height="6" fill={C.cost} stroke="#1f2937" strokeWidth="1.5">
+                <title>{`${monthLabel(d.month)} 経費 ${fmtYen(d.cost)}`}</title>
+              </rect>
+              <circle cx={x(i)} cy={y(d.profit)} r="4.5" fill={C.profit} stroke="#1f2937" strokeWidth="1.5">
+                <title>{`${monthLabel(d.month)} 利益 ${fmtYen(d.profit)}（利益率${d.profitRate ?? "-"}%）`}</title>
+              </circle>
+              {/* x軸: 月 ＋ 利益率 */}
+              <text x={x(i)} y={H - 26} textAnchor="middle" fontSize="10" fill="#9ca3af">{monthLabel(d.month)}</text>
+              <text x={x(i)} y={H - 12} textAnchor="middle" fontSize="9" fontWeight="bold"
+                fill={d.profitRate == null ? "#6b7280" : d.profitRate >= 0 ? "#34d399" : "#f87171"}>
+                {d.profitRate == null ? "-" : `${d.profitRate}%`}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
     </div>
   );
 }

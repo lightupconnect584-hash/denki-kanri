@@ -407,8 +407,11 @@ export default function SalesPage() {
                                 className={`min-w-0 text-xs sm:text-sm text-right rounded px-1.5 py-1 border focus:border-blue-500 focus:outline-none ${f !== "sales" ? "hidden sm:block" : ""} ${e.invoiced ? "bg-gray-900/30 text-gray-500 border-gray-800" : "bg-gray-900/60 text-gray-100 border-gray-700"}`}
                               />
                             ))}
-                            <span className={`hidden sm:block text-xs sm:text-sm text-right font-medium ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                              {fmt(profit)}
+                            <span className={`hidden sm:block text-right font-medium ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              <span className="text-xs sm:text-sm">{fmt(profit)}</span>
+                              {e.sales > 0 && (
+                                <span className="block text-[10px] leading-tight opacity-70">{Math.round((profit / e.sales) * 100)}%</span>
+                              )}
                             </span>
                             {e.invoiced ? (
                               <span className="text-gray-700 text-xs" title="請求済みのためロック中">🔒</span>
@@ -434,7 +437,10 @@ export default function SalesPage() {
                       <span className="text-right text-gray-100">{fmt(sub.sales)}</span>
                       <span className="hidden sm:block text-right text-gray-300">{fmt(sub.material)}</span>
                       <span className="hidden sm:block text-right text-gray-300">{fmt(sub.outsource)}</span>
-                      <span className={`hidden sm:block text-right ${subProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(subProfit)}</span>
+                      <span className={`hidden sm:block text-right ${subProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        {fmt(subProfit)}
+                        {sub.sales > 0 && <span className="block text-[10px] font-normal leading-tight opacity-70">{Math.round((subProfit / sub.sales) * 100)}%</span>}
+                      </span>
                       <span></span>
                     </div>
                   </>

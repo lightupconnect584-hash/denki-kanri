@@ -13,6 +13,7 @@ interface User {
   role: string;
   avatarUrl: string | null;
   color: string | null;
+  phone: string | null;
   lastLoginAt: string | null;
   inviteToken: string | null;
   loginLogs: { createdAt: string }[];
@@ -166,21 +167,33 @@ export default function UsersPage() {
         {u.role === "PARTNER" && (
           <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: u.color || "#d1d5db" }} />
         )}
-        {u.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={u.avatarUrl.startsWith("http") ? u.avatarUrl : `/uploads/${u.avatarUrl}`}
-            alt={u.name}
-            className="w-10 h-10 rounded-full object-cover border border-gray-700 shrink-0"
-          />
-        ) : (
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white border border-gray-700 shrink-0"
-            style={{ backgroundColor: u.role === "PARTNER" ? (u.color || "#9ca3af") : "#2563eb" }}
-          >
-            {(u.companyName || u.name)[0]?.toUpperCase()}
-          </div>
-        )}
+        {(() => {
+          const tel = u.phone?.replace(/[^0-9+]/g, "");
+          const avatar = u.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={u.avatarUrl.startsWith("http") ? u.avatarUrl : `/uploads/${u.avatarUrl}`}
+              alt={u.name}
+              className="w-10 h-10 rounded-full object-cover border border-gray-700"
+            />
+          ) : (
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white border border-gray-700"
+              style={{ backgroundColor: u.role === "PARTNER" ? (u.color || "#9ca3af") : "#2563eb" }}
+            >
+              {(u.companyName || u.name)[0]?.toUpperCase()}
+            </div>
+          );
+          // 電話番号があればアイコンタップで発信（📞バッジ付き）
+          return tel ? (
+            <a href={`tel:${tel}`} className="relative shrink-0 block active:scale-95 transition" title={`${u.companyName || u.name}に電話（${u.phone}）`}>
+              {avatar}
+              <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-600 border border-gray-800 flex items-center justify-center text-[9px] leading-none">📞</span>
+            </a>
+          ) : (
+            <div className="shrink-0">{avatar}</div>
+          );
+        })()}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="font-medium text-gray-100 text-sm truncate">{u.companyName || (u.inviteToken ? "招待中" : u.name)}</p>
@@ -189,6 +202,11 @@ export default function UsersPage() {
           </div>
           {u.companyName && !u.inviteToken && u.name !== "招待中" && <p className="text-xs text-gray-400 truncate">{u.name}</p>}
           <p className="text-xs text-gray-500 truncate">{u.inviteToken ? "（未登録）" : u.email}</p>
+          {u.phone && (
+            <a href={`tel:${u.phone.replace(/[^0-9+]/g, "")}`} className="text-xs text-green-400 hover:text-green-300 truncate inline-block">
+              📞 {u.phone}
+            </a>
+          )}
           {u.role === "PARTNER" && (
             <button
               onClick={() => setLoginLogId(loginLogId === u.id ? null : u.id)}

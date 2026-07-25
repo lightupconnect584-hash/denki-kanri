@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     where: role === "PARTNER" ? { id, assignedToId: userId } : { id },
     include: {
       client: { select: { id: true, name: true, color: true } },
-      assignedTo: { select: { id: true, name: true, companyName: true, email: true } },
+      assignedTo: { select: { id: true, name: true, companyName: true, email: true, phone: true, color: true, avatarUrl: true } },
       createdBy: { select: { name: true, avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true } },
       projectPhotos: true,
       invoices: {

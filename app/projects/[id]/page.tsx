@@ -115,7 +115,7 @@ interface Project {
   holdByName: string | null;
   status: string;
   dueDate: string | null;
-  assignedTo: { id: string; name: string; companyName: string | null; email: string } | null;
+  assignedTo: { id: string; name: string; companyName: string | null; email: string; phone: string | null; color: string | null; avatarUrl: string | null } | null;
   createdBy: { name: string; avatarUrl: string | null; phone: string | null; thankYouEnabled: boolean; thankYouImageUrl: string | null };
   projectPhotos: ProjectPhoto[];
   inspections: Inspection[];
@@ -1174,9 +1174,39 @@ export default function ProjectDetailPage() {
           {project.assignedTo && (
             <div>
               <p className="text-xs text-gray-400">担当協力会社</p>
-              <p className="text-sm text-gray-200">
-                {project.assignedTo.companyName || project.assignedTo.name}
-              </p>
+              {(() => {
+                const a = project.assignedTo!;
+                const tel = a.phone?.replace(/[^0-9+]/g, "");
+                const avatar = a.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={a.avatarUrl.startsWith("http") ? a.avatarUrl : `/uploads/${a.avatarUrl}`}
+                    alt={a.name}
+                    className="w-8 h-8 rounded-full object-cover border border-gray-700"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white border border-gray-700"
+                    style={{ backgroundColor: a.color || "#9ca3af" }}>
+                    {(a.companyName || a.name)[0]?.toUpperCase()}
+                  </div>
+                );
+                const inner = (
+                  <>
+                    <span className="relative shrink-0">
+                      {avatar}
+                      {tel && <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-600 border border-gray-800 flex items-center justify-center text-[8px] leading-none">📞</span>}
+                    </span>
+                    <span className="text-sm text-gray-200 min-w-0 truncate">{a.companyName || a.name}</span>
+                  </>
+                );
+                return tel ? (
+                  <a href={`tel:${tel}`} className="flex items-center gap-2 mt-1 active:scale-[0.98] transition" title={`${a.companyName || a.name}に電話（${a.phone}）`}>
+                    {inner}
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2 mt-1">{inner}</div>
+                );
+              })()}
             </div>
           )}
           <div className="col-span-2">

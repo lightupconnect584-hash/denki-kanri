@@ -82,3 +82,44 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   return NextResponse.json(inspection);
 }
+
+// PATCH: 既存の完了報告を編集（管理者は全件、協力会社は自分の報告のみ）
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const userId = (session.user as { id: string }).id;
+  const role = (session.user as { role: string }).role;
+  const body = await req.json();
+  const inspectionId = String(body.inspectionId || "");
+  if (!inspectionId) return NextResponse.json({ error: "inspectionId required" }, { status: 400 });
+
+  const inspection = await prisma.inspection.findFirst({ where: { id: inspectionId, projectId: id } });
+  if (!inspection) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // 協力会社は自分が提出した報告のみ編集可
+  if (role !== "ADMIN" && inspection.inspectorId !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const data: Record<string, unknown> = {};
+  if (body.result !== undefined) data.result = String(body.result);
+  if (body.notes !== undefined) data.notes = String(body.notes ?? "");
+  if (Array.isArray(body.workDates)) {
+    const dates = body.workDates.filter(Boolean).sort() as string[];
+    if (dates.length > 0) {
+      data.workDates = dates;
+      data.workDate = new Date(dates[dates.length - 1]); // 最終日を完了日に
+    }
+  } else if (body.workDate) {
+    data.workDate = new Date(body.workDate);
+  }
+
+  await prisma.inspection.update({ where: { id: inspectionId }, data });
+
+  await prisma.activityLog.create({
+    data: { projectId: id, userId, action: "INSPECTION_EDIT", detail: "完了報告を修正しました" },
+  });
+
+  return NextResponse.json({ ok: true });
+}

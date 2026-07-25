@@ -33,6 +33,7 @@ interface Inspection {
   result: string;
   workDate: string;
   workDates: string[];
+  inspectorId: string;
   notes: string | null;
   polishedReport: string | null;
   createdAt: string;
@@ -201,6 +202,39 @@ export default function ProjectDetailPage() {
     });
     setEditingPolishId(null);
     fetchProject();
+  };
+
+  // ── 完了報告そのものの編集（結果・作業日・本文） ──
+  const [editingInspId, setEditingInspId] = useState<string | null>(null);
+  const [inspResult, setInspResult] = useState<string>("");
+  const [inspDates, setInspDates] = useState<string[]>([""]);
+  const [inspNotes, setInspNotes] = useState("");
+  const [savingInsp, setSavingInsp] = useState(false);
+
+  const startEditInsp = (insp: Inspection) => {
+    setEditingInspId(insp.id);
+    setInspResult(insp.result);
+    setInspDates(insp.workDates.length > 0 ? insp.workDates.map((d) => d.slice(0, 10)) : [insp.workDate.slice(0, 10)]);
+    setInspNotes(insp.notes || "");
+  };
+  const saveInsp = async (inspectionId: string) => {
+    setSavingInsp(true);
+    try {
+      const res = await fetch(`/api/projects/${id}/inspect`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, result: inspResult, workDates: inspDates.filter(Boolean), notes: inspNotes }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(j.error || "保存に失敗しました");
+        return;
+      }
+      setEditingInspId(null);
+      fetchProject();
+    } finally {
+      setSavingInsp(false);
+    }
   };
 
   const role = (session?.user as { role?: string })?.role;
@@ -1464,8 +1498,55 @@ export default function ProjectDetailPage() {
                   <span className="text-xs text-gray-500">
                     {insp.inspector.companyName || insp.inspector.name}
                   </span>
+                  {/* 編集ボタン: 管理者は全件、協力会社は自分の報告のみ */}
+                  {editingInspId !== insp.id && (role === "ADMIN" || insp.inspectorId === userId) && (
+                    <button
+                      onClick={() => startEditInsp(insp)}
+                      className="ml-auto text-xs text-gray-400 border border-gray-600 rounded px-2 py-1 hover:bg-gray-700 transition"
+                    >
+                      ✏️ 報告を編集
+                    </button>
+                  )}
                 </div>
-                {insp.notes && (
+                {editingInspId === insp.id ? (
+                  <div className="space-y-3 bg-gray-700/30 border border-gray-600 rounded-lg p-3">
+                    {/* 作業結果 */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setInspResult("OK")}
+                        className={`py-2 rounded-lg border-2 text-xs font-medium transition ${inspResult === "OK" ? "border-green-500 bg-green-900/30 text-green-300" : "border-gray-600 text-gray-300"}`}>✅ 問題なし</button>
+                      <button type="button" onClick={() => setInspResult("REPAIR_NEEDED")}
+                        className={`py-2 rounded-lg border-2 text-xs font-medium transition ${inspResult === "REPAIR_NEEDED" ? "border-red-500 bg-red-900/30 text-red-300" : "border-gray-600 text-gray-300"}`}>🔧 修理が必要</button>
+                    </div>
+                    {/* 作業日（複数日） */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-300">作業日</label>
+                        <button type="button" onClick={() => setInspDates([...inspDates, ""])} className="text-xs text-blue-400 border border-blue-700 rounded px-2 py-0.5 hover:bg-blue-900/40 transition">＋ 追加</button>
+                      </div>
+                      {inspDates.map((d, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input type="date" value={d} onChange={(e) => setInspDates(inspDates.map((x, idx) => idx === i ? e.target.value : x))}
+                            className="flex-1 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          {inspDates.length > 1 && (
+                            <button type="button" onClick={() => setInspDates(inspDates.filter((_, idx) => idx !== i))} className="text-gray-500 hover:text-red-500 text-sm px-2">✕</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {/* 報告本文 */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">報告内容</label>
+                      <textarea value={inspNotes} onChange={(e) => setInspNotes(e.target.value)} rows={12}
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      <p className="text-[11px] text-gray-500 mt-1">※ 本文を直すと積水向け清書は古いままになります。必要なら保存後に「再生成」してください。</p>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => setEditingInspId(null)} className="text-xs text-gray-400 px-3 py-1.5 hover:text-gray-200">キャンセル</button>
+                      <button onClick={() => saveInsp(insp.id)} disabled={savingInsp || !inspDates.filter(Boolean).length}
+                        className="text-xs bg-blue-600 text-white rounded-lg px-4 py-1.5 hover:bg-blue-700 disabled:opacity-50 transition">{savingInsp ? "保存中…" : "保存"}</button>
+                    </div>
+                  </div>
+                ) : insp.notes && (
                   <p className="text-sm text-gray-200 whitespace-pre-wrap bg-gray-700/40 rounded-lg p-3">
                     {insp.notes}
                   </p>

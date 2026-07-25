@@ -145,7 +145,9 @@ export default function SalesPage() {
   };
 
   const deleteEntry = async (id: string) => {
-    if (!confirm("この行を削除しますか？")) return;
+    const target = entries.find((e) => e.id === id);
+    const name = target?.label?.trim() || "この行";
+    if (!confirm(`「${name}」を売上集計から削除します。\nよろしいですか？（元に戻せません）`)) return;
     setEntries((prev) => prev.filter((e) => e.id !== id));
     await fetch("/api/sales", {
       method: "DELETE",

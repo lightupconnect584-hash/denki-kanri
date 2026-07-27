@@ -28,8 +28,8 @@ export async function GET() {
   // 協力会社には売上（積水請求額）・材料費を見せない
   if (role === "PARTNER") {
     const sanitized = projects.map((p) => {
-      const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, ...rest } = p as typeof p & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
-      void _s; void _m; void _mn; void _an; void _memo; void _sn;
+      const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, client: _cl, ...rest } = p as typeof p & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
+      void _s; void _m; void _mn; void _an; void _memo; void _sn; void _cl;
       return rest;
     });
     return NextResponse.json(sanitized);

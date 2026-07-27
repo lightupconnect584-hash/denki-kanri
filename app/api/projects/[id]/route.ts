@@ -59,8 +59,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
   // 協力会社には売上（積水請求額）・材料費・管理者メモを見せない（協力会社メモは見せる）
   if (role === "PARTNER") {
-    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
-    void _s; void _m; void _mn; void _an; void _memo; void _sn;
+    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, client: _cl, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
+    void _s; void _m; void _mn; void _an; void _memo; void _sn; void _cl;
     // 依頼書原本の添付は協力会社に見せない（自社案件を後から付け替えた場合の保険）
     rest.projectPhotos = rest.projectPhotos.filter((ph) => !ph.originalName.includes("依頼書原本"));
     return NextResponse.json(rest);

@@ -135,6 +135,11 @@ export async function POST(req: NextRequest) {
       const hasDate = /\d{1,4}[年./\-]\s*\d{1,2}|[RHS令平昭]\d?\s*[.年]|\d{1,2}\s*月/.test(data.moveInDate);
       if (!hasDate) data.moveInDate = "";
     }
+    // ダミー番号（000-0000-0000等）は空にする
+    if (data && typeof data.contractorPhone === "string") {
+      const digits = data.contractorPhone.replace(/[^0-9]/g, "");
+      if (digits && /^0+$/.test(digits)) data.contractorPhone = "";
+    }
     // 折り返し先が積水担当者と判定された場合は自動入力しない
     // （担当者の連絡先が「折り返し先」として協力会社に見える事故を防ぐ。番号は原本で確認できる）
     if (data) {

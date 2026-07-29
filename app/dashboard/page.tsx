@@ -312,10 +312,12 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // 30秒ごとに自動更新
+  // 自動更新（2分ごと）。タブが非表示の間は止めて通信量を節約（戻った時にvisibilitychangeで即更新）
   useEffect(() => {
     if (status !== "authenticated") return;
-    const timer = setInterval(() => fetchProjects(true), 30000);
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") fetchProjects(true);
+    }, 120000);
     return () => clearInterval(timer);
   }, [status]);
 

@@ -42,7 +42,10 @@ export default function BottomNav() {
   useEffect(() => {
     if (session?.user) {
       fetchBadges();
-      const id = setInterval(fetchBadges, 30000);
+      // 60秒ごと。非表示タブでは止めて通信量を節約
+      const id = setInterval(() => {
+        if (document.visibilityState === "visible") fetchBadges();
+      }, 60000);
       return () => clearInterval(id);
     }
   }, [session?.user, fetchBadges]);

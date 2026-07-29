@@ -18,8 +18,9 @@ export async function GET() {
       client: { select: { id: true, name: true, color: true } },
       assignedTo: { select: { id: true, name: true, companyName: true, color: true } },
       createdBy: { select: { name: true, avatarUrl: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true } },
-      inspections: { include: { photos: true } },
-      quotes: true,
+      // 一覧では workDate / status しか使わない。写真・見積もり本文は転送しない（通信量削減）
+      inspections: { select: { id: true, workDate: true } },
+      quotes: { select: { id: true, status: true } },
       comments: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
     },
     orderBy: { createdAt: "desc" },

@@ -298,10 +298,12 @@ export default function ProjectDetailPage() {
     if (status === "authenticated") fetchProject();
   }, [status, id]);
 
-  // 30秒ごとに自動更新（コメント・ステータス変化を反映）
+  // 自動更新（60秒ごと）。非表示タブでは止めて通信量を節約
   useEffect(() => {
     if (status !== "authenticated") return;
-    const timer = setInterval(() => fetchProject(true), 30000);
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") fetchProject(true);
+    }, 60000);
     return () => clearInterval(timer);
   }, [status, id]);
 

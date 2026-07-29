@@ -60,6 +60,8 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [extractMsg, setExtractMsg] = useState("");
+  // 依頼書の折り返し先が積水担当者の連絡先だった場合の警告（自動入力せず管理者に知らせる）
+  const [staffContactWarning, setStaffContactWarning] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const extractFileRef = useRef<File | null>(null);
   const [intakeId, setIntakeId] = useState<string | null>(null);
@@ -101,6 +103,7 @@ export default function NewProjectPage() {
         return { region: reg, clientId: cli?.id || prev.clientId };
       })(),
     }));
+    if (d.contractorIsStaff === true) setStaffContactWarning(true);
     const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt", "description"].filter((k) => s(d[k])).length;
     setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
   };
@@ -116,6 +119,7 @@ export default function NewProjectPage() {
     }
     setExtracting(true);
     setExtractMsg("");
+    setStaffContactWarning(false);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -137,6 +141,7 @@ export default function NewProjectPage() {
   const runExtractUrl = async (url: string) => {
     setExtracting(true);
     setExtractMsg("");
+    setStaffContactWarning(false);
     try {
       const res = await fetch("/api/projects/extract", {
         method: "POST",
@@ -650,6 +655,12 @@ export default function NewProjectPage() {
                 </div>
               </div>
               </>)}
+              {staffContactWarning && (
+                <div className="bg-amber-900/40 border border-amber-700 rounded-lg px-3 py-2.5">
+                  <p className="text-xs text-amber-300 font-bold">⚠️ 依頼書の折り返し先は積水の担当者の連絡先と判断したため、自動入力していません</p>
+                  <p className="text-xs text-amber-200/80 mt-1">折り返し先は協力会社にも表示されます。入居者・お客様の連絡先が別にある場合だけ入力してください（担当者の番号は管理ページの原本で確認できます）</p>
+                </div>
+              )}
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-300 mb-1">折り返し先名カナ</label>

@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       roomNumber: { type: "string", description: "部屋番号・号室。不明なら空文字" },
       contractorName: { type: "string", description: "『折り返し先』『連絡先』欄に書かれた氏名（カナ）。管理担当者名・アフター担当者名・入居者名など他の氏名欄とは混同しない。文字が不鮮明で確実に読めない場合は推測せず空文字。読めた文字だけを正確に書き写す" },
       contractorPhone: { type: "string", description: "折り返し先電話番号。不明なら空文字" },
+      contractorIsStaff: { type: "boolean", description: "折り返し先（連絡先）が積水ハウス側の人間・組織である場合true。判断基準：折り返し先の氏名が管理担当者名またはアフター担当者名と同一人物／『担当』『支店』『営業所』『○○ハウス』等の記載／依頼元企業の代表番号。入居者・契約者・お客様個人の連絡先であればfalse。判断できない場合はfalse" },
       description: { type: "string", description: "依頼内容・不具合の内容（例: 廊下の照明が点灯しない、ブレーカーが落ちる）。記載の文章を簡潔にまとめてよいが、書かれていないことは追加しない。不明なら空文字" },
       moveInDate: { type: "string", description: "入居開始日・入居日・入居予定日という項目の【日付】のみ（例: 2026/7/1、R8.7.1）。『入居区分』『入居状況』『入居中/空室』などの区分・状態の語は絶対に入れない。日付が書かれていなければ空文字。日付以外の文字列は入れない" },
       preferredContactAt: { type: "string", description: "連絡希望日時（あれば）。不明なら空文字" },
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
     },
     required: [
       "title", "location", "roomNumber",
-      "contractorName", "contractorPhone", "description",
+      "contractorName", "contractorPhone", "contractorIsStaff", "description",
       "moveInDate", "preferredContactAt", "receivedAt", "smsAllowed",
       "managerName", "afterManagerName", "region", "contactRequired", "sekisuiNumber",
     ],
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
                 "これは電気工事の依頼元から届いた依頼書です。記載内容から、指定のJSON項目だけを抽出してください。" +
                 "金額・料金は抽出しないでください（管理担当者名・アフター担当者名・受付番号は抽出対象です）。" +
                 "location（住所）は、工事対象の物件（現場）の住所だけを抽出してください。書類には依頼元・支店・管理会社・折り返し先・積水ハウスの会社住所など複数の住所が載っていることがありますが、それらは絶対に入れないでください。建物名・部屋番号がある物件そのものの所在地を選んでください。物件の住所が判別できなければ空文字にしてください。" +
+                "折り返し先（contractorName/contractorPhone）について：この欄は本来、入居者・契約者・お客様の連絡先です。依頼書によっては折り返し先欄に積水ハウスの担当者（管理担当・アフター担当）や支店の連絡先が書かれていることがあります。折り返し先の氏名が管理担当者名・アフター担当者名と同一人物と思われる場合や、会社・支店・担当者の連絡先と思われる場合は、contractorIsStaffをtrueにしてください。" +
                 "moveInDate（入居開始日）には日付のみを入れてください。『入居区分』『入居状況』『空室/入居中』などの区分・状態は入居開始日ではないので絶対に入れないでください。" +
                 "入居開始日の日付が書かれていない場合は必ず空文字にしてください。" +
                 "読み取れる項目はきちんと読み取ってください。ただし、かすれ・ぼやけで文字がまったく判読できない項目や、書類に記載自体がない項目は、無理に似た文字で推測せず空文字にしてください。",
@@ -132,6 +134,18 @@ export async function POST(req: NextRequest) {
     if (data && typeof data.moveInDate === "string" && data.moveInDate.trim()) {
       const hasDate = /\d{1,4}[年./\-]\s*\d{1,2}|[RHS令平昭]\d?\s*[.年]|\d{1,2}\s*月/.test(data.moveInDate);
       if (!hasDate) data.moveInDate = "";
+    }
+    // 折り返し先が積水担当者と判定された場合は自動入力しない
+    // （担当者の連絡先が「折り返し先」として協力会社に見える事故を防ぐ。番号は原本で確認できる）
+    if (data) {
+      const norm = (v: unknown) => (typeof v === "string" ? v.replace(/[\s　]/g, "") : "");
+      const cName = norm(data.contractorName);
+      const sameAsManager = !!cName && (cName === norm(data.managerName) || cName === norm(data.afterManagerName));
+      if (data.contractorIsStaff === true || sameAsManager) {
+        data.contractorName = "";
+        data.contractorPhone = "";
+        data.contractorIsStaff = true;
+      }
     }
     return NextResponse.json({ data });
   } catch (e) {

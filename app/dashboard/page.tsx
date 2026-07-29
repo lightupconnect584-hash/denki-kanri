@@ -177,6 +177,18 @@ export default function DashboardPage() {
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
 
+  // 📌 Neonプラン見直しリマインド（管理者のみ・8/5以降・消すまで毎回表示）
+  const [neonReminder, setNeonReminder] = useState(false);
+  useEffect(() => {
+    if (role !== "ADMIN") return;
+    const showFrom = new Date("2026-08-05T00:00:00+09:00").getTime();
+    try {
+      if (Date.now() >= showFrom && localStorage.getItem("neon-plan-reminder-done") !== "1") {
+        setNeonReminder(true);
+      }
+    } catch {}
+  }, [role]);
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
@@ -532,6 +544,15 @@ export default function DashboardPage() {
         <div className="bg-yellow-400 text-yellow-900 text-xs font-medium px-4 py-2 flex items-center justify-between">
           <span>⚠️ ストレージ残量が少なくなっています（{storageWarning}）— <a href="/settings" className="underline">設定で確認</a></span>
           <button onClick={() => setStorageWarning(null)} className="ml-4 text-yellow-800 hover:text-yellow-900">✕</button>
+        </div>
+      )}
+      {neonReminder && (
+        <div className="bg-blue-600 text-white text-xs sm:text-sm font-medium px-4 py-2.5 flex items-center justify-between gap-3">
+          <span>📌 Neonのプラン（DB）を無料に戻せるか見直す時期です。Claude Codeで「Neonのプランどうする？」と相談すると、通信量を確認して判断を手伝います。</span>
+          <button
+            onClick={() => { try { localStorage.setItem("neon-plan-reminder-done", "1"); } catch {} setNeonReminder(false); }}
+            className="shrink-0 bg-white/20 hover:bg-white/30 rounded px-2.5 py-1 transition whitespace-nowrap"
+          >対応した・消す</button>
         </div>
       )}
       <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 py-4 sm:py-6">

@@ -60,8 +60,34 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [extractMsg, setExtractMsg] = useState("");
-  // 依頼書の折り返し先が積水担当者の連絡先だった場合の警告（自動入力せず管理者に知らせる）
+  // 折り返し先が積水担当者かもしれない場合の警告（AI推測。入力はされるので確認を促す）
   const [staffContactWarning, setStaffContactWarning] = useState(false);
+  // 担当者番号リストに一致して自動除外された場合の通知（誰の番号だったか）
+  const [staffPhoneExcluded, setStaffPhoneExcluded] = useState<string | null>(null);
+  const [addingStaffPhone, setAddingStaffPhone] = useState(false);
+
+  // フォームの折り返し先番号を担当者リストに登録して、フォームからも消す
+  const addToStaffList = async () => {
+    const phone = form.contractorPhone.replace(/[^0-9]/g, "");
+    if (!phone) return;
+    setAddingStaffPhone(true);
+    try {
+      const res = await fetch("/api/staff-phones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, label: form.contractorName || form.managerName || "" }),
+      });
+      if (res.ok) {
+        setForm((prev) => ({ ...prev, contractorName: "", contractorPhone: "" }));
+        setStaffContactWarning(false);
+        setStaffPhoneExcluded("登録しました。次回からこの番号は自動で除外されます");
+      } else {
+        alert("登録に失敗しました");
+      }
+    } finally {
+      setAddingStaffPhone(false);
+    }
+  };
   const [dragOver, setDragOver] = useState(false);
   const extractFileRef = useRef<File | null>(null);
   const [intakeId, setIntakeId] = useState<string | null>(null);
@@ -103,7 +129,11 @@ export default function NewProjectPage() {
         return { region: reg, clientId: cli?.id || prev.clientId };
       })(),
     }));
-    if (d.contractorIsStaff === true) setStaffContactWarning(true);
+    if (typeof d.staffPhoneExcluded === "string" && d.staffPhoneExcluded) {
+      setStaffPhoneExcluded(d.staffPhoneExcluded); // リスト一致で除外済み
+    } else if (d.contractorIsStaff === true && s(d.contractorPhone)) {
+      setStaffContactWarning(true); // AIの推測。入力はされるので確認を促す
+    }
     const filled = ["title", "location", "roomNumber", "contractorName", "contractorPhone", "receivedAt", "description"].filter((k) => s(d[k])).length;
     setExtractMsg(filled > 0 ? `✓ ${filled}項目を読み取りました。内容を確認して登録してください` : "読み取れる項目が見つかりませんでした");
   };
@@ -655,10 +685,19 @@ export default function NewProjectPage() {
                 </div>
               </div>
               </>)}
-              {staffContactWarning && (
-                <div className="bg-amber-900/40 border border-amber-700 rounded-lg px-3 py-2.5">
-                  <p className="text-xs text-amber-300 font-bold">⚠️ 依頼書の折り返し先は積水の担当者の連絡先と判断したため、自動入力していません</p>
-                  <p className="text-xs text-amber-200/80 mt-1">折り返し先は協力会社にも表示されます。入居者・お客様の連絡先が別にある場合だけ入力してください（担当者の番号は管理ページの原本で確認できます）</p>
+              {staffPhoneExcluded && (
+                <div className="bg-gray-700/60 border border-gray-600 rounded-lg px-3 py-2.5">
+                  <p className="text-xs text-gray-300">📵 折り返し先の番号は担当者リストに一致したため除外しました（{staffPhoneExcluded}）</p>
+                </div>
+              )}
+              {staffContactWarning && form.contractorPhone && (
+                <div className="bg-amber-900/40 border border-amber-700 rounded-lg px-3 py-2.5 space-y-2">
+                  <p className="text-xs text-amber-300 font-bold">⚠️ この折り返し先は積水の担当者の連絡先かもしれません</p>
+                  <p className="text-xs text-amber-200/80">担当者の番号なら下のボタンで除外してください（リストに登録され、次回からは自動で除外されます）。入居者の連絡先ならそのままでOKです。</p>
+                  <button type="button" onClick={addToStaffList} disabled={addingStaffPhone}
+                    className="w-full bg-amber-600 text-white text-xs font-medium rounded-lg py-2 hover:bg-amber-700 disabled:opacity-50 transition">
+                    {addingStaffPhone ? "登録中…" : "📵 担当者の番号なので除外する（リストに追加）"}
+                  </button>
                 </div>
               )}
               <div className="flex gap-2">

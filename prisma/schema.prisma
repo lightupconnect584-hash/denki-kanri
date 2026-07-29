@@ -209,6 +209,14 @@ model SalesEntry {
   createdAt DateTime @default(now())
 }
 
+// 積水担当者などの電話番号リスト（折り返し先への混入を自動除外する）
+model StaffPhone {
+  id        String   @id @default(cuid())
+  phone     String   @unique // 数字のみに正規化して保存
+  label     String   @default("") // 誰の番号か（例: 佐藤さん・埼玉支店）
+  createdAt DateTime @default(now())
+}
+
 // 毎月の経費マスタ（全月共通で計上）
 model ExpenseItem {
   id        String   @id @default(cuid())

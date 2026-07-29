@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const runtime = "nodejs";
@@ -140,18 +141,20 @@ export async function POST(req: NextRequest) {
       const digits = data.contractorPhone.replace(/[^0-9]/g, "");
       if (digits && /^0+$/.test(digits)) data.contractorPhone = "";
     }
-    // 折り返し先が積水担当者と判定された場合は自動入力しない
-    // （担当者の連絡先が「折り返し先」として協力会社に見える事故を防ぐ。番号は原本で確認できる）
-    if (data) {
-      const norm = (v: unknown) => (typeof v === "string" ? v.replace(/[\s　]/g, "") : "");
-      const cName = norm(data.contractorName);
-      const sameAsManager = !!cName && (cName === norm(data.managerName) || cName === norm(data.afterManagerName));
-      if (data.contractorIsStaff === true || sameAsManager) {
-        data.contractorName = "";
-        data.contractorPhone = "";
-        data.contractorIsStaff = true;
+    // 📵 担当者番号リストと照合：登録済みの番号なら折り返し先から確実に除外
+    // （基本は入居者の連絡先なのでそのまま自動入力。担当者と分かっている番号だけ弾く）
+    if (data && typeof data.contractorPhone === "string" && data.contractorPhone) {
+      const digits = data.contractorPhone.replace(/[^0-9]/g, "");
+      if (digits) {
+        const hit = await prisma.staffPhone.findUnique({ where: { phone: digits } }).catch(() => null);
+        if (hit) {
+          data.contractorName = "";
+          data.contractorPhone = "";
+          data.staffPhoneExcluded = hit.label || "担当者リストの番号";
+        }
       }
     }
+    // contractorIsStaff（AIの推測）は自動入力は止めず、フォーム側で警告表示にのみ使う
     return NextResponse.json({ data });
   } catch (e) {
     console.error("[extract] error:", e);

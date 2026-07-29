@@ -218,6 +218,33 @@ export default function SettingsPage() {
     }).catch(() => {});
   };
 
+  // 📵 担当者番号リスト（折り返し先への混入を自動除外）
+  const [staffPhones, setStaffPhones] = useState<{ id: string; phone: string; label: string }[]>([]);
+  const [newStaffPhone, setNewStaffPhone] = useState("");
+  const [newStaffLabel, setNewStaffLabel] = useState("");
+  const loadStaffPhones = async () => {
+    const r = await fetch("/api/staff-phones");
+    if (r.ok) setStaffPhones(await r.json());
+  };
+  const addStaffPhone = async () => {
+    const phone = newStaffPhone.replace(/[^0-9]/g, "");
+    if (phone.length < 10) { alert("電話番号を確認してください"); return; }
+    const r = await fetch("/api/staff-phones", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, label: newStaffLabel.trim() }),
+    });
+    if (r.ok) { setNewStaffPhone(""); setNewStaffLabel(""); loadStaffPhones(); }
+  };
+  const deleteStaffPhone = async (id: string) => {
+    await fetch("/api/staff-phones", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    loadStaffPhones();
+  };
+
   // 🔗 Googleカレンダー連携（OAuth・即時反映）
   const [googleStatus, setGoogleStatus] = useState<{ configured: boolean; connected: boolean; email: string | null } | null>(null);
   const [gcCalendars, setGcCalendars] = useState<{ id: string; name: string; primary: boolean }[]>([]);
@@ -1169,6 +1196,51 @@ export default function SettingsPage() {
                   <button
                     onClick={addClient}
                     disabled={!newClientName.trim()}
+                    className="text-xs bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700 disabled:opacity-40 transition shrink-0"
+                  >追加</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 📵 担当者番号リスト（管理者のみ） */}
+        {role === "ADMIN" && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 mb-3">
+            <button onClick={() => { toggleSection("staffPhones"); loadStaffPhones(); }} className="w-full flex items-center justify-between px-4 py-3.5">
+              <span className="text-sm font-bold text-gray-100">📵 担当者番号リスト</span>
+              <span className="text-gray-400 text-xs">{isOpen("staffPhones") ? "▲" : "▼"}</span>
+            </button>
+            {isOpen("staffPhones") && (
+              <div className="px-4 pb-4 border-t border-gray-700 pt-3 space-y-2">
+                <p className="text-xs text-gray-500">積水の担当者などの電話番号を登録しておくと、依頼書の読み取りで折り返し先にこの番号があった場合に自動で除外します（協力会社に担当者の連絡先が流れるのを防止）。</p>
+                <div className="divide-y divide-gray-700/60">
+                  {staffPhones.map((sp) => (
+                    <div key={sp.id} className="flex items-center gap-2 py-2">
+                      <span className="text-sm text-gray-100 font-mono shrink-0">{sp.phone.replace(/(\d{3,4})(\d{3,4})(\d{4})$/, "$1-$2-$3")}</span>
+                      <span className="text-xs text-gray-400 flex-1 min-w-0 truncate">{sp.label}</span>
+                      <button onClick={() => deleteStaffPhone(sp.id)} className="text-gray-600 hover:text-red-400 text-xs shrink-0">✕</button>
+                    </div>
+                  ))}
+                  {staffPhones.length === 0 && <p className="text-xs text-gray-600 py-2">まだ登録されていません</p>}
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    value={newStaffPhone}
+                    onChange={(e) => setNewStaffPhone(e.target.value)}
+                    inputMode="tel"
+                    placeholder="電話番号"
+                    className="flex-1 min-w-0 bg-gray-900/60 text-sm text-gray-100 rounded px-3 py-2 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                  />
+                  <input
+                    value={newStaffLabel}
+                    onChange={(e) => setNewStaffLabel(e.target.value)}
+                    placeholder="メモ（例: 佐藤さん）"
+                    className="flex-1 min-w-0 bg-gray-900/60 text-sm text-gray-100 rounded px-3 py-2 border border-gray-700 focus:border-blue-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={addStaffPhone}
+                    disabled={newStaffPhone.replace(/[^0-9]/g, "").length < 10}
                     className="text-xs bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700 disabled:opacity-40 transition shrink-0"
                   >追加</button>
                 </div>

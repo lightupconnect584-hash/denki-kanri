@@ -414,6 +414,18 @@ export default function NewProjectPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 必須チェック：取引先と担当（担当選択はフォーム外にあるためここで検証）
+    if (!form.clientId) {
+      document.getElementById("client-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    const sc = clients.find((c) => c.id === form.clientId);
+    if (sc?.name.includes("積水") && !form.assignedToId) {
+      document.getElementById("assignee-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     setLoading(true);
 
     // 自社案件で物件名が空の場合は自動命名（一覧表示が空にならないように）
@@ -511,7 +523,7 @@ export default function NewProjectPage() {
         <div className="min-w-0 lg:order-1">
 
         {/* ① まず取引先を選ぶ */}
-        <div className={`rounded-xl border p-4 mb-4 ${form.clientId ? "bg-gray-800 border-gray-700" : "bg-gray-800 border-blue-600"}`}>
+        <div id="client-section" className={`rounded-xl border p-4 mb-4 scroll-mt-20 ${form.clientId ? "bg-gray-800 border-gray-700" : "bg-gray-800 border-blue-600"}`}>
           <label className="block text-sm font-bold text-gray-100 mb-2">① まず取引先を選ぶ *</label>
           <div className="grid grid-cols-2 gap-2">
             {clients.map((c) => {
@@ -549,13 +561,18 @@ export default function NewProjectPage() {
               </div>
             );
           }
-          // 積水：担当を選ぶ
+          // 積水：担当を選ぶ（未選択の間はアンバーで強調）
           return (
-            <div className={`rounded-xl border p-4 mb-4 ${form.assignedToId ? "bg-gray-800 border-gray-700" : "bg-gray-800 border-blue-600"}`}>
-              <label className="block text-sm font-bold text-gray-100 mb-2">② 担当を選ぶ *</label>
+            <div id="assignee-section" className={`rounded-xl border p-4 mb-4 scroll-mt-20 transition ${form.assignedToId ? "bg-gray-800 border-gray-700" : "bg-amber-900/20 border-amber-500 border-2"}`}>
+              <label className="flex items-center gap-2 text-sm font-bold text-gray-100 mb-2">
+                ② 担当を選ぶ *
+                {!form.assignedToId && (
+                  <span className="text-xs bg-amber-500 text-gray-900 font-bold px-2 py-0.5 rounded-full animate-pulse">⚠ 未選択・登録に必須</span>
+                )}
+              </label>
               <select required value={form.assignedToId}
                 onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
-                className={inputClass}>
+                className={`${inputClass} ${!form.assignedToId ? "border-amber-500" : ""}`}>
                 <option value="">担当を選択してください</option>
                 {myId && <option value={myId}>🔧 自分で施工（{myName || "管理者"}）</option>}
                 {partners.map((p) => (
@@ -976,6 +993,17 @@ export default function NewProjectPage() {
             )}
           </div>
 
+          {(() => {
+            const sc = clients.find((c) => c.id === form.clientId);
+            const needsAssignee = !!sc?.name.includes("積水") && !form.assignedToId;
+            if (!form.clientId) {
+              return <p className="text-xs text-center text-amber-300 font-medium">⚠ ①取引先が未選択です（選ぶまで登録できません）</p>;
+            }
+            if (needsAssignee) {
+              return <p className="text-xs text-center text-amber-300 font-medium">⚠ ②担当（協力会社 / 自分で施工）が未選択です（選ぶまで登録できません）</p>;
+            }
+            return null;
+          })()}
           <button type="submit" disabled={loading || uploading}
             className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition shadow-sm">
             {loading ? "登録中..." : "依頼を登録する"}

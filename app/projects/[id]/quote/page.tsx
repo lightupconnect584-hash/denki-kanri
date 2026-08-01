@@ -18,7 +18,7 @@ export default function QuotePage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (status === "unauthenticated") {
-    router.push("/login");
+    router.push("/login?callbackUrl=" + encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"));
     return null;
   }
 

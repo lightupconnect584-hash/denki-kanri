@@ -126,7 +126,7 @@ function MessagesInner() {
   };
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push("/login?callbackUrl=" + encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"));
   }, [status, router]);
 
   const fetchThreads = useCallback(async () => {

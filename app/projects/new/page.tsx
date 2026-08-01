@@ -295,7 +295,7 @@ export default function NewProjectPage() {
   }, []);
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push("/login?callbackUrl=" + encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"));
     if (status === "authenticated" && role !== "ADMIN") router.push("/dashboard");
   }, [status, role, router]);
 

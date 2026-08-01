@@ -57,7 +57,7 @@ export default function CalendarPage() {
   };
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push("/login?callbackUrl=" + encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"));
   }, [status, router]);
 
   useEffect(() => {

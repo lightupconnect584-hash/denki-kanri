@@ -87,7 +87,7 @@ export default function ManagePage() {
   }, [id]);
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push("/login?callbackUrl=" + encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"));
     if (status === "authenticated") fetchData();
   }, [status, fetchData, router]);
 

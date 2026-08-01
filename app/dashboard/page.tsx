@@ -190,7 +190,7 @@ export default function DashboardPage() {
   }, [role]);
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    if (status === "unauthenticated") router.push("/login?callbackUrl=" + encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"));
   }, [status, router]);
 
   // パートナーの基本情報未入力チェック

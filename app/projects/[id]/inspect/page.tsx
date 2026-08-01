@@ -152,7 +152,7 @@ export default function InspectPage() {
   const [uploadError, setUploadError] = useState("");
 
   if (status === "unauthenticated") {
-    router.push("/login");
+    router.push("/login?callbackUrl=" + encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"));
     return null;
   }
 

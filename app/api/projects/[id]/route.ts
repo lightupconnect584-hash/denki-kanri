@@ -231,11 +231,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     data: updateData,
   });
 
-  // 完了になったら売上集計に自動登録（今の月に仮置き。月末の締めで最終調整）
+  // 完了になったら売上集計に自動登録
+  // 計上月は「請求月の上書き > 作業日（最新の完了報告）> 今月」の順で決める
+  // （月をまたいで完了ボタンを押しても、先月の作業は先月の売上に入る）
   if (["CONFIRMED", "COMPLETED"].includes(body.status)) {
+    let ym = project.billingMonth || "";
+    if (!ym) {
+      const insp = await prisma.inspection.findMany({
+        where: { projectId: project.id },
+        select: { workDate: true },
+      });
+      if (insp.length > 0) {
+        const d = insp.reduce((a, b) => (a > b.workDate ? a : b.workDate), insp[0].workDate);
+        ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      }
+    }
     await syncSalesEntryForProject(
       { id: project.id, title: project.title, location: project.location, amount: project.amount, assignedToId: project.assignedToId, salesAmount: project.salesAmount, materialCost: project.materialCost, region: project.region, clientId: project.clientId },
-      currentMonthKey()
+      ym || currentMonthKey()
     );
   }
 

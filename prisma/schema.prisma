@@ -39,6 +39,7 @@ model User {
   lastLoginAt  DateTime?
 
   assignedProjects Project[]   @relation("AssignedTo")
+  subAssignedProjects Project[] @relation("SubAssigned")
   createdProjects  Project[]   @relation("CreatedBy")
   inspections      Inspection[]
   quotes           Quote[]
@@ -119,6 +120,9 @@ model Project {
 
   assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
   assignedToId String?
+
+  // 共同担当（応援）。閲覧・チャット・完了報告・通知の対象。金額・見積・売上は主担当基準
+  subAssignees User[] @relation("SubAssigned")
 
   createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
   createdById String

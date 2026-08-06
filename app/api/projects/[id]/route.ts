@@ -15,12 +15,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
 
-  // 協力会社は自分に割り当てられた案件のみ閲覧可
-  const project = await prisma.project.findUnique({
-    where: role === "PARTNER" ? { id, assignedToId: userId } : { id },
+  // 協力会社は自分が担当（主担当 or 共同担当）の案件のみ閲覧可
+  const project = await prisma.project.findFirst({
+    where: role === "PARTNER"
+      ? { id, OR: [{ assignedToId: userId }, { subAssignees: { some: { id: userId } } }] }
+      : { id },
     include: {
       client: { select: { id: true, name: true, color: true } },
       assignedTo: { select: { id: true, name: true, companyName: true, email: true, phone: true, color: true, avatarUrl: true } },
+      subAssignees: { select: { id: true, name: true, companyName: true, phone: true, color: true, avatarUrl: true } },
       createdBy: { select: { name: true, avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true } },
       projectPhotos: true,
       invoices: {
@@ -114,6 +117,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     updateData.assignedToId = body.assignedToId !== "" ? body.assignedToId : null;
     if (role === "ADMIN" && body.assignedToId) updateData.notifyPartnerAt = new Date();
   }
+  // 共同担当の設定（管理者のみ）。配列で全置き換え
+  if (Array.isArray(body.subAssigneeIds) && role === "ADMIN") {
+    updateData.subAssignees = { set: body.subAssigneeIds.filter((v: unknown) => typeof v === "string" && v).map((sid: string) => ({ id: sid })) };
+    if (body.subAssigneeIds.length > 0) updateData.notifyPartnerAt = new Date();
+  }
 
   // 保留の設定/解除（管理者・担当協力会社どちらも可）
   if (body.onHold !== undefined) {
@@ -136,10 +144,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }).catch(() => {});
   }
 
-  // 訪問予定日・時間帯は担当者（協力会社、または自分担当の管理者）のみ変更可
+  // 訪問予定日・時間帯は担当者（主担当・共同担当の協力会社、または管理者）のみ変更可
   if (body.visitDate !== undefined || body.visitTime !== undefined) {
-    const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true } });
-    if ((project?.assignedToId === userId || role === "ADMIN") && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
+    const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true, subAssignees: { select: { id: true } } } });
+    const isAssignee = project?.assignedToId === userId || !!project?.subAssignees.some((u) => u.id === userId);
+    if ((isAssignee || role === "ADMIN") && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
       if (body.visitDate !== undefined) updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
       if (body.visitTime !== undefined) updateData.visitTime = body.visitTime || null;
     }

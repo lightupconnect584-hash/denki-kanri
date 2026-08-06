@@ -116,6 +116,7 @@ interface Project {
   status: string;
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string; phone: string | null; color: string | null; avatarUrl: string | null } | null;
+  subAssignees: { id: string; name: string; companyName: string | null; phone: string | null; color: string | null; avatarUrl: string | null }[];
   createdBy: { name: string; avatarUrl: string | null; phone: string | null; thankYouEnabled: boolean; thankYouImageUrl: string | null };
   projectPhotos: ProjectPhoto[];
   inspections: Inspection[];
@@ -656,7 +657,7 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const isAssigned = project.assignedTo?.id === userId;
+  const isAssigned = project.assignedTo?.id === userId || (project.subAssignees ?? []).some((u) => u.id === userId);
   // 担当者（協力会社、または自分担当の管理者）は報告・受注操作が可能
   const canInspect = isAssigned && (role === "PARTNER" || role === "ADMIN");
   const isSelfJob = role === "ADMIN" && isAssigned; // 自社施工案件
@@ -1209,6 +1210,37 @@ export default function ProjectDetailPage() {
                   <div className="flex items-center gap-2 mt-1">{inner}</div>
                 );
               })()}
+              {/* 共同担当（応援） */}
+              {(project.subAssignees ?? []).length > 0 && (
+                <div className="mt-2 space-y-1.5">
+                  <p className="text-xs text-gray-500">共同担当</p>
+                  {project.subAssignees.map((u) => {
+                    const tel = u.phone?.replace(/[^0-9+]/g, "");
+                    const avatar = u.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={u.avatarUrl.startsWith("http") ? u.avatarUrl : `/uploads/${u.avatarUrl}`} alt={u.name} className="w-6 h-6 rounded-full object-cover border border-gray-700" />
+                    ) : (
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-gray-700" style={{ backgroundColor: u.color || "#9ca3af" }}>
+                        {(u.companyName || u.name)[0]?.toUpperCase()}
+                      </span>
+                    );
+                    const row = (
+                      <>
+                        <span className="relative shrink-0">
+                          {avatar}
+                          {tel && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-600 border border-gray-800 flex items-center justify-center text-[7px] leading-none">📞</span>}
+                        </span>
+                        <span className="text-sm text-gray-200 min-w-0 truncate">{u.companyName || u.name}</span>
+                      </>
+                    );
+                    return tel ? (
+                      <a key={u.id} href={`tel:${tel}`} className="flex items-center gap-2 active:scale-[0.98] transition">{row}</a>
+                    ) : (
+                      <div key={u.id} className="flex items-center gap-2">{row}</div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
           <div className="col-span-2">

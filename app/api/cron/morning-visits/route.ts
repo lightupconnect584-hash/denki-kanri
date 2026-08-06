@@ -32,17 +32,19 @@ export async function GET(req: NextRequest) {
       visitDate: { gte: dayStart, lt: dayEnd },
       status: { in: ACTIVE_STATUSES },
       onHold: false,
-      assignedToId: { not: null },
+      OR: [{ assignedToId: { not: null } }, { subAssignees: { some: {} } }],
     },
-    select: { title: true, roomNumber: true, visitTime: true, assignedToId: true },
+    select: { title: true, roomNumber: true, visitTime: true, assignedToId: true, subAssignees: { select: { id: true } } },
   });
 
-  // 担当者ごとにまとめて1通に
+  // 担当者（主担当＋共同担当）ごとにまとめて1通に
   const byUser = new Map<string, typeof projects>();
   for (const p of projects) {
-    const uid = p.assignedToId!;
-    if (!byUser.has(uid)) byUser.set(uid, []);
-    byUser.get(uid)!.push(p);
+    const ids = [p.assignedToId, ...p.subAssignees.map((u) => u.id)].filter((v): v is string => !!v);
+    for (const uid of new Set(ids)) {
+      if (!byUser.has(uid)) byUser.set(uid, []);
+      byUser.get(uid)!.push(p);
+    }
   }
 
   let sent = 0;

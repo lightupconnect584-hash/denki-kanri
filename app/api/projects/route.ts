@@ -13,10 +13,16 @@ export async function GET() {
   const role = (session.user as { role: string }).role;
 
   const projects = await prisma.project.findMany({
-    where: role === "ADMIN" ? {} : { assignedToId: userId, status: { not: "REJECTED" } },
+    where: role === "ADMIN"
+      ? {}
+      : {
+          OR: [{ assignedToId: userId }, { subAssignees: { some: { id: userId } } }],
+          status: { not: "REJECTED" },
+        },
     include: {
       client: { select: { id: true, name: true, color: true } },
       assignedTo: { select: { id: true, name: true, companyName: true, color: true } },
+      subAssignees: { select: { id: true, name: true, companyName: true, color: true } },
       createdBy: { select: { name: true, avatarUrl: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true } },
       // 一覧では workDate / status しか使わない。写真・見積もり本文は転送しない（通信量削減）
       inspections: { select: { id: true, workDate: true } },

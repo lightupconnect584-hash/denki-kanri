@@ -39,6 +39,7 @@ export default function EditProjectPage() {
     materialCost: "",
     dueDate: "",
     assignedToId: "",
+    subAssigneeIds: [] as string[],
     preferredContactAt: "",
     preferredVisitAt: "",
     moveInDate: "",
@@ -91,6 +92,7 @@ export default function EditProjectPage() {
             materialCost: data.materialCost != null ? String(data.materialCost) : "",
             dueDate: data.dueDate ? data.dueDate.slice(0, 10) : "",
             assignedToId: data.assignedTo?.id || "",
+            subAssigneeIds: (data.subAssignees || []).map((u: { id: string }) => u.id),
             preferredContactAt: data.preferredContactAt || "",
             preferredVisitAt: data.preferredVisitAt || "",
             moveInDate: data.moveInDate || "",
@@ -115,7 +117,8 @@ export default function EditProjectPage() {
     const res = await fetch(`/api/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      // 主担当は共同担当リストから除外して送る
+      body: JSON.stringify({ ...form, subAssigneeIds: form.subAssigneeIds.filter((v) => v !== form.assignedToId) }),
     });
 
     if (res.ok) {
@@ -439,6 +442,29 @@ export default function EditProjectPage() {
                 <option key={p.id} value={p.id}>{p.companyName || p.name}</option>
               ))}
             </select>
+          </div>
+
+          {/* 共同担当（応援）。主担当と一緒に案件を見られる・報告できる */}
+          <div>
+            <label className="block text-sm font-medium text-gray-200 mb-1">共同担当（任意・複数選択可）</label>
+            <div className="flex flex-wrap gap-2">
+              {[...(myId ? [{ id: myId, name: myName || "管理者", companyName: null as string | null, self: true }] : []), ...partners.map((p) => ({ ...p, self: false }))]
+                .filter((p) => p.id !== form.assignedToId)
+                .map((p) => {
+                  const on = form.subAssigneeIds.includes(p.id);
+                  return (
+                    <button key={p.id} type="button"
+                      onClick={() => setForm({
+                        ...form,
+                        subAssigneeIds: on ? form.subAssigneeIds.filter((v) => v !== p.id) : [...form.subAssigneeIds, p.id],
+                      })}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition ${on ? "bg-blue-600 text-white border-blue-600" : "bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-400"}`}>
+                      {on ? "✓ " : ""}{p.self ? `🔧 自分（${p.name}）` : (p.companyName || p.name)}
+                    </button>
+                  );
+                })}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">共同担当は案件の閲覧・チャット・完了報告ができ、通知と朝の予定にも入ります（金額・見積は主担当基準）</p>
           </div>
 
           <button type="submit" disabled={saving}

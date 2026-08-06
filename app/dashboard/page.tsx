@@ -379,13 +379,19 @@ export default function DashboardPage() {
   const rejectedProjects = projects.filter((p) => p.status === "REJECTED");
 
   const searchQ = search.trim().toLowerCase();
-  const searchedActive = searchQ
-    ? activeProjects.filter((p) => {
-        const hay = [p.title, p.location, p.workType, p.client?.name, p.assignedTo?.companyName, p.assignedTo?.name]
-          .filter(Boolean).join(" ").toLowerCase();
-        return hay.includes(searchQ);
-      })
-    : activeProjects;
+  const matchesSearch = (p: Project) => {
+    const hay = [p.title, p.location, p.workType, p.client?.name, p.assignedTo?.companyName, p.assignedTo?.name]
+      .filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(searchQ);
+  };
+  const searchedActive = searchQ ? activeProjects.filter(matchesSearch) : activeProjects;
+  // 検索時は過去分（完了済み・保留中・却下など進行中以外）もヒットさせる（新しい順）
+  const searchedPast = searchQ
+    ? projects
+        .filter((p) => !activeProjects.includes(p) && matchesSearch(p))
+        .sort((a, b) => (getWorkDate(b)?.getTime() ?? 0) - (getWorkDate(a)?.getTime() ?? 0))
+        .slice(0, 60)
+    : [];
   const sortedActive = [...searchedActive].sort((a, b) => {
     // 未読を常に上位
     const aU = isUnread(a) ? 0 : 1;
@@ -609,7 +615,7 @@ export default function DashboardPage() {
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            {searchQ && <span className="text-xs text-gray-400 shrink-0">{sortedActive.length}件</span>}
+            {searchQ && <span className="text-xs text-gray-400 shrink-0">{sortedActive.length + searchedPast.length}件</span>}
             <button
               onClick={() => { setSearch(""); setShowSearch(false); }}
               className="text-gray-500 hover:text-gray-300 text-sm shrink-0 px-1"
@@ -826,10 +832,12 @@ export default function DashboardPage() {
             )}
 
             {sortedActive.length === 0 ? (
+              searchQ && searchedPast.length > 0 ? null : (
               <div className="text-center py-16 text-gray-400">
                 <p className="text-4xl mb-3">📋</p>
                 <p>{searchQ ? `「${search}」に一致する依頼はありません` : "進行中の依頼がありません"}</p>
               </div>
+              )
             ) : role === "ADMIN" ? (
               (() => {
                 const selfActive = sortedActive.filter((p) => !!myId && p.assignedTo?.id === myId);
@@ -883,6 +891,18 @@ export default function DashboardPage() {
               })()
             ) : (
               <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2 xl:gap-3">{sortedActive.map(renderProject)}</div>
+            )}
+
+            {/* 🗂 検索時のみ：過去分（完了済み・保留・却下など）もヒットさせる */}
+            {searchQ && searchedPast.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <span className="w-1 h-4 bg-gray-500 rounded-full" />
+                  <h3 className="text-sm font-bold text-gray-300">🗂 過去の依頼</h3>
+                  <span className="text-xs text-gray-500">（{searchedPast.length}件{searchedPast.length >= 60 ? "・最新60件まで表示" : ""}）</span>
+                </div>
+                <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2 xl:gap-3 opacity-80">{searchedPast.map(renderProject)}</div>
+              </div>
             )}
 
           </div>

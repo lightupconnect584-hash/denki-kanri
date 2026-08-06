@@ -68,6 +68,12 @@ export async function syncSalesEntryForProject(
       }
       return;
     }
+    // 応援費（共同担当への支払い）も外注費に含める
+    const subAgg = await prisma.projectSubAssignee.aggregate({
+      where: { projectId: project.id },
+      _sum: { amount: true },
+    });
+    const subSum = subAgg._sum.amount ?? 0;
     const max = await prisma.salesEntry.aggregate({
       where: { yearMonth: month },
       _max: { order: true },
@@ -82,7 +88,8 @@ export async function syncSalesEntryForProject(
         sales: project.salesAmount ?? (selfAssigned ? (project.amount ?? 0) : 0),
         // 材料費: 自社施工で未入力なら1,000円を既定値として計上
         material: project.materialCost ?? (selfAssigned ? 1000 : 0),
-        outsource: selfAssigned ? 0 : (project.amount ?? 0),
+        // 外注費 = 主担当への支払い（自社施工は0）＋ 応援費
+        outsource: (selfAssigned ? 0 : (project.amount ?? 0)) + subSum,
         projectId: project.id,
         order: (max._max.order ?? -1) + 1,
       },

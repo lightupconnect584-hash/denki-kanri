@@ -142,6 +142,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       });
     }
     if (ids.length > 0) updateData.notifyPartnerAt = new Date();
+    // 売上集計に計上済みの案件は、外注費（主担当の金額＋応援費）を追従させる
+    const entry = await prisma.salesEntry.findUnique({ where: { projectId: id }, select: { id: true } });
+    if (entry) {
+      const proj = await prisma.project.findUnique({ where: { id }, select: { amount: true, assignedToId: true } });
+      let selfAssigned = false;
+      if (proj?.assignedToId) {
+        const a = await prisma.user.findUnique({ where: { id: proj.assignedToId }, select: { role: true } });
+        selfAssigned = a?.role === "ADMIN";
+      }
+      const agg = await prisma.projectSubAssignee.aggregate({ where: { projectId: id }, _sum: { amount: true } });
+      await prisma.salesEntry.update({
+        where: { id: entry.id },
+        data: { outsource: (selfAssigned ? 0 : (proj?.amount ?? 0)) + (agg._sum.amount ?? 0) },
+      });
+    }
   }
 
   // 保留の設定/解除（管理者・担当協力会社どちらも可）

@@ -19,6 +19,7 @@ interface Project {
   billingMonth: string | null;
   inspections: { workDate: string }[];
   assignedTo: { id: string; name: string; companyName: string | null } | null;
+  subAssignees?: { id: string; amount: number | null }[];
 }
 
 interface MonthlyInvoice {
@@ -191,7 +192,7 @@ export default function BillingPage() {
   };
 
   const myProjects = useMemo(() => {
-    if (role === "PARTNER") return projects.filter((p) => p.assignedTo?.id === userId);
+    if (role === "PARTNER") return projects.filter((p) => p.assignedTo?.id === userId || (p.subAssignees ?? []).some((u) => u.id === userId));
     // 自社案件は完了済（請求・締め管理）には出さない（売上集計側で管理）
     return projects.filter((p) => p.assignedTo?.id !== userId);
   }, [projects, role, userId]);

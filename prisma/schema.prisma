@@ -39,7 +39,7 @@ model User {
   lastLoginAt  DateTime?
 
   assignedProjects Project[]   @relation("AssignedTo")
-  subAssignedProjects Project[] @relation("SubAssigned")
+  subAssignments ProjectSubAssignee[]
   createdProjects  Project[]   @relation("CreatedBy")
   inspections      Inspection[]
   quotes           Quote[]
@@ -121,8 +121,8 @@ model Project {
   assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
   assignedToId String?
 
-  // 共同担当（応援）。閲覧・チャット・完了報告・通知の対象。金額・見積・売上は主担当基準
-  subAssignees User[] @relation("SubAssigned")
+  // 共同担当（応援）。閲覧・チャット・完了報告・通知の対象
+  subAssignees ProjectSubAssignee[]
 
   createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
   createdById String
@@ -211,6 +211,18 @@ model SalesEntry {
   projectId String?  @unique      // 完了案件から取り込んだ場合の元案件
   order     Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+// 共同担当（応援）: 案件×協力会社ごとに応援費を持てる
+model ProjectSubAssignee {
+  id        String   @id @default(cuid())
+  amount    Int?     // 応援費（税別）。本人と管理者のみ閲覧可
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  @@unique([projectId, userId])
 }
 
 // 積水担当者などの電話番号リスト（折り返し先への混入を自動除外する）

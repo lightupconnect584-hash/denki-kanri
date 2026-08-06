@@ -22,8 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // 協力会社は自分の案件のみコメント可
     if (role === "PARTNER") {
-      const proj = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, subAssignees: { select: { id: true } } } });
-      const ok = proj?.assignedToId === userId || !!proj?.subAssignees.some((u) => u.id === userId);
+      const proj = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, subAssignees: { select: { userId: true } } } });
+      const ok = proj?.assignedToId === userId || !!proj?.subAssignees.some((u) => u.userId === userId);
       if (!ok) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -16,13 +16,13 @@ export async function GET() {
     where: role === "ADMIN"
       ? {}
       : {
-          OR: [{ assignedToId: userId }, { subAssignees: { some: { id: userId } } }],
+          OR: [{ assignedToId: userId }, { subAssignees: { some: { userId } } }],
           status: { not: "REJECTED" },
         },
     include: {
       client: { select: { id: true, name: true, color: true } },
       assignedTo: { select: { id: true, name: true, companyName: true, color: true } },
-      subAssignees: { select: { id: true, name: true, companyName: true, color: true } },
+      subAssignees: { select: { amount: true, user: { select: { id: true, name: true, companyName: true, color: true } } } },
       createdBy: { select: { name: true, avatarUrl: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true } },
       // 一覧では workDate / status しか使わない。写真・見積もり本文は転送しない（通信量削減）
       inspections: { select: { id: true, workDate: true } },
@@ -32,17 +32,28 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
+  // 共同担当を平坦化（[{id,name,companyName,color,amount}]の形に）
+  const flattened = projects.map((p) => ({
+    ...p,
+    subAssignees: p.subAssignees.map((sa) => ({ ...sa.user, amount: sa.amount })),
+  }));
+
   // 協力会社には売上（積水請求額）・材料費を見せない
   if (role === "PARTNER") {
-    const sanitized = projects.map((p) => {
+    const sanitized = flattened.map((p) => {
       const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, client: _cl, ...rest } = p as typeof p & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
       void _s; void _m; void _mn; void _an; void _memo; void _sn; void _cl;
-      return rest;
+      // 応援費: 自分の分だけ見える。共同担当として入っている案件は「金額」も自分の応援費に置き換え
+      const isMain = rest.assignedToId === userId;
+      const mySub = rest.subAssignees.find((u) => u.id === userId);
+      const subAssignees = rest.subAssignees.map((u) => ({ ...u, amount: u.id === userId ? u.amount : null }));
+      const amount = isMain ? rest.amount : mySub ? (mySub.amount ?? null) : rest.amount;
+      return { ...rest, amount, subAssignees };
     });
     return NextResponse.json(sanitized);
   }
   // 管理者には協力会社メモを見せない
-  const adminList = projects.map((p) => {
+  const adminList = flattened.map((p) => {
     const { partnerMemo: _pm, ...rest } = p as typeof p & { partnerMemo: string | null };
     void _pm;
     return rest;

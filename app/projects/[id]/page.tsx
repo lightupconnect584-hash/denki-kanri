@@ -116,7 +116,7 @@ interface Project {
   status: string;
   dueDate: string | null;
   assignedTo: { id: string; name: string; companyName: string | null; email: string; phone: string | null; color: string | null; avatarUrl: string | null } | null;
-  subAssignees: { id: string; name: string; companyName: string | null; phone: string | null; color: string | null; avatarUrl: string | null }[];
+  subAssignees: { id: string; name: string; companyName: string | null; phone: string | null; color: string | null; avatarUrl: string | null; amount: number | null }[];
   createdBy: { name: string; avatarUrl: string | null; phone: string | null; thankYouEnabled: boolean; thankYouImageUrl: string | null };
   projectPhotos: ProjectPhoto[];
   inspections: Inspection[];
@@ -1231,6 +1231,9 @@ export default function ProjectDetailPage() {
                           {tel && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-600 border border-gray-800 flex items-center justify-center text-[7px] leading-none">📞</span>}
                         </span>
                         <span className="text-sm text-gray-200 min-w-0 truncate">{u.companyName || u.name}</span>
+                        {u.amount != null && (
+                          <span className="text-xs text-gray-400 shrink-0">¥{u.amount.toLocaleString()}{u.id === userId ? "（あなたの応援費・税別）" : ""}</span>
+                        )}
                       </>
                     );
                     return tel ? (

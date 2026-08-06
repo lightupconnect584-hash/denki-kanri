@@ -18,12 +18,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // 協力会社は自分が担当（主担当 or 共同担当）の案件のみ閲覧可
   const project = await prisma.project.findFirst({
     where: role === "PARTNER"
-      ? { id, OR: [{ assignedToId: userId }, { subAssignees: { some: { id: userId } } }] }
+      ? { id, OR: [{ assignedToId: userId }, { subAssignees: { some: { userId } } }] }
       : { id },
     include: {
       client: { select: { id: true, name: true, color: true } },
       assignedTo: { select: { id: true, name: true, companyName: true, email: true, phone: true, color: true, avatarUrl: true } },
-      subAssignees: { select: { id: true, name: true, companyName: true, phone: true, color: true, avatarUrl: true } },
+      subAssignees: { select: { amount: true, user: { select: { id: true, name: true, companyName: true, phone: true, color: true, avatarUrl: true } } } },
       createdBy: { select: { name: true, avatarUrl: true, phone: true, thankYouEnabled: true, thankYouImageUrl: true } },
       projectPhotos: true,
       invoices: {
@@ -60,16 +60,26 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   });
 
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // 共同担当を平坦化（応援費は本人と管理者のみ閲覧可）
+  const flat = {
+    ...project,
+    subAssignees: project.subAssignees.map((sa) => ({ ...sa.user, amount: sa.amount })),
+  };
   // 協力会社には売上（積水請求額）・材料費・管理者メモを見せない（協力会社メモは見せる）
   if (role === "PARTNER") {
-    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, client: _cl, ...rest } = project as typeof project & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
+    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, client: _cl, ...rest } = flat as typeof flat & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
     void _s; void _m; void _mn; void _an; void _memo; void _sn; void _cl;
     // 依頼書原本の添付は協力会社に見せない（自社案件を後から付け替えた場合の保険）
     rest.projectPhotos = rest.projectPhotos.filter((ph) => !ph.originalName.includes("依頼書原本"));
-    return NextResponse.json(rest);
+    // 応援費: 自分の分だけ見える。共同担当として見ている場合は「金額」も自分の応援費に置き換え
+    const isMain = rest.assignedToId === userId;
+    const mySub = rest.subAssignees.find((u) => u.id === userId);
+    const subAssignees = rest.subAssignees.map((u) => ({ ...u, amount: u.id === userId ? u.amount : null }));
+    const amount = isMain ? rest.amount : mySub ? (mySub.amount ?? null) : rest.amount;
+    return NextResponse.json({ ...rest, amount, subAssignees });
   }
   // 管理者には協力会社メモを見せない（各自専用）
-  const { partnerMemo: _pm, ...adminView } = project as typeof project & { partnerMemo: string | null };
+  const { partnerMemo: _pm, ...adminView } = flat as typeof flat & { partnerMemo: string | null };
   void _pm;
   return NextResponse.json(adminView);
 }
@@ -117,10 +127,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     updateData.assignedToId = body.assignedToId !== "" ? body.assignedToId : null;
     if (role === "ADMIN" && body.assignedToId) updateData.notifyPartnerAt = new Date();
   }
-  // 共同担当の設定（管理者のみ）。配列で全置き換え
+  // 共同担当の設定（管理者のみ）。配列で全置き換え＋応援費（subAssigneeAmounts: {userId: 金額}）
   if (Array.isArray(body.subAssigneeIds) && role === "ADMIN") {
-    updateData.subAssignees = { set: body.subAssigneeIds.filter((v: unknown) => typeof v === "string" && v).map((sid: string) => ({ id: sid })) };
-    if (body.subAssigneeIds.length > 0) updateData.notifyPartnerAt = new Date();
+    const ids: string[] = body.subAssigneeIds.filter((v: unknown) => typeof v === "string" && v);
+    const amounts: Record<string, unknown> = body.subAssigneeAmounts && typeof body.subAssigneeAmounts === "object" ? body.subAssigneeAmounts : {};
+    await prisma.projectSubAssignee.deleteMany({ where: { projectId: id, ...(ids.length ? { userId: { notIn: ids } } : {}) } });
+    for (const uid of ids) {
+      const raw = amounts[uid];
+      const amt = raw !== undefined && raw !== null && String(raw) !== "" ? parseInt(String(raw)) || null : null;
+      await prisma.projectSubAssignee.upsert({
+        where: { projectId_userId: { projectId: id, userId: uid } },
+        update: { amount: amt },
+        create: { projectId: id, userId: uid, amount: amt },
+      });
+    }
+    if (ids.length > 0) updateData.notifyPartnerAt = new Date();
   }
 
   // 保留の設定/解除（管理者・担当協力会社どちらも可）
@@ -146,8 +167,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // 訪問予定日・時間帯は担当者（主担当・共同担当の協力会社、または管理者）のみ変更可
   if (body.visitDate !== undefined || body.visitTime !== undefined) {
-    const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true, subAssignees: { select: { id: true } } } });
-    const isAssignee = project?.assignedToId === userId || !!project?.subAssignees.some((u) => u.id === userId);
+    const project = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true, status: true, subAssignees: { select: { userId: true } } } });
+    const isAssignee = project?.assignedToId === userId || !!project?.subAssignees.some((u) => u.userId === userId);
     if ((isAssignee || role === "ADMIN") && ["PENDING", "ACCEPTED", "REWORK"].includes(project?.status ?? "")) {
       if (body.visitDate !== undefined) updateData.visitDate = body.visitDate ? new Date(body.visitDate) : null;
       if (body.visitTime !== undefined) updateData.visitTime = body.visitTime || null;

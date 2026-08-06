@@ -40,6 +40,7 @@ export default function EditProjectPage() {
     dueDate: "",
     assignedToId: "",
     subAssigneeIds: [] as string[],
+    subAssigneeAmounts: {} as Record<string, string>,
     preferredContactAt: "",
     preferredVisitAt: "",
     moveInDate: "",
@@ -93,6 +94,9 @@ export default function EditProjectPage() {
             dueDate: data.dueDate ? data.dueDate.slice(0, 10) : "",
             assignedToId: data.assignedTo?.id || "",
             subAssigneeIds: (data.subAssignees || []).map((u: { id: string }) => u.id),
+            subAssigneeAmounts: Object.fromEntries(
+              (data.subAssignees || []).map((u: { id: string; amount?: number | null }) => [u.id, u.amount != null ? String(u.amount) : ""])
+            ),
             preferredContactAt: data.preferredContactAt || "",
             preferredVisitAt: data.preferredVisitAt || "",
             moveInDate: data.moveInDate || "",
@@ -464,7 +468,33 @@ export default function EditProjectPage() {
                   );
                 })}
             </div>
-            <p className="text-xs text-gray-500 mt-1">共同担当は案件の閲覧・チャット・完了報告ができ、通知と朝の予定にも入ります（金額・見積は主担当基準）</p>
+            {/* 応援費（選択した共同担当ごと） */}
+            {form.subAssigneeIds.filter((v) => v !== form.assignedToId).length > 0 && (
+              <div className="mt-2 space-y-2">
+                {form.subAssigneeIds.filter((v) => v !== form.assignedToId).map((uid) => {
+                  const u = [...partners, ...(myId ? [{ id: myId, name: myName || "管理者", companyName: null as string | null }] : [])].find((x) => x.id === uid);
+                  if (!u) return null;
+                  return (
+                    <div key={uid} className="flex items-center gap-2">
+                      <span className="text-xs text-gray-300 w-32 truncate shrink-0">{u.companyName || u.name}</span>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">¥</span>
+                        <input
+                          type="text" inputMode="numeric" placeholder="応援費（税別・任意）"
+                          value={form.subAssigneeAmounts[uid] ? Number(form.subAssigneeAmounts[uid]).toLocaleString() : ""}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[^0-9]/g, "");
+                            setForm({ ...form, subAssigneeAmounts: { ...form.subAssigneeAmounts, [uid]: v } });
+                          }}
+                          className="w-full border border-gray-600 rounded-lg pl-7 pr-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-1">共同担当は案件の閲覧・チャット・完了報告ができ、通知と朝の予定にも入ります。応援費は本人と管理者だけに表示されます（見積・売上は主担当基準）</p>
           </div>
 
           <button type="submit" disabled={saving}

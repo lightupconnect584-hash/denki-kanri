@@ -34,13 +34,13 @@ export async function GET(req: NextRequest) {
       onHold: false,
       OR: [{ assignedToId: { not: null } }, { subAssignees: { some: {} } }],
     },
-    select: { title: true, roomNumber: true, visitTime: true, assignedToId: true, subAssignees: { select: { id: true } } },
+    select: { title: true, roomNumber: true, visitTime: true, assignedToId: true, subAssignees: { select: { userId: true } } },
   });
 
   // 担当者（主担当＋共同担当）ごとにまとめて1通に
   const byUser = new Map<string, typeof projects>();
   for (const p of projects) {
-    const ids = [p.assignedToId, ...p.subAssignees.map((u) => u.id)].filter((v): v is string => !!v);
+    const ids = [p.assignedToId, ...p.subAssignees.map((u) => u.userId)].filter((v): v is string => !!v);
     for (const uid of new Set(ids)) {
       if (!byUser.has(uid)) byUser.set(uid, []);
       byUser.get(uid)!.push(p);

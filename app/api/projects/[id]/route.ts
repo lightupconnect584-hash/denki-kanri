@@ -76,7 +76,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const mySub = rest.subAssignees.find((u) => u.id === userId);
     const subAssignees = rest.subAssignees.map((u) => ({ ...u, amount: u.id === userId ? u.amount : null }));
     const amount = isMain ? rest.amount : mySub ? (mySub.amount ?? null) : rest.amount;
-    return NextResponse.json({ ...rest, amount, subAssignees });
+    // 主担当以外には金額変更履歴（主担当の金額が分かる）を見せない
+    const activityLogs = isMain ? rest.activityLogs : rest.activityLogs.filter((l) => l.action !== "AMOUNT_CHANGED");
+    // 取引先IDの生値も渡さない
+    const { clientId: _cid, ...clean } = rest;
+    void _cid;
+    return NextResponse.json({ ...clean, amount, subAssignees, activityLogs });
   }
   // 管理者には協力会社メモを見せない（各自専用）
   const { partnerMemo: _pm, ...adminView } = flat as typeof flat & { partnerMemo: string | null };

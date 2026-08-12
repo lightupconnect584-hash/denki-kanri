@@ -48,7 +48,9 @@ export async function GET() {
       const mySub = rest.subAssignees.find((u) => u.id === userId);
       const subAssignees = rest.subAssignees.map((u) => ({ ...u, amount: u.id === userId ? u.amount : null }));
       const amount = isMain ? rest.amount : mySub ? (mySub.amount ?? null) : rest.amount;
-      return { ...rest, amount, subAssignees };
+      const { clientId: _cid, ...clean } = rest;
+      void _cid;
+      return { ...clean, amount, subAssignees };
     });
     return NextResponse.json(sanitized);
   }

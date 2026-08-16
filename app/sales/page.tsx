@@ -265,6 +265,13 @@ export default function SalesPage() {
             <p className="text-lg font-bold text-white w-36 text-center">{monthLabel}</p>
             <button onClick={() => shiftMonth(1)} className="text-gray-400 hover:text-white text-xl px-3 py-1">›</button>
           </div>
+          <a
+            href={`/api/sales/pdf?month=${month}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 text-xs sm:text-sm bg-gray-800 text-gray-300 border border-gray-700 rounded-lg px-3 py-1.5 hover:border-blue-500 hover:text-blue-300 transition"
+            title="この月の売上集計をPDFで開く"
+          >📄 PDF</a>
         </div>
 
         {/* サマリー */}

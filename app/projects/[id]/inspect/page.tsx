@@ -185,7 +185,7 @@ export default function InspectPage() {
           const img = new window.Image();
           const url = URL.createObjectURL(file);
           img.onload = () => {
-            const MAX = 1600;
+            const MAX = 1280; // 保存容量節約（報告写真は1280pxで十分判読可能）
             let w = img.width;
             let h = img.height;
             if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
@@ -199,7 +199,7 @@ export default function InspectPage() {
               URL.revokeObjectURL(url);
               if (!blob) { resolve(file); return; }
               resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
-            }, "image/jpeg", 0.7);
+            }, "image/jpeg", 0.62);
           };
           img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("画像の読み込みに失敗しました")); };
           img.src = url;

@@ -433,12 +433,23 @@ export default function ProjectDetailPage() {
     setDeletingCommentId(null);
   };
 
+  const MAX_PROJECT_PHOTOS = 5; // 現場写真・PDFの上限
   const handleProjectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
+    // 依頼書原本（非表示分）を除いた現在の枚数で判定
+    const current = (project?.projectPhotos || []).filter((f) => !f.originalName.includes("依頼書原本")).length;
+    const remaining = MAX_PROJECT_PHOTOS - current;
+    if (remaining <= 0) {
+      setPhotoUploadError(`現場写真・PDFは${MAX_PROJECT_PHOTOS}枚までです`);
+      e.target.value = "";
+      return;
+    }
+    if (Array.from(files).length > remaining) {
+      setPhotoUploadError(`残り${remaining}枚しか追加できません`);
+    }
     setUploadingPhoto(true);
-    setPhotoUploadError("");
-    for (const file of Array.from(files)) {
+    for (const file of Array.from(files).slice(0, remaining)) {
       try {
         let uploadFile = file;
         // 画像の場合は圧縮

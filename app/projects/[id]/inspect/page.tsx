@@ -156,7 +156,7 @@ export default function InspectPage() {
     return null;
   }
 
-  const MAX_PHOTOS_TOTAL = 8;
+  const MAX_PHOTOS_TOTAL = 12;
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: "before" | "during" | "after" | "other") => {
     const files = e.target.files;
@@ -576,7 +576,7 @@ export default function InspectPage() {
                   >
                     <span className="text-xl">📷</span>
                     <span className="text-sm text-gray-300">
-                      {uploading === cat ? "アップロード中..." : isFull ? "上限に達しました（合計8枚）" : "写真を選択（複数可）"}
+                      {uploading === cat ? "アップロード中..." : isFull ? "上限に達しました（合計12枚）" : "写真を選択（複数可）"}
                     </span>
                     <input
                       type="file"

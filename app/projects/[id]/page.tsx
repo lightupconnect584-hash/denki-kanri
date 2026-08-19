@@ -576,10 +576,11 @@ export default function ProjectDetailPage() {
   };
   const logAttempt = async (label: string) => {
     setLoggingAttempt(label);
+    // 一度連絡した事実を記録したら、アポ対応は完了扱い（要対応・要アポ表示から消える）
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactAttempt: label }),
+      body: JSON.stringify({ contactAttempt: label, contacted: true, contactMethod: "attempted" }),
     });
     await new Promise((r) => setTimeout(r, 100));
     fetchProject(true);
@@ -763,7 +764,7 @@ export default function ProjectDetailPage() {
               {/* 連絡結果の記録（ワンタップでログ） */}
               {(role === "ADMIN" || isAssigned) && (
                 <div className="mt-3">
-                  <p className="text-xs text-red-400 mb-1.5">連絡した結果を記録：</p>
+                  <p className="text-xs text-red-400 mb-1.5">連絡した結果を記録（一度記録すればアポ対応は完了扱いになります）：</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {["☎ 不出・留守電吹き込み済", "☎ 不出・留守電なし"].map((label) => (
                       <button key={label}
@@ -883,7 +884,7 @@ export default function ProjectDetailPage() {
           ) : (
             <div className="mb-4 flex items-center gap-2 bg-green-950/40 border border-green-800 rounded-xl px-4 py-2.5">
               <span className="text-sm text-green-300">
-                {project.contactMethod === "note" ? "📮 完了後メモ投函予定（共用部）" : project.contactMethod === "sms" ? "💬 SMSで連絡済み" : "✓ アポイント済み"}（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）
+                {project.contactMethod === "note" ? "📮 完了後メモ投函予定（共用部）" : project.contactMethod === "sms" ? "💬 SMSで連絡済み" : project.contactMethod === "attempted" ? "☎ 連絡済み（不通・対応義務は果たしています）" : "✓ アポイント済み"}（{new Date(project.contactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）
               </span>
               {(role === "ADMIN" || isAssigned) && (
                 <button onClick={() => setContacted(false)} disabled={savingContact}

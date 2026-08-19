@@ -189,6 +189,18 @@ export default function DashboardPage() {
     } catch {}
   }, [role]);
 
+  // 📌 写真ストレージ（Vercel Pro継続 or R2引っ越し）見直しリマインド（管理者のみ・9/8以降・消すまで毎回表示）
+  const [blobReminder, setBlobReminder] = useState(false);
+  useEffect(() => {
+    if (role !== "ADMIN") return;
+    const showFrom = new Date("2026-09-08T00:00:00+09:00").getTime();
+    try {
+      if (Date.now() >= showFrom && localStorage.getItem("blob-plan-reminder-done") !== "1") {
+        setBlobReminder(true);
+      }
+    } catch {}
+  }, [role]);
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login?callbackUrl=" + encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"));
   }, [status, router]);
@@ -557,6 +569,15 @@ export default function DashboardPage() {
           <span>📌 Neonのプラン（DB）を無料に戻せるか見直す時期です。Claude Codeで「Neonのプランどうする？」と相談すると、通信量を確認して判断を手伝います。</span>
           <button
             onClick={() => { try { localStorage.setItem("neon-plan-reminder-done", "1"); } catch {} setNeonReminder(false); }}
+            className="shrink-0 bg-white/20 hover:bg-white/30 rounded px-2.5 py-1 transition whitespace-nowrap"
+          >対応した・消す</button>
+        </div>
+      )}
+      {blobReminder && (
+        <div className="bg-indigo-600 text-white text-xs sm:text-sm font-medium px-4 py-2.5 flex items-center justify-between gap-3">
+          <span>📌 写真ストレージの方針を決める時期です（Vercel Pro（月$20）継続 or 無料のCloudflare R2へ引っ越し）。Claude Codeで「写真ストレージどうする？」と相談してください。</span>
+          <button
+            onClick={() => { try { localStorage.setItem("blob-plan-reminder-done", "1"); } catch {} setBlobReminder(false); }}
             className="shrink-0 bg-white/20 hover:bg-white/30 rounded px-2.5 py-1 transition whitespace-nowrap"
           >対応した・消す</button>
         </div>

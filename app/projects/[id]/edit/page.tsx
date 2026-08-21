@@ -312,9 +312,8 @@ export default function EditProjectPage() {
               rows={3} className={inputClass} />
           </div>
 
-          {!(myId && form.assignedToId === myId) && (
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">金額【税別】</label>
+            <label className="block text-sm font-medium text-gray-200 mb-1">金額【税別】{myId && form.assignedToId === myId ? <span className="text-gray-500 font-normal">（自社案件では任意。作業日別の内訳の記録にも使えます）</span> : null}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
               <input type="text" inputMode="numeric" value={form.amount}
@@ -366,7 +365,6 @@ export default function EditProjectPage() {
               ＋ 作業日ごとに金額を分ける
             </button>
           </div>
-          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}</label>

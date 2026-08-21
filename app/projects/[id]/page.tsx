@@ -1139,7 +1139,7 @@ export default function ProjectDetailPage() {
               {project.urgency === "HIGH" ? "高" : project.urgency === "MEDIUM" ? "中" : "低"}
             </span>
           </div>
-          {project.amount != null && !isSelfJob && (
+          {project.amount != null && (!isSelfJob || (Array.isArray(project.amountBreakdown) && project.amountBreakdown.length > 0)) && (
             <div>
               <p className="text-xs text-gray-400">金額【税別】</p>
               {(() => {

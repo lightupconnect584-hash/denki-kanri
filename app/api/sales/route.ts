@@ -36,13 +36,31 @@ export async function GET(req: NextRequest) {
     : [];
   const docMap = new Map(docs.map((d) => [d.projectId, d]));
   // 売上の作業日別内訳（請求書作成の参考用）も結合
+  // 内訳未設定の案件でも、完了報告の作業日＋依頼名で内訳を表示できるようにする
   const breakdowns = projectIds.length > 0
     ? await prisma.project.findMany({
         where: { id: { in: projectIds } },
-        select: { id: true, salesBreakdown: true },
+        select: {
+          id: true, salesBreakdown: true, workType: true,
+          inspections: { select: { workDate: true, workDates: true } },
+        },
       })
     : [];
-  const bdMap = new Map(breakdowns.map((b) => [b.id, b.salesBreakdown]));
+  const bdMap = new Map(breakdowns.map((b) => {
+    const dates = new Set<string>();
+    for (const insp of b.inspections) {
+      if (insp.workDates.length > 0) {
+        for (const d of insp.workDates) if (d) dates.add(d.slice(0, 10));
+      } else if (insp.workDate) {
+        dates.add(insp.workDate.toISOString().slice(0, 10));
+      }
+    }
+    return [b.id, {
+      salesBreakdown: Array.isArray(b.salesBreakdown) ? b.salesBreakdown : null,
+      workType: b.workType,
+      workDates: Array.from(dates).sort(),
+    }] as const;
+  }));
   const entriesWithDoc = entries.map((e) => {
     const doc = e.projectId ? docMap.get(e.projectId) : null;
     const bd = e.projectId ? bdMap.get(e.projectId) : null;
@@ -50,7 +68,9 @@ export async function GET(req: NextRequest) {
       ...e,
       docUrl: doc ? `/api/intake/view?id=${doc.id}` : null,
       docName: doc?.originalName || null,
-      salesBreakdown: Array.isArray(bd) ? bd : null,
+      salesBreakdown: bd?.salesBreakdown ?? null,
+      workType: bd?.workType ?? null,
+      workDates: bd?.workDates ?? [],
     };
   });
   return NextResponse.json({ entries: entriesWithDoc, expenses, clients });

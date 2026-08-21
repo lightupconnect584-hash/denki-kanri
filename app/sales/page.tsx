@@ -20,6 +20,8 @@ interface SalesEntry {
   docUrl: string | null;
   docName: string | null;
   salesBreakdown: { date: string; label?: string; amount: number }[] | null;
+  workType: string | null;
+  workDates: string[];
 }
 
 interface ExpenseItem {
@@ -366,6 +368,7 @@ export default function SalesPage() {
                         const rowFee = feeOf(e);
                         const profit = e.sales - e.material - e.outsource - rowFee;
                         const hasBd = Array.isArray(e.salesBreakdown) && e.salesBreakdown.length > 0;
+                        const showBdButton = !!e.projectId; // 案件に紐づく行は全て内訳を見られる
                         return (
                           <div key={e.id}>
                           <div className={`grid grid-cols-[16px_minmax(0,1fr)_20px_58px_14px] sm:grid-cols-[22px_minmax(160px,1fr)_26px_96px_90px_90px_84px_24px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
@@ -390,12 +393,12 @@ export default function SalesPage() {
                                   <span className="truncate">{e.label || "（無題）"}</span>
                                   <span className="text-sky-500 shrink-0">›</span>
                                 </Link>
-                                {hasBd && (
+                                {showBdButton && (
                                   <button
                                     onClick={() => setOpenBreakdownId(openBreakdownId === e.id ? null : e.id)}
-                                    title="作業日別の内訳（日付・作業名・金額）を表示"
-                                    className={`shrink-0 text-[11px] leading-none rounded px-1.5 py-1 border transition ${openBreakdownId === e.id ? "bg-amber-600 text-white border-amber-600" : "text-amber-300 border-amber-800 hover:bg-amber-900/30"}`}
-                                  >📋</button>
+                                    title="作業日・作業名・金額を表示（請求書作成用）"
+                                    className={`shrink-0 text-[10px] leading-none rounded-full px-2 py-1 border font-medium transition ${openBreakdownId === e.id ? "bg-amber-600 text-white border-amber-600" : "text-amber-300 border-amber-700 hover:bg-amber-900/30"}`}
+                                  >内訳</button>
                                 )}
                               </div>
                             ) : (
@@ -449,16 +452,39 @@ export default function SalesPage() {
                               <button onClick={() => deleteEntry(e.id)} className="text-gray-600 hover:text-red-500 text-xs">✕</button>
                             )}
                           </div>
-                          {/* 📋 作業日別の内訳（請求書作成の参考） */}
-                          {hasBd && openBreakdownId === e.id && (
+                          {/* 内訳: 作業日・作業名・金額（請求書作成の参考） */}
+                          {showBdButton && openBreakdownId === e.id && (
                             <div className="mx-2 sm:mx-3 mb-1.5 bg-amber-950/30 border border-amber-800/60 rounded-lg px-3 py-2 space-y-1">
-                              {e.salesBreakdown!.map((r, i) => (
-                                <div key={i} className="flex items-center gap-3 text-xs">
-                                  <span className="text-amber-300 shrink-0 w-10">{r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "-"}</span>
-                                  <span className="text-gray-200 flex-1 min-w-0 truncate">{r.label || "（作業名なし）"}</span>
-                                  <span className="text-gray-100 font-medium shrink-0">¥{(r.amount || 0).toLocaleString()}</span>
-                                </div>
-                              ))}
+                              {hasBd ? (
+                                e.salesBreakdown!.map((r, i) => (
+                                  <div key={i} className="flex items-center gap-3 text-xs">
+                                    <span className="text-amber-300 shrink-0 w-10">{r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "-"}</span>
+                                    <span className="text-gray-200 flex-1 min-w-0 truncate">{r.label || "（作業名なし）"}</span>
+                                    <span className="text-gray-100 font-medium shrink-0">¥{(r.amount || 0).toLocaleString()}</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <>
+                                  {(e.workDates.length > 0 ? e.workDates : [""]).map((d, i) => (
+                                    <div key={i} className="flex items-center gap-3 text-xs">
+                                      <span className="text-amber-300 shrink-0 w-10">{d ? new Date(d + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "-"}</span>
+                                      <span className="text-gray-200 flex-1 min-w-0 truncate">{e.workType || "（依頼名なし）"}</span>
+                                      {(e.workDates.length <= 1 || i === 0) && e.workDates.length <= 1 ? (
+                                        <span className="text-gray-100 font-medium shrink-0">¥{(e.sales || 0).toLocaleString()}</span>
+                                      ) : (
+                                        <span className="text-gray-600 shrink-0">—</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                  {e.workDates.length > 1 && (
+                                    <div className="flex items-center gap-3 text-xs border-t border-amber-900/50 pt-1">
+                                      <span className="shrink-0 w-10"></span>
+                                      <span className="text-gray-400 flex-1">合計（日別の金額は案件の編集で設定できます）</span>
+                                      <span className="text-gray-100 font-medium shrink-0">¥{(e.sales || 0).toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                </>
+                              )}
                             </div>
                           )}
                           </div>

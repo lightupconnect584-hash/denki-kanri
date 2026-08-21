@@ -267,7 +267,6 @@ export default function InspectPage() {
   // 4セクションを1つの文字列に結合
   const buildNotes = () => {
     const parts: string[] = [];
-    if (isSimple) parts.push("【簡易報告】定型作業");
     if (situation.trim()) parts.push(`【状況】\n${situation.trim()}`);
     if (cause.trim()) parts.push(`【原因】\n${cause.trim()}`);
     if (response.trim()) parts.push(`【実施内容】\n${response.trim()}`);

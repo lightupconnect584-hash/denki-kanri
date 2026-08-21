@@ -76,12 +76,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const mySub = rest.subAssignees.find((u) => u.id === userId);
     const subAssignees = rest.subAssignees.map((u) => ({ ...u, amount: u.id === userId ? u.amount : null }));
     const amount = isMain ? rest.amount : mySub ? (mySub.amount ?? null) : rest.amount;
+    // 金額の内訳（作業日別）も主担当のみ
+    const amountBreakdown = isMain ? rest.amountBreakdown : null;
     // 主担当以外には金額変更履歴（主担当の金額が分かる）を見せない
     const activityLogs = isMain ? rest.activityLogs : rest.activityLogs.filter((l) => l.action !== "AMOUNT_CHANGED");
     // 取引先IDの生値も渡さない
     const { clientId: _cid, ...clean } = rest;
     void _cid;
-    return NextResponse.json({ ...clean, amount, subAssignees, activityLogs });
+    return NextResponse.json({ ...clean, amount, amountBreakdown, subAssignees, activityLogs });
   }
   // 管理者には協力会社メモを見せない（各自専用）
   const { partnerMemo: _pm, ...adminView } = flat as typeof flat & { partnerMemo: string | null };
@@ -215,6 +217,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (body.materialCost !== undefined && role === "ADMIN") {
     updateData.materialCost = body.materialCost !== "" && body.materialCost !== null ? parseInt(body.materialCost) : null;
+  }
+  // 作業日別の金額内訳（管理者のみ）。設定時は金額=内訳の合計
+  if (body.amountBreakdown !== undefined && role === "ADMIN") {
+    if (Array.isArray(body.amountBreakdown)) {
+      const rows = body.amountBreakdown
+        .map((r: { date?: unknown; amount?: unknown }) => ({
+          date: typeof r?.date === "string" ? r.date : "",
+          amount: Number(r?.amount) || 0,
+        }))
+        .filter((r: { date: string; amount: number }) => r.date || r.amount > 0);
+      if (rows.length > 0) {
+        updateData.amountBreakdown = rows;
+        updateData.amount = rows.reduce((s: number, r: { amount: number }) => s + r.amount, 0);
+      } else {
+        updateData.amountBreakdown = null; // 内訳なしに戻す（金額は据え置き）
+      }
+    } else if (body.amountBreakdown === null) {
+      updateData.amountBreakdown = null;
+    }
   }
   if (body.sekisuiNumber !== undefined && role === "ADMIN") updateData.sekisuiNumber = body.sekisuiNumber || null;
   if (body.managerName !== undefined && role === "ADMIN") updateData.managerName = body.managerName || null;

@@ -41,6 +41,7 @@ export default function EditProjectPage() {
     assignedToId: "",
     subAssigneeIds: [] as string[],
     subAssigneeAmounts: {} as Record<string, string>,
+    amountBreakdown: [] as { date: string; amount: string }[],
     preferredContactAt: "",
     preferredVisitAt: "",
     moveInDate: "",
@@ -97,6 +98,9 @@ export default function EditProjectPage() {
             subAssigneeAmounts: Object.fromEntries(
               (data.subAssignees || []).map((u: { id: string; amount?: number | null }) => [u.id, u.amount != null ? String(u.amount) : ""])
             ),
+            amountBreakdown: Array.isArray(data.amountBreakdown)
+              ? data.amountBreakdown.map((r: { date?: string; amount?: number }) => ({ date: r.date || "", amount: r.amount != null ? String(r.amount) : "" }))
+              : [],
             preferredContactAt: data.preferredContactAt || "",
             preferredVisitAt: data.preferredVisitAt || "",
             moveInDate: data.moveInDate || "",
@@ -122,7 +126,13 @@ export default function EditProjectPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       // 主担当は共同担当リストから除外して送る
-      body: JSON.stringify({ ...form, subAssigneeIds: form.subAssigneeIds.filter((v) => v !== form.assignedToId) }),
+      body: JSON.stringify({
+        ...form,
+        subAssigneeIds: form.subAssigneeIds.filter((v) => v !== form.assignedToId),
+        amountBreakdown: form.amountBreakdown
+          .filter((r) => r.date || r.amount)
+          .map((r) => ({ date: r.date, amount: Number(r.amount) || 0 })),
+      }),
     });
 
     if (res.ok) {
@@ -316,9 +326,45 @@ export default function EditProjectPage() {
                   const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
                   setForm({ ...form, amount: v });
                 }}
-                className="w-full border border-gray-600 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={form.amountBreakdown.length > 0}
+                className={`w-full border border-gray-600 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 ${form.amountBreakdown.length > 0 ? "opacity-60" : ""}`}
                 placeholder="0" />
             </div>
+            {/* 作業日別の金額内訳（設定すると金額=合計になる） */}
+            {form.amountBreakdown.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {form.amountBreakdown.map((row, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input type="date" value={row.date}
+                      onChange={(e) => setForm({ ...form, amountBreakdown: form.amountBreakdown.map((r, idx) => idx === i ? { ...r, date: e.target.value } : r) })}
+                      className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-800 focus:outline-none [color-scheme:dark]" />
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">¥</span>
+                      <input type="text" inputMode="numeric" placeholder="この日の金額"
+                        value={row.amount ? Number(row.amount).toLocaleString() : ""}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+                          const next = form.amountBreakdown.map((r, idx) => idx === i ? { ...r, amount: v } : r);
+                          setForm({ ...form, amountBreakdown: next, amount: String(next.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)) });
+                        }}
+                        className="w-full border border-gray-600 rounded-lg pl-7 pr-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <button type="button"
+                      onClick={() => {
+                        const next = form.amountBreakdown.filter((_, idx) => idx !== i);
+                        setForm({ ...form, amountBreakdown: next, amount: next.length > 0 ? String(next.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)) : form.amount });
+                      }}
+                      className="text-gray-500 hover:text-red-400 text-sm px-1 shrink-0">✕</button>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-500">合計 ¥{form.amountBreakdown.reduce((sum, r) => sum + (Number(r.amount) || 0), 0).toLocaleString()} が金額になります</p>
+              </div>
+            )}
+            <button type="button"
+              onClick={() => setForm({ ...form, amountBreakdown: [...form.amountBreakdown, { date: "", amount: "" }] })}
+              className="mt-2 text-xs text-blue-400 border border-blue-800 rounded-lg px-3 py-1.5 hover:bg-blue-900/30 transition">
+              ＋ 作業日ごとに金額を分ける
+            </button>
           </div>
           )}
 

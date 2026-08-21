@@ -84,6 +84,33 @@ export default function InspectPage() {
       .catch(() => {});
   }, [status, id, myId]);
 
+  // 簡易報告用: 認識結果を実施内容欄へ直接追記
+  const toggleListeningSimple = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = "ja-JP";
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.onresult = (event) => {
+      let added = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) added += event.results[i][0].transcript;
+      }
+      if (added) setResponse((prev) => (prev ? prev + " " : "") + added);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recognitionRef.current = rec;
+    setListening(true);
+    rec.start();
+  };
+
   const toggleListening = () => {
     if (listening) {
       recognitionRef.current?.stop();
@@ -366,14 +393,23 @@ export default function InspectPage() {
             </div>
             <p className="text-xs text-emerald-200/70">実施内容ひと言＋写真だけで送信できます。</p>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">実施内容 <span className="text-red-500">*</span></label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-300">実施内容 <span className="text-red-500">*</span></label>
+                {speechSupported && (
+                  <button type="button" onClick={toggleListeningSimple}
+                    className={`text-xs rounded-lg px-3 py-1 font-medium transition ${listening ? "bg-red-600 text-white" : "bg-indigo-600 text-white hover:bg-indigo-700"}`}>
+                    {listening ? "⏹ 停止" : "🎤 話す"}
+                  </button>
+                )}
+              </div>
               <textarea
                 rows={2}
                 value={response}
                 onChange={(e) => setResponse(e.target.value)}
-                placeholder={`例: ${projectWorkType || "予定の作業"}を実施し、完了しました`}
+                placeholder={`例: ${projectWorkType || "予定の作業"}を実施し、完了しました${speechSupported ? "（🎤で音声入力もできます）" : ""}`}
                 className={fieldClass}
               />
+              {listening && <p className="text-xs text-red-400 mt-1">● 聞き取り中… 話した内容がそのまま入ります。終わったら「⏹ 停止」</p>}
             </div>
             <button
               type="button"

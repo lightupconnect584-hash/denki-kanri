@@ -107,6 +107,7 @@ interface Project {
   contactRequired: boolean;
   contactedAt: string | null;
   contactMethod: string | null;
+  amountBreakdown: { date: string; amount: number }[] | null;
   visitDate: string | null;
   visitTime: string | null;
   onHold: boolean;
@@ -1162,6 +1163,15 @@ export default function ProjectDetailPage() {
                   </div>
                 );
               })()}
+              {Array.isArray(project.amountBreakdown) && project.amountBreakdown.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {project.amountBreakdown.map((r, i) => (
+                    <p key={i} className="text-xs text-gray-400">
+                      {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}　¥{(r.amount || 0).toLocaleString()}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {role === "ADMIN" && !isSekisui && (project.salesAmount != null || project.materialCost != null) && (

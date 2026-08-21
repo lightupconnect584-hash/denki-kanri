@@ -71,16 +71,6 @@ export default function InspectPage() {
   const isSimple = simpleReport && !forceDetailed;
   const myId = (session?.user as { id?: string })?.id;
 
-  // 簡易報告は作業日を今日で自動セット（変更も可能）
-  useEffect(() => {
-    if (isSimple && workDates.length === 1 && workDates[0] === "") {
-      const d = new Date();
-      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      setWorkDates([today]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSimple]);
-
   useEffect(() => {
     if (status !== "authenticated") return;
     fetch(`/api/projects/${id}`)
@@ -291,7 +281,7 @@ export default function InspectPage() {
   };
 
   const canSubmit = isSimple
-    ? !!finalWorkDate && !!response.trim()
+    ? !!result && !!finalWorkDate && !!response.trim() && (isSelfJob || photos.length > 0)
     : !!result && !!finalWorkDate && !!situation.trim() && !!cause.trim() && !!response.trim();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -303,7 +293,7 @@ export default function InspectPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        result: isSimple ? (result || "OK") : result,
+        result,
         workDate: finalWorkDate,
         workDates: workDates.filter(Boolean).sort(),
         notes: buildNotes(),
@@ -328,8 +318,7 @@ export default function InspectPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" onKeyDown={(e) => { if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault(); }}>
-          {/* 点検結果（簡易報告では非表示＝問題なし扱い） */}
-          {!isSimple && (
+          {/* 点検結果 */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
             <label className="block text-sm font-bold text-gray-200 mb-3">作業結果 *</label>
             <div className="grid grid-cols-2 gap-3">
@@ -357,10 +346,9 @@ export default function InspectPage() {
               </button>
             </div>
           </div>
-          )}
 
-          {/* 作業日（複数日対応・簡易報告では今日が自動セット済み） */}
-          <div className={isSimple ? "bg-gray-800 rounded-xl border border-gray-700 p-4" : "bg-gray-800 rounded-xl border border-gray-700 p-5"}>
+          {/* 作業日（複数日対応） */}
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
             <div className="flex items-center justify-between mb-3">
               <label className="text-sm font-bold text-gray-200">作業日 *</label>
               <button
@@ -403,7 +391,7 @@ export default function InspectPage() {
               <p className="text-sm font-bold text-emerald-300">📝 この依頼は簡易報告でOK</p>
               <span className="text-xs bg-emerald-900/50 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded-full">定型作業</span>
             </div>
-            <p className="text-xs text-emerald-200/70">実施内容ひと言（🎤音声OK）だけで送信できます。作業日は今日が入っています（写真は任意）。</p>
+            <p className="text-xs text-emerald-200/70">実施内容ひと言＋写真だけで送信できます。</p>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-semibold text-gray-300">実施内容 <span className="text-red-500">*</span></label>
@@ -608,7 +596,7 @@ export default function InspectPage() {
           {/* 写真（3セクション） */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 space-y-5">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-gray-200">作業写真{(isSelfJob || isSimple) && <span className="text-xs font-normal text-gray-500 ml-1">（任意）</span>}</p>
+              <p className="text-sm font-bold text-gray-200">作業写真{isSelfJob && <span className="text-xs font-normal text-gray-500 ml-1">（任意）</span>}</p>
               <p className="text-xs text-gray-500">合計 {photos.length} / {MAX_PHOTOS_TOTAL}枚</p>
             </div>
             {(["before", "during", "after", "other"] as const).map((cat) => {
@@ -664,7 +652,7 @@ export default function InspectPage() {
             {submitting ? "送信中..." : "完了報告を送信する"}
           </button>
           {!canSubmit && (
-            <p className="text-xs text-center text-red-400">{isSimple ? "実施内容を入力してください" : "作業結果・作業日・詳細内容（状況・原因・対応）は必須です"}</p>
+            <p className="text-xs text-center text-red-400">{isSimple ? (isSelfJob ? "作業結果・作業日・実施内容が必要です" : "作業結果・作業日・実施内容・写真1枚以上が必要です") : "作業結果・作業日・詳細内容（状況・原因・対応）は必須です"}</p>
           )}
         </form>
       </main>

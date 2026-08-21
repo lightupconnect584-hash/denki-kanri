@@ -19,6 +19,7 @@ interface SalesEntry {
   projectId: string | null;
   docUrl: string | null;
   docName: string | null;
+  salesBreakdown: { date: string; label?: string; amount: number }[] | null;
 }
 
 interface ExpenseItem {
@@ -67,6 +68,7 @@ export default function SalesPage() {
   };
   const [loading, setLoading] = useState(true);
   const [showExpenses, setShowExpenses] = useState(false);
+  const [openBreakdownId, setOpenBreakdownId] = useState<string | null>(null);
   const [newExpLabel, setNewExpLabel] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
   // 📄 依頼書原本の拡大ビューア
@@ -363,8 +365,10 @@ export default function SalesPage() {
                       {rows.map((e) => {
                         const rowFee = feeOf(e);
                         const profit = e.sales - e.material - e.outsource - rowFee;
+                        const hasBd = Array.isArray(e.salesBreakdown) && e.salesBreakdown.length > 0;
                         return (
-                          <div key={e.id} className={`grid grid-cols-[16px_minmax(0,1fr)_20px_58px_14px] sm:grid-cols-[22px_minmax(160px,1fr)_26px_96px_90px_90px_84px_24px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
+                          <div key={e.id}>
+                          <div className={`grid grid-cols-[16px_minmax(0,1fr)_20px_58px_14px] sm:grid-cols-[22px_minmax(160px,1fr)_26px_96px_90px_90px_84px_24px] sm:gap-2 gap-1 items-center px-2 sm:px-3 py-1.5 ${e.invoiced ? "bg-green-950/20" : ""}`}>
                             <button
                               onClick={() => patchEntry(e.id, { invoiced: !e.invoiced })}
                               title={e.invoiced ? "請求書送付済み（タップで取り消し）" : "請求書を送ったらタップ"}
@@ -377,14 +381,23 @@ export default function SalesPage() {
                               ✓
                             </button>
                             {e.projectId ? (
-                              <Link
-                                href={`/projects/${e.projectId}`}
-                                title={`${e.label || "案件"}（タップで案件情報を表示）`}
-                                className={`min-w-0 text-xs sm:text-sm py-1 truncate hover:underline flex items-center gap-1 ${e.invoiced ? "text-gray-400" : "text-sky-300"}`}
-                              >
-                                <span className="truncate">{e.label || "（無題）"}</span>
-                                <span className="text-sky-500 shrink-0">›</span>
-                              </Link>
+                              <div className="min-w-0 flex items-center gap-1.5">
+                                <Link
+                                  href={`/projects/${e.projectId}`}
+                                  title={`${e.label || "案件"}（タップで案件情報を表示）`}
+                                  className={`min-w-0 text-xs sm:text-sm py-1 truncate hover:underline flex items-center gap-1 ${e.invoiced ? "text-gray-400" : "text-sky-300"}`}
+                                >
+                                  <span className="truncate">{e.label || "（無題）"}</span>
+                                  <span className="text-sky-500 shrink-0">›</span>
+                                </Link>
+                                {hasBd && (
+                                  <button
+                                    onClick={() => setOpenBreakdownId(openBreakdownId === e.id ? null : e.id)}
+                                    title="作業日別の内訳（日付・作業名・金額）を表示"
+                                    className={`shrink-0 text-[11px] leading-none rounded px-1.5 py-1 border transition ${openBreakdownId === e.id ? "bg-amber-600 text-white border-amber-600" : "text-amber-300 border-amber-800 hover:bg-amber-900/30"}`}
+                                  >📋</button>
+                                )}
+                              </div>
                             ) : (
                               <input
                                 value={e.label}
@@ -435,6 +448,19 @@ export default function SalesPage() {
                             ) : (
                               <button onClick={() => deleteEntry(e.id)} className="text-gray-600 hover:text-red-500 text-xs">✕</button>
                             )}
+                          </div>
+                          {/* 📋 作業日別の内訳（請求書作成の参考） */}
+                          {hasBd && openBreakdownId === e.id && (
+                            <div className="mx-2 sm:mx-3 mb-1.5 bg-amber-950/30 border border-amber-800/60 rounded-lg px-3 py-2 space-y-1">
+                              {e.salesBreakdown!.map((r, i) => (
+                                <div key={i} className="flex items-center gap-3 text-xs">
+                                  <span className="text-amber-300 shrink-0 w-10">{r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "-"}</span>
+                                  <span className="text-gray-200 flex-1 min-w-0 truncate">{r.label || "（作業名なし）"}</span>
+                                  <span className="text-gray-100 font-medium shrink-0">¥{(r.amount || 0).toLocaleString()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           </div>
                         );
                       })}

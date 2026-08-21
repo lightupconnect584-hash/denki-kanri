@@ -35,12 +35,22 @@ export async function GET(req: NextRequest) {
       })
     : [];
   const docMap = new Map(docs.map((d) => [d.projectId, d]));
+  // 売上の作業日別内訳（請求書作成の参考用）も結合
+  const breakdowns = projectIds.length > 0
+    ? await prisma.project.findMany({
+        where: { id: { in: projectIds } },
+        select: { id: true, salesBreakdown: true },
+      })
+    : [];
+  const bdMap = new Map(breakdowns.map((b) => [b.id, b.salesBreakdown]));
   const entriesWithDoc = entries.map((e) => {
     const doc = e.projectId ? docMap.get(e.projectId) : null;
+    const bd = e.projectId ? bdMap.get(e.projectId) : null;
     return {
       ...e,
       docUrl: doc ? `/api/intake/view?id=${doc.id}` : null,
       docName: doc?.originalName || null,
+      salesBreakdown: Array.isArray(bd) ? bd : null,
     };
   });
   return NextResponse.json({ entries: entriesWithDoc, expenses, clients });

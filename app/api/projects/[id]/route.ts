@@ -67,8 +67,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   };
   // 協力会社には売上（積水請求額）・材料費・管理者メモを見せない（協力会社メモは見せる）
   if (role === "PARTNER") {
-    const { salesAmount: _s, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, client: _cl, ...rest } = flat as typeof flat & { salesAmount: number | null; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
-    void _s; void _m; void _mn; void _an; void _memo; void _sn; void _cl;
+    const { salesAmount: _s, salesBreakdown: _sbd, materialCost: _m, managerName: _mn, afterManagerName: _an, memo: _memo, sekisuiNumber: _sn, client: _cl, ...rest } = flat as typeof flat & { salesAmount: number | null; salesBreakdown: unknown; materialCost: number | null; managerName: string | null; afterManagerName: string | null; memo: string | null; sekisuiNumber: string | null };
+    void _s; void _sbd; void _m; void _mn; void _an; void _memo; void _sn; void _cl;
     // 依頼書原本の添付は協力会社に見せない（自社案件を後から付け替えた場合の保険）
     rest.projectPhotos = rest.projectPhotos.filter((ph) => !ph.originalName.includes("依頼書原本"));
     // 応援費: 自分の分だけ見える。共同担当として見ている場合は「金額」も自分の応援費に置き換え
@@ -251,6 +251,31 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     } else if (body.amountBreakdown === null) {
       updateData.amountBreakdown = null;
+    }
+  }
+  // 売上の作業日別内訳（管理者のみ）。設定時は売上=内訳の合計
+  if (body.salesBreakdown !== undefined && role === "ADMIN") {
+    if (Array.isArray(body.salesBreakdown)) {
+      const rows = body.salesBreakdown
+        .map((r: { date?: unknown; amount?: unknown }) => ({
+          date: typeof r?.date === "string" ? r.date : "",
+          amount: Number(r?.amount) || 0,
+        }))
+        .filter((r: { date: string; amount: number }) => r.date || r.amount > 0);
+      if (rows.length > 0) {
+        updateData.salesBreakdown = rows;
+        const total = rows.reduce((s: number, r: { amount: number }) => s + r.amount, 0);
+        updateData.salesAmount = total;
+        // 売上計上済みなら売上集計の売上も追従
+        const entry = await prisma.salesEntry.findUnique({ where: { projectId: id }, select: { id: true } });
+        if (entry) {
+          await prisma.salesEntry.update({ where: { id: entry.id }, data: { sales: total } });
+        }
+      } else {
+        updateData.salesBreakdown = null; // 内訳なしに戻す（売上は据え置き）
+      }
+    } else if (body.salesBreakdown === null) {
+      updateData.salesBreakdown = null;
     }
   }
   if (body.sekisuiNumber !== undefined && role === "ADMIN") updateData.sekisuiNumber = body.sekisuiNumber || null;

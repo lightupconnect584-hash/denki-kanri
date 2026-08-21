@@ -14,6 +14,7 @@ interface ManageData {
   managerName: string | null;
   afterManagerName: string | null;
   salesAmount: number | null;
+  salesBreakdown: { date: string; amount: number }[] | null;
   materialCost: number | null;
   memo: string | null;
   intake: { id: string; originalName: string } | null;
@@ -218,6 +219,16 @@ export default function ManagePage() {
                 onBlur={() => save({ salesAmount })}
                 className="w-full border border-gray-600 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0" />
             </div>
+            {Array.isArray(data.salesBreakdown) && data.salesBreakdown.length > 0 && (
+              <div className="mt-1.5 space-y-0.5">
+                {data.salesBreakdown.map((r, i) => (
+                  <p key={i} className="text-xs text-amber-300/90">
+                    {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}　¥{(r.amount || 0).toLocaleString()}
+                  </p>
+                ))}
+                <p className="text-[11px] text-gray-500">作業日別の内訳（変更は案件の「編集」から）</p>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">材料費（税別）</label>

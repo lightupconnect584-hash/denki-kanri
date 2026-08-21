@@ -105,6 +105,7 @@ model Project {
   amount           Int?
   amountBreakdown  Json?     // 作業日別の金額内訳 [{date:"YYYY-MM-DD", amount:number}]。設定時はamount=合計
   salesAmount      Int?      // 売上（積水への請求額・税別）。協力会社には非公開
+  salesBreakdown   Json?     // 売上の作業日別内訳 [{date:"YYYY-MM-DD", amount:number}]。設定時はsalesAmount=合計。協力会社には非公開
   materialCost     Int?      // 材料費（税別）。協力会社には非公開
   sekisuiNumber    String?   // 積水の依頼管理システムの受付番号。協力会社には非公開
   managerName      String?   // 管理担当者名（依頼元）。協力会社には非公開

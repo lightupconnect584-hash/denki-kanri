@@ -42,6 +42,7 @@ export default function EditProjectPage() {
     subAssigneeIds: [] as string[],
     subAssigneeAmounts: {} as Record<string, string>,
     amountBreakdown: [] as { date: string; amount: string }[],
+    salesBreakdown: [] as { date: string; amount: string }[],
     preferredContactAt: "",
     preferredVisitAt: "",
     moveInDate: "",
@@ -101,6 +102,9 @@ export default function EditProjectPage() {
             amountBreakdown: Array.isArray(data.amountBreakdown)
               ? data.amountBreakdown.map((r: { date?: string; amount?: number }) => ({ date: r.date || "", amount: r.amount != null ? String(r.amount) : "" }))
               : [],
+            salesBreakdown: Array.isArray(data.salesBreakdown)
+              ? data.salesBreakdown.map((r: { date?: string; amount?: number }) => ({ date: r.date || "", amount: r.amount != null ? String(r.amount) : "" }))
+              : [],
             preferredContactAt: data.preferredContactAt || "",
             preferredVisitAt: data.preferredVisitAt || "",
             moveInDate: data.moveInDate || "",
@@ -130,6 +134,9 @@ export default function EditProjectPage() {
         ...form,
         subAssigneeIds: form.subAssigneeIds.filter((v) => v !== form.assignedToId),
         amountBreakdown: form.amountBreakdown
+          .filter((r) => r.date || r.amount)
+          .map((r) => ({ date: r.date, amount: Number(r.amount) || 0 })),
+        salesBreakdown: form.salesBreakdown
           .filter((r) => r.date || r.amount)
           .map((r) => ({ date: r.date, amount: Number(r.amount) || 0 })),
       }),
@@ -312,8 +319,9 @@ export default function EditProjectPage() {
               rows={3} className={inputClass} />
           </div>
 
+          {!(myId && form.assignedToId === myId) && (
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">金額【税別】{myId && form.assignedToId === myId ? <span className="text-gray-500 font-normal">（自社案件では任意。作業日別の内訳の記録にも使えます）</span> : null}</label>
+            <label className="block text-sm font-medium text-gray-200 mb-1">金額【税別】</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
               <input type="text" inputMode="numeric" value={form.amount}
@@ -365,6 +373,7 @@ export default function EditProjectPage() {
               ＋ 作業日ごとに金額を分ける
             </button>
           </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}</label>
@@ -375,9 +384,45 @@ export default function EditProjectPage() {
                   const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
                   setForm({ ...form, salesAmount: v });
                 }}
-                className="w-full border border-gray-600 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={form.salesBreakdown.length > 0}
+                className={`w-full border border-gray-600 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 ${form.salesBreakdown.length > 0 ? "opacity-60" : ""}`}
                 placeholder="0" />
             </div>
+            {/* 売上の作業日別内訳（設定すると売上=合計。請求書作成の参考用） */}
+            {form.salesBreakdown.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {form.salesBreakdown.map((row, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input type="date" value={row.date}
+                      onChange={(e) => setForm({ ...form, salesBreakdown: form.salesBreakdown.map((r, idx) => idx === i ? { ...r, date: e.target.value } : r) })}
+                      className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-800 focus:outline-none [color-scheme:dark]" />
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">¥</span>
+                      <input type="text" inputMode="numeric" placeholder="この日の売上"
+                        value={row.amount ? Number(row.amount).toLocaleString() : ""}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+                          const next = form.salesBreakdown.map((r, idx) => idx === i ? { ...r, amount: v } : r);
+                          setForm({ ...form, salesBreakdown: next, salesAmount: String(next.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)) });
+                        }}
+                        className="w-full border border-gray-600 rounded-lg pl-7 pr-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <button type="button"
+                      onClick={() => {
+                        const next = form.salesBreakdown.filter((_, idx) => idx !== i);
+                        setForm({ ...form, salesBreakdown: next, salesAmount: next.length > 0 ? String(next.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)) : form.salesAmount });
+                      }}
+                      className="text-gray-500 hover:text-red-400 text-sm px-1 shrink-0">✕</button>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-500">合計 ¥{form.salesBreakdown.reduce((sum, r) => sum + (Number(r.amount) || 0), 0).toLocaleString()} が売上になります</p>
+              </div>
+            )}
+            <button type="button"
+              onClick={() => setForm({ ...form, salesBreakdown: [...form.salesBreakdown, { date: "", amount: "" }] })}
+              className="mt-2 text-xs text-blue-400 border border-blue-800 rounded-lg px-3 py-1.5 hover:bg-blue-900/30 transition">
+              ＋ 作業日ごとに売上を分ける
+            </button>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">材料費（税別）</label>

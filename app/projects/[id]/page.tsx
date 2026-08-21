@@ -108,6 +108,7 @@ interface Project {
   contactedAt: string | null;
   contactMethod: string | null;
   amountBreakdown: { date: string; amount: number }[] | null;
+  salesBreakdown: { date: string; amount: number }[] | null;
   visitDate: string | null;
   visitTime: string | null;
   onHold: boolean;
@@ -1139,7 +1140,7 @@ export default function ProjectDetailPage() {
               {project.urgency === "HIGH" ? "高" : project.urgency === "MEDIUM" ? "中" : "低"}
             </span>
           </div>
-          {project.amount != null && (!isSelfJob || (Array.isArray(project.amountBreakdown) && project.amountBreakdown.length > 0)) && (
+          {project.amount != null && !isSelfJob && (
             <div>
               <p className="text-xs text-gray-400">金額【税別】</p>
               {(() => {
@@ -1180,6 +1181,15 @@ export default function ProjectDetailPage() {
                 <div>
                   <p className="text-xs text-gray-400">売上{project.client?.name?.includes("積水") ? "（積水請求・税別）" : "（税別）"}<span className="ml-1">🔒</span></p>
                   <p className="text-sm font-medium text-gray-100">¥{project.salesAmount.toLocaleString()}</p>
+                  {Array.isArray(project.salesBreakdown) && project.salesBreakdown.length > 0 && (
+                    <div className="mt-0.5 space-y-0.5">
+                      {project.salesBreakdown.map((r, i) => (
+                        <p key={i} className="text-xs text-gray-400">
+                          {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}　¥{(r.amount || 0).toLocaleString()}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {project.materialCost != null && (

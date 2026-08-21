@@ -257,11 +257,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.salesBreakdown !== undefined && role === "ADMIN") {
     if (Array.isArray(body.salesBreakdown)) {
       const rows = body.salesBreakdown
-        .map((r: { date?: unknown; amount?: unknown }) => ({
+        .map((r: { date?: unknown; amount?: unknown; label?: unknown }) => ({
           date: typeof r?.date === "string" ? r.date : "",
+          label: typeof r?.label === "string" ? r.label.slice(0, 100) : "",
           amount: Number(r?.amount) || 0,
         }))
-        .filter((r: { date: string; amount: number }) => r.date || r.amount > 0);
+        .filter((r: { date: string; label: string; amount: number }) => r.date || r.label || r.amount > 0);
       if (rows.length > 0) {
         updateData.salesBreakdown = rows;
         const total = rows.reduce((s: number, r: { amount: number }) => s + r.amount, 0);

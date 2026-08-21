@@ -42,7 +42,7 @@ export default function EditProjectPage() {
     subAssigneeIds: [] as string[],
     subAssigneeAmounts: {} as Record<string, string>,
     amountBreakdown: [] as { date: string; amount: string }[],
-    salesBreakdown: [] as { date: string; amount: string }[],
+    salesBreakdown: [] as { date: string; label: string; amount: string }[],
     preferredContactAt: "",
     preferredVisitAt: "",
     moveInDate: "",
@@ -103,7 +103,7 @@ export default function EditProjectPage() {
               ? data.amountBreakdown.map((r: { date?: string; amount?: number }) => ({ date: r.date || "", amount: r.amount != null ? String(r.amount) : "" }))
               : [],
             salesBreakdown: Array.isArray(data.salesBreakdown)
-              ? data.salesBreakdown.map((r: { date?: string; amount?: number }) => ({ date: r.date || "", amount: r.amount != null ? String(r.amount) : "" }))
+              ? data.salesBreakdown.map((r: { date?: string; label?: string; amount?: number }) => ({ date: r.date || "", label: r.label || "", amount: r.amount != null ? String(r.amount) : "" }))
               : [],
             preferredContactAt: data.preferredContactAt || "",
             preferredVisitAt: data.preferredVisitAt || "",
@@ -137,8 +137,8 @@ export default function EditProjectPage() {
           .filter((r) => r.date || r.amount)
           .map((r) => ({ date: r.date, amount: Number(r.amount) || 0 })),
         salesBreakdown: form.salesBreakdown
-          .filter((r) => r.date || r.amount)
-          .map((r) => ({ date: r.date, amount: Number(r.amount) || 0 })),
+          .filter((r) => r.date || r.label || r.amount)
+          .map((r) => ({ date: r.date, label: r.label.trim(), amount: Number(r.amount) || 0 })),
       }),
     });
 
@@ -392,11 +392,14 @@ export default function EditProjectPage() {
             {form.salesBreakdown.length > 0 && (
               <div className="mt-2 space-y-2">
                 {form.salesBreakdown.map((row, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={i} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                     <input type="date" value={row.date}
                       onChange={(e) => setForm({ ...form, salesBreakdown: form.salesBreakdown.map((r, idx) => idx === i ? { ...r, date: e.target.value } : r) })}
                       className="border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-gray-100 bg-gray-800 focus:outline-none [color-scheme:dark]" />
-                    <div className="relative flex-1">
+                    <input type="text" value={row.label} placeholder="作業名（例: 分電盤交換）"
+                      onChange={(e) => setForm({ ...form, salesBreakdown: form.salesBreakdown.map((r, idx) => idx === i ? { ...r, label: e.target.value } : r) })}
+                      className="flex-1 min-w-[120px] border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <div className="relative w-32 shrink-0">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">¥</span>
                       <input type="text" inputMode="numeric" placeholder="この日の売上"
                         value={row.amount ? Number(row.amount).toLocaleString() : ""}
@@ -419,7 +422,7 @@ export default function EditProjectPage() {
               </div>
             )}
             <button type="button"
-              onClick={() => setForm({ ...form, salesBreakdown: [...form.salesBreakdown, { date: "", amount: "" }] })}
+              onClick={() => setForm({ ...form, salesBreakdown: [...form.salesBreakdown, { date: "", label: "", amount: "" }] })}
               className="mt-2 text-xs text-blue-400 border border-blue-800 rounded-lg px-3 py-1.5 hover:bg-blue-900/30 transition">
               ＋ 作業日ごとに売上を分ける
             </button>

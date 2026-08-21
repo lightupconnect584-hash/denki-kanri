@@ -14,7 +14,7 @@ interface ManageData {
   managerName: string | null;
   afterManagerName: string | null;
   salesAmount: number | null;
-  salesBreakdown: { date: string; amount: number }[] | null;
+  salesBreakdown: { date: string; label?: string; amount: number }[] | null;
   materialCost: number | null;
   memo: string | null;
   intake: { id: string; originalName: string } | null;
@@ -223,7 +223,7 @@ export default function ManagePage() {
               <div className="mt-1.5 space-y-0.5">
                 {data.salesBreakdown.map((r, i) => (
                   <p key={i} className="text-xs text-amber-300/90">
-                    {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}　¥{(r.amount || 0).toLocaleString()}
+                    {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}{r.label ? `　${r.label}` : ""}　¥{(r.amount || 0).toLocaleString()}
                   </p>
                 ))}
                 <p className="text-[11px] text-gray-500">作業日別の内訳（変更は案件の「編集」から）</p>

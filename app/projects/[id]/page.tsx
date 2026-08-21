@@ -108,7 +108,7 @@ interface Project {
   contactedAt: string | null;
   contactMethod: string | null;
   amountBreakdown: { date: string; amount: number }[] | null;
-  salesBreakdown: { date: string; amount: number }[] | null;
+  salesBreakdown: { date: string; label?: string; amount: number }[] | null;
   visitDate: string | null;
   visitTime: string | null;
   onHold: boolean;
@@ -1185,7 +1185,7 @@ export default function ProjectDetailPage() {
                     <div className="mt-0.5 space-y-0.5">
                       {project.salesBreakdown.map((r, i) => (
                         <p key={i} className="text-xs text-gray-400">
-                          {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}　¥{(r.amount || 0).toLocaleString()}
+                          {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}{r.label ? `　${r.label}` : ""}　¥{(r.amount || 0).toLocaleString()}
                         </p>
                       ))}
                     </div>

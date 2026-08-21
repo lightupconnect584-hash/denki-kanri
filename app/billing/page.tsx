@@ -20,6 +20,7 @@ interface Project {
   inspections: { workDate: string }[];
   assignedTo: { id: string; name: string; companyName: string | null } | null;
   subAssignees?: { id: string; amount: number | null }[];
+  amountBreakdown?: { date: string; amount: number }[] | null;
 }
 
 interface MonthlyInvoice {
@@ -560,6 +561,11 @@ export default function BillingPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-gray-100 truncate">{p.title}</p>
                             {p.workType && <p className="text-xs text-gray-400 truncate">⚪︎ {p.workType}</p>}
+                            {Array.isArray(p.amountBreakdown) && p.amountBreakdown.length > 0 && (
+                              <p className="text-[11px] text-amber-300/90 truncate">
+                                {p.amountBreakdown.map((r) => `${r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"} ¥${(r.amount || 0).toLocaleString()}`).join(" ／ ")}
+                              </p>
+                            )}
                           </div>
                           <p className="text-xs font-bold text-gray-100 shrink-0">¥{(p.amount || 0).toLocaleString()}</p>
                         </Link>

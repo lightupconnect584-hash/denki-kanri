@@ -229,7 +229,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         .filter((r: { date: string; amount: number }) => r.date || r.amount > 0);
       if (rows.length > 0) {
         updateData.amountBreakdown = rows;
-        updateData.amount = rows.reduce((s: number, r: { amount: number }) => s + r.amount, 0);
+        const total = rows.reduce((s: number, r: { amount: number }) => s + r.amount, 0);
+        updateData.amount = total;
+        // 完了後（売上計上済み）に内訳を変えた場合も、売上集計の外注費へ反映
+        const entry = await prisma.salesEntry.findUnique({ where: { projectId: id }, select: { id: true } });
+        if (entry) {
+          const proj = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true } });
+          let selfAssigned = false;
+          if (proj?.assignedToId) {
+            const a = await prisma.user.findUnique({ where: { id: proj.assignedToId }, select: { role: true } });
+            selfAssigned = a?.role === "ADMIN";
+          }
+          const agg = await prisma.projectSubAssignee.aggregate({ where: { projectId: id }, _sum: { amount: true } });
+          await prisma.salesEntry.update({
+            where: { id: entry.id },
+            data: { outsource: (selfAssigned ? 0 : total) + (agg._sum.amount ?? 0) },
+          });
+        }
       } else {
         updateData.amountBreakdown = null; // 内訳なしに戻す（金額は据え置き）
       }

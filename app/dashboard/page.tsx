@@ -404,7 +404,12 @@ export default function DashboardPage() {
         .sort((a, b) => (getWorkDate(b)?.getTime() ?? 0) - (getWorkDate(a)?.getTime() ?? 0))
         .slice(0, 60)
     : [];
+  // 完了報告済みの段階（報告確認待ち・見積フロー中）は一覧の下へ
+  const REPORTED_STATUSES = ["INSPECTED", "QUOTE_REQUESTED", "QUOTE_REVIEWING"];
   const sortedActive = [...searchedActive].sort((a, b) => {
+    const aR = REPORTED_STATUSES.includes(a.status) ? 1 : 0;
+    const bR = REPORTED_STATUSES.includes(b.status) ? 1 : 0;
+    if (aR !== bR) return aR - bR;
     // 未読を常に上位
     const aU = isUnread(a) ? 0 : 1;
     const bU = isUnread(b) ? 0 : 1;

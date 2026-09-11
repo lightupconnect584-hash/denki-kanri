@@ -31,6 +31,7 @@ export default function InspectPage() {
   const id = params.id as string;
 
   const [result, setResult] = useState<"OK" | "REPAIR_NEEDED" | "">("");
+  const [dragCat, setDragCat] = useState<string | null>(null);
   const [workDates, setWorkDates] = useState<string[]>([""]);
 
   // 最終日（最も遅い日付）を完了日・請求日の基準とする
@@ -186,23 +187,28 @@ export default function InspectPage() {
   const MAX_PHOTOS_TOTAL = 12;
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: "before" | "during" | "after" | "other") => {
-    const files = e.target.files;
-    if (!files) return;
+    if (!e.target.files) return;
+    await uploadPhotoFiles(Array.from(e.target.files), category);
+    e.target.value = "";
+  };
+
+  const uploadPhotoFiles = async (allFiles: File[], category: "before" | "during" | "after" | "other") => {
+    const files = allFiles.filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
 
     const currentCount = photos.length;
     const remaining = MAX_PHOTOS_TOTAL - currentCount;
     if (remaining <= 0) {
       setUploadError(`写真は合計${MAX_PHOTOS_TOTAL}枚までです`);
-      e.target.value = "";
       return;
     }
 
     setUploading(category);
     setUploadError("");
     const uploaded: UploadedPhoto[] = [];
-    const filesToUpload = Array.from(files).slice(0, remaining);
+    const filesToUpload = files.slice(0, remaining);
 
-    if (Array.from(files).length > remaining) {
+    if (files.length > remaining) {
       setUploadError(`残り${remaining}枚しか追加できません`);
     }
 
@@ -257,8 +263,13 @@ export default function InspectPage() {
       return [...prev, ...uploaded.slice(0, canAdd)];
     });
     setUploading(null);
-    e.target.value = "";
   };
+
+  // 写真名の変更（報告に載る名前。あとから見てわかるように）
+  const renamePhoto = (filename: string, name: string) => {
+    setPhotos((prev) => prev.map((p) => (p.filename === filename ? { ...p, originalName: name } : p)));
+  };
+
 
   const removePhoto = (filename: string) => {
     setPhotos((prev) => prev.filter((p) => p.filename !== filename));
@@ -606,12 +617,21 @@ export default function InspectPage() {
                 <div key={cat}>
                   <p className="text-xs font-semibold text-gray-300 mb-2">{labels[cat]}</p>
                   <label
-                    className={`flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl py-3 transition ${isFull ? "border-gray-700 bg-gray-700/40 cursor-not-allowed opacity-50" : uploading === cat ? "border-blue-400 bg-blue-900/40 cursor-pointer" : "border-gray-600 hover:border-blue-400 hover:bg-blue-900/40 cursor-pointer"}`}
+                    className={`flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl py-3 transition ${isFull ? "border-gray-700 bg-gray-700/40 cursor-not-allowed opacity-50" : uploading === cat ? "border-blue-400 bg-blue-900/40 cursor-pointer" : dragCat === cat ? "border-blue-400 bg-blue-900/60 cursor-pointer" : "border-gray-600 hover:border-blue-400 hover:bg-blue-900/40 cursor-pointer"}`}
                     onClick={(e) => { if (isFull || uploading !== null) e.preventDefault(); }}
+                    onDragOver={(e) => { e.preventDefault(); if (!isFull && uploading === null) setDragCat(cat); }}
+                    onDragLeave={() => setDragCat(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragCat(null);
+                      if (isFull || uploading !== null) return;
+                      const dropped = Array.from(e.dataTransfer.files);
+                      if (dropped.length > 0) uploadPhotoFiles(dropped, cat);
+                    }}
                   >
                     <span className="text-xl">📷</span>
                     <span className="text-sm text-gray-300">
-                      {uploading === cat ? "アップロード中..." : isFull ? "上限に達しました（合計12枚）" : "写真を選択（複数可）"}
+                      {uploading === cat ? "アップロード中..." : isFull ? "上限に達しました（合計12枚）" : dragCat === cat ? "ここにドロップで追加" : "写真を選択 or ここにドロップ（複数可）"}
                     </span>
                     <input
                       type="file"
@@ -625,14 +645,23 @@ export default function InspectPage() {
                   {catPhotos.length > 0 && (
                     <div className="grid grid-cols-3 gap-2 mt-2">
                       {catPhotos.map((photo) => (
-                        <div key={photo.filename} className="relative">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={photo.preview} alt={photo.originalName} className="w-full h-24 object-cover rounded-lg" />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(photo.filename)}
-                            className="absolute top-1 right-1 bg-red-900/300 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
-                          >×</button>
+                        <div key={photo.filename}>
+                          <div className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={photo.preview} alt={photo.originalName} className="w-full h-24 object-cover rounded-lg" />
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(photo.filename)}
+                              className="absolute top-1 right-1 bg-red-900/300 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
+                            >×</button>
+                          </div>
+                          <input
+                            type="text"
+                            value={photo.originalName}
+                            onChange={(ev) => renamePhoto(photo.filename, ev.target.value)}
+                            placeholder="写真の名前"
+                            className="mt-1 w-full bg-transparent border-b border-gray-700 focus:border-blue-500 focus:outline-none text-[11px] text-gray-300 px-0.5 py-0.5"
+                          />
                         </div>
                       ))}
                     </div>

@@ -164,20 +164,35 @@ export default function BillingPage() {
   const handleMonthlyUpload = async (month: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      alert("上の月選択で「◯年◯月」を選んでから添付してください");
+      e.target.value = "";
+      return;
+    }
     setUploadingMonthly(true);
+    const errors: string[] = [];
     for (const file of Array.from(files)) {
+      if (file.size > 4 * 1024 * 1024) {
+        errors.push(`${file.name}: ファイルが大きすぎます（4MBまで）。写真を撮り直すかPDFを分割してください`);
+        continue;
+      }
       try {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("month", month);
-        await fetch("/api/monthly-invoices", { method: "POST", body: formData });
+        const res = await fetch("/api/monthly-invoices", { method: "POST", body: formData });
+        if (!res.ok) {
+          const d = await res.json().catch(() => null);
+          errors.push(`${file.name}: ${d?.error || "送信に失敗しました"}`);
+        }
       } catch {
-        // ignore
+        errors.push(`${file.name}: 送信に失敗しました（通信エラー）`);
       }
     }
     await fetchMonthlyInvoices();
     setUploadingMonthly(false);
     e.target.value = "";
+    if (errors.length > 0) alert("添付できなかったファイルがあります:\n" + errors.join("\n"));
   };
 
   const handleDeleteMonthly = async (invoiceId: string) => {
@@ -323,7 +338,7 @@ export default function BillingPage() {
       .filter((mi) => mi.partner?.id === partnerId)
       .filter((mi) => selectedMonth === "all" || mi.yearMonth === selectedMonth)
       .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth));
-    const canUpload = role === "PARTNER" && selectedMonth !== "all";
+    const canUpload = role === "PARTNER" && /^\d{4}-\d{2}$/.test(selectedMonth);
 
     return (
       <div className="bg-gray-800/60 border border-amber-700/50 rounded-xl px-4 py-3 mb-4">
@@ -334,6 +349,9 @@ export default function BillingPage() {
               月締め請求書{selectedMonth !== "all" ? `（${monthLabel(selectedMonth)}分）` : ""}
             </span>
           </div>
+          {role === "PARTNER" && !canUpload && (
+            <span className="text-[11px] text-amber-400">↑ 月を選ぶと添付できます</span>
+          )}
           {canUpload && (
             <label className={`inline-flex items-center gap-1 text-xs rounded-lg px-3 py-1.5 border cursor-pointer transition ${uploadingMonthly ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-blue-900/40 text-blue-300 border-blue-700 hover:bg-blue-900/70"}`}>
               <span>{uploadingMonthly ? "送信中..." : "＋ 請求書を添付"}</span>
@@ -378,7 +396,7 @@ export default function BillingPage() {
         ) : (
           <p className="text-xs text-gray-500 py-1">
             {role === "PARTNER"
-              ? (selectedMonth === "all" ? "月を選択して請求書を添付してください" : "この月の請求書はまだ添付されていません")
+              ? (!/^\d{4}-\d{2}$/.test(selectedMonth) ? "上の月選択で「◯年◯月」を選ぶと、その月の請求書を添付できます" : "この月の請求書はまだ添付されていません")
               : "請求書はまだ届いていません"}
           </p>
         )}

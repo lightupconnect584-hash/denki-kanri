@@ -1873,10 +1873,12 @@ export default function ProjectDetailPage() {
                         {photoOrganizeId === insp.id && (
                           <div className="mt-2 bg-gray-900/60 border border-blue-800/60 rounded-xl p-3 space-y-3">
                             <p className="text-[11px] text-gray-400">名前を書き換えて「名前をすべて保存」。写真は<span className="text-gray-200">そのままPCへドラッグ</span>すると新しい名前で保存されます。まとめて欲しい時は☑して「ダウンロード」。</p>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                              {insp.photos.map((photo) => (
-                                <div key={photo.id}>
-                                  <div className="relative">
+                            <div className="space-y-4">
+                              {insp.photos.map((photo, pi) => {
+                                const catLabels: Record<string, string> = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
+                                return (
+                                <div key={photo.id} className="bg-gray-800/80 border border-gray-700 rounded-lg overflow-hidden">
+                                  <div className="relative bg-black/40">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                       src={photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`}
@@ -1890,24 +1892,28 @@ export default function ProjectDetailPage() {
                                           `image/jpeg:${fname}:${window.location.origin}/api/photos/${photo.id}/file?name=${encodeURIComponent(name)}`
                                         );
                                       }}
-                                      className="w-full h-24 object-cover rounded-lg border border-gray-700 cursor-grab active:cursor-grabbing"
+                                      className="w-full max-h-80 object-contain cursor-grab active:cursor-grabbing"
                                     />
-                                    <input
-                                      type="checkbox"
-                                      checked={!!photoSelected[photo.id]}
-                                      onChange={(e) => setPhotoSelected((prev) => ({ ...prev, [photo.id]: e.target.checked }))}
-                                      className="absolute top-1.5 left-1.5 w-5 h-5 accent-blue-500"
-                                    />
+                                    <label className="absolute top-2 left-2 flex items-center gap-1.5 bg-gray-900/80 rounded-lg px-2 py-1.5 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={!!photoSelected[photo.id]}
+                                        onChange={(e) => setPhotoSelected((prev) => ({ ...prev, [photo.id]: e.target.checked }))}
+                                        className="w-5 h-5 accent-blue-500"
+                                      />
+                                      <span className="text-[11px] text-gray-300">{pi + 1}/{insp.photos.length}・{catLabels[photo.category || "before"] || ""}</span>
+                                    </label>
                                   </div>
                                   <input
                                     type="text"
                                     value={photoDisplayName(photo)}
                                     onChange={(e) => setPhotoNames((prev) => ({ ...prev, [photo.id]: e.target.value }))}
                                     placeholder="写真の名前"
-                                    className="mt-1 w-full bg-transparent border-b border-gray-700 focus:border-blue-500 focus:outline-none text-[11px] text-gray-200 px-0.5 py-0.5"
+                                    className="w-full bg-gray-900/60 border-0 border-t border-gray-700 focus:outline-none focus:bg-gray-900 text-sm text-gray-100 px-3 py-2.5"
                                   />
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <button

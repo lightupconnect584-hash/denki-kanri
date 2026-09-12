@@ -164,6 +164,44 @@ export default function ProjectDetailPage() {
   const [photoUploadError, setPhotoUploadError] = useState("");
   const [polishingId, setPolishingId] = useState<string | null>(null);
   const [editingPolishId, setEditingPolishId] = useState<string | null>(null);
+  // 写真を整理（名前の一括編集・選択してダウンロード/ドラッグ）
+  const [photoOrganizeId, setPhotoOrganizeId] = useState<string | null>(null);
+  const [photoNames, setPhotoNames] = useState<Record<string, string>>({});
+  const [photoSelected, setPhotoSelected] = useState<Record<string, boolean>>({});
+  const [photoSaving, setPhotoSaving] = useState(false);
+
+  const photoDisplayName = (photo: { id: string; originalName: string }) =>
+    photoNames[photo.id] !== undefined ? photoNames[photo.id] : photo.originalName;
+
+  const savePhotoNames = async (photos: { id: string; originalName: string }[]) => {
+    setPhotoSaving(true);
+    for (const ph of photos) {
+      const name = photoNames[ph.id];
+      if (name !== undefined && name.trim() && name.trim() !== ph.originalName) {
+        await fetch(`/api/photos/${ph.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ originalName: name }),
+        }).catch(() => {});
+      }
+    }
+    setPhotoSaving(false);
+    fetchProject(true);
+  };
+
+  const downloadSelected = (photos: { id: string; originalName: string }[]) => {
+    const targets = photos.filter((ph) => photoSelected[ph.id]);
+    targets.forEach((ph, i) => {
+      setTimeout(() => {
+        const a = document.createElement("a");
+        a.href = `/api/photos/${ph.id}/file?name=${encodeURIComponent(photoDisplayName(ph))}`;
+        a.download = photoDisplayName(ph);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, i * 600);
+    });
+  };
   const [polishText, setPolishText] = useState("");
   const [copiedPolishId, setCopiedPolishId] = useState<string | null>(null);
   const [polishWarnings, setPolishWarnings] = useState<Record<string, string[]>>({});
@@ -1812,7 +1850,7 @@ export default function ProjectDetailPage() {
                                     <img src={url} alt={photo.originalName} className="w-full h-24 object-cover rounded-lg border border-gray-700 hover:opacity-80 transition" />
                                   </a>
                                   {role === "ADMIN" && (
-                                    <a href={url} download={photo.originalName} className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition">↓</a>
+                                    <a href={`/api/photos/${photo.id}/file`} download={photo.originalName} className="absolute bottom-1 right-1 bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition">↓</a>
                                   )}
                                 </div>
                               );
@@ -1822,35 +1860,78 @@ export default function ProjectDetailPage() {
                       );
                     })}
                     {role === "ADMIN" && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {insp.photos.map((photo) => {
-                          const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
-                          return (
-                            <span key={photo.id} className="inline-flex items-center border border-blue-700 rounded overflow-hidden">
-                              <a
-                                href={url}
-                                download={photo.originalName}
-                                className="text-xs text-blue-400 px-2 py-1 hover:bg-blue-900/40 transition"
-                              >
-                                ↓ {photo.originalName}
-                              </a>
+                      <div className="mt-2">
+                        <button
+                          onClick={() => {
+                            if (photoOrganizeId === insp.id) { setPhotoOrganizeId(null); return; }
+                            setPhotoOrganizeId(insp.id);
+                            setPhotoNames({});
+                            setPhotoSelected({});
+                          }}
+                          className={`text-xs rounded-lg px-3 py-1.5 border transition ${photoOrganizeId === insp.id ? "bg-blue-600 text-white border-blue-600" : "text-blue-300 border-blue-700 hover:bg-blue-900/40"}`}
+                        >🗂 写真の名前変更・持ち出し</button>
+                        {photoOrganizeId === insp.id && (
+                          <div className="mt-2 bg-gray-900/60 border border-blue-800/60 rounded-xl p-3 space-y-3">
+                            <p className="text-[11px] text-gray-400">名前を書き換えて「名前をすべて保存」。写真は<span className="text-gray-200">そのままPCへドラッグ</span>すると新しい名前で保存されます。まとめて欲しい時は☑して「ダウンロード」。</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {insp.photos.map((photo) => (
+                                <div key={photo.id}>
+                                  <div className="relative">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`}
+                                      alt={photoDisplayName(photo)}
+                                      draggable
+                                      onDragStart={(e) => {
+                                        const name = photoDisplayName(photo) || "photo";
+                                        const fname = /\.(jpe?g|png|gif|webp)$/i.test(name) ? name : name + ".jpg";
+                                        e.dataTransfer.setData(
+                                          "DownloadURL",
+                                          `image/jpeg:${fname}:${window.location.origin}/api/photos/${photo.id}/file?name=${encodeURIComponent(name)}`
+                                        );
+                                      }}
+                                      className="w-full h-24 object-cover rounded-lg border border-gray-700 cursor-grab active:cursor-grabbing"
+                                    />
+                                    <input
+                                      type="checkbox"
+                                      checked={!!photoSelected[photo.id]}
+                                      onChange={(e) => setPhotoSelected((prev) => ({ ...prev, [photo.id]: e.target.checked }))}
+                                      className="absolute top-1.5 left-1.5 w-5 h-5 accent-blue-500"
+                                    />
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={photoDisplayName(photo)}
+                                    onChange={(e) => setPhotoNames((prev) => ({ ...prev, [photo.id]: e.target.value }))}
+                                    placeholder="写真の名前"
+                                    className="mt-1 w-full bg-transparent border-b border-gray-700 focus:border-blue-500 focus:outline-none text-[11px] text-gray-200 px-0.5 py-0.5"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
                               <button
-                                onClick={async () => {
-                                  const name = window.prompt("写真の名前を変更（報告に載る名前）", photo.originalName);
-                                  if (name === null || !name.trim() || name.trim() === photo.originalName) return;
-                                  await fetch(`/api/photos/${photo.id}`, {
-                                    method: "PATCH",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ originalName: name }),
-                                  });
-                                  fetchProject(true);
+                                onClick={() => savePhotoNames(insp.photos)}
+                                disabled={photoSaving}
+                                className="text-xs bg-blue-600 text-white rounded-lg px-3 py-1.5 hover:bg-blue-700 disabled:opacity-50 transition"
+                              >{photoSaving ? "保存中..." : "名前をすべて保存"}</button>
+                              <button
+                                onClick={() => downloadSelected(insp.photos)}
+                                disabled={insp.photos.every((ph) => !photoSelected[ph.id])}
+                                className="text-xs text-green-300 border border-green-700 rounded-lg px-3 py-1.5 hover:bg-green-900/40 disabled:opacity-40 transition"
+                              >↓ 選択した写真をダウンロード（{insp.photos.filter((ph) => !!photoSelected[ph.id]).length}枚）</button>
+                              <button
+                                onClick={() => {
+                                  const all = insp.photos.every((ph) => !!photoSelected[ph.id]);
+                                  const next: Record<string, boolean> = { ...photoSelected };
+                                  insp.photos.forEach((ph) => { next[ph.id] = !all; });
+                                  setPhotoSelected(next);
                                 }}
-                                title="写真の名前を変更"
-                                className="text-xs text-gray-400 px-1.5 py-1 border-l border-blue-800 hover:text-white hover:bg-blue-900/40 transition"
-                              >✎</button>
-                            </span>
-                          );
-                        })}
+                                className="text-xs text-gray-400 border border-gray-600 rounded-lg px-3 py-1.5 hover:bg-gray-800 transition"
+                              >{insp.photos.every((ph) => !!photoSelected[ph.id]) ? "選択解除" : "すべて選択"}</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

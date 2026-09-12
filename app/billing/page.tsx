@@ -83,6 +83,9 @@ export default function BillingPage() {
   })();
   // 締め時期かつ、その回をまだ締めていない場合だけ締めバーを出す
   const showClosePrompt = closingCycle !== null && dismissedCycle !== closingCycle;
+  // 締め時期を過ぎても手動で締められるように（締め忘れ対応）
+  const [manualClose, setManualClose] = useState(false);
+  const showCloseBar = showClosePrompt || manualClose;
 
   // 締め時期は、締める月の初期値をその対象月に合わせる
   useEffect(() => {
@@ -462,16 +465,24 @@ export default function BillingPage() {
         </div>
 
         {/* 締め時期外：案内だけ表示（締めボタンは月末まで出さない） */}
-        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && !showClosePrompt && (
-          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 mb-4">
-            <p className="text-xs text-gray-400">
+        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && !showCloseBar && (
+          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 mb-4 flex items-center gap-3 flex-wrap">
+            <p className="text-xs text-gray-400 flex-1 min-w-[200px]">
               🗓 締めボタンは月末（〜翌月初め）の締め時期に表示されます。未締めの案件はここに溜まっていきます。
             </p>
+            <button
+              onClick={() => {
+                setManualClose(true);
+                const pm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                setCloseTargetMonth(`${pm.getFullYear()}-${String(pm.getMonth() + 1).padStart(2, "0")}`);
+              }}
+              className="text-xs text-amber-300 border border-amber-700 rounded-lg px-3 py-1.5 hover:bg-amber-900/40 transition shrink-0"
+            >締め忘れ分を今すぐ締める</button>
           </div>
         )}
 
         {/* 締めバー（管理者・未締め表示時・締め時期のみ） */}
-        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && showClosePrompt && (() => {
+        {role === "ADMIN" && selectedMonth === UNCLOSED && filtered.length > 0 && showCloseBar && (() => {
           const toClose = filtered.filter((p) => !heldIds.has(p.id));
           return (
             <div className="bg-amber-950/40 border border-amber-700 rounded-xl p-3 mb-4">

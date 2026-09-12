@@ -1826,14 +1826,29 @@ export default function ProjectDetailPage() {
                         {insp.photos.map((photo) => {
                           const url = photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`;
                           return (
-                            <a
-                              key={photo.id}
-                              href={url}
-                              download={photo.originalName}
-                              className="text-xs text-blue-400 border border-blue-700 rounded px-2 py-1 hover:bg-blue-900/40 transition"
-                            >
-                              ↓ {photo.originalName}
-                            </a>
+                            <span key={photo.id} className="inline-flex items-center border border-blue-700 rounded overflow-hidden">
+                              <a
+                                href={url}
+                                download={photo.originalName}
+                                className="text-xs text-blue-400 px-2 py-1 hover:bg-blue-900/40 transition"
+                              >
+                                ↓ {photo.originalName}
+                              </a>
+                              <button
+                                onClick={async () => {
+                                  const name = window.prompt("写真の名前を変更（報告に載る名前）", photo.originalName);
+                                  if (name === null || !name.trim() || name.trim() === photo.originalName) return;
+                                  await fetch(`/api/photos/${photo.id}`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ originalName: name }),
+                                  });
+                                  fetchProject(true);
+                                }}
+                                title="写真の名前を変更"
+                                className="text-xs text-gray-400 px-1.5 py-1 border-l border-blue-800 hover:text-white hover:bg-blue-900/40 transition"
+                              >✎</button>
+                            </span>
                           );
                         })}
                       </div>

@@ -98,6 +98,7 @@ export default function DashboardPage() {
   const [showHeldMobile, setShowHeldMobile] = useState(false); // モバイルで保留中を開くか
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [partnerFilter, setPartnerFilter] = useState<string>("all"); // 協力会社で絞り込み（"all"|"self"|userId）
 
   const uploadIntakeFiles = useCallback(async (files: File[]) => {
     const targets = files.filter((f) => f.type === "application/pdf" || f.type.startsWith("image/") || f.name.toLowerCase().endsWith(".pdf"));
@@ -396,7 +397,12 @@ export default function DashboardPage() {
       .filter(Boolean).join(" ").toLowerCase();
     return hay.includes(searchQ);
   };
-  const searchedActive = searchQ ? activeProjects.filter(matchesSearch) : activeProjects;
+  const matchesPartner = (p: Project) =>
+    partnerFilter === "all" ? true
+    : partnerFilter === "self" ? (!!myId && p.assignedTo?.id === myId)
+    : p.assignedTo?.id === partnerFilter;
+  const partnerFiltered = partnerFilter === "all" ? activeProjects : activeProjects.filter(matchesPartner);
+  const searchedActive = searchQ ? partnerFiltered.filter(matchesSearch) : partnerFiltered;
   // 検索時は過去分（完了済み・保留中・却下など進行中以外）もヒットさせる（新しい順）
   const searchedPast = searchQ
     ? projects
@@ -649,6 +655,50 @@ export default function DashboardPage() {
             >✕</button>
           </div>
         )}
+
+        {/* 協力会社で絞り込み（管理者のみ） */}
+        {role === "ADMIN" && (() => {
+          const counts = new Map<string, { label: string; color: string | null; count: number }>();
+          let selfCount = 0;
+          for (const p of activeProjects) {
+            if (!!myId && p.assignedTo?.id === myId) { selfCount++; continue; }
+            if (!p.assignedTo) continue;
+            const key = p.assignedTo.id;
+            const cur = counts.get(key);
+            if (cur) cur.count++;
+            else counts.set(key, { label: p.assignedTo.companyName || p.assignedTo.name, color: p.assignedTo.color, count: 1 });
+          }
+          if (counts.size === 0 && selfCount === 0) return null;
+          const chip = (key: string, label: string, color: string | null, count: number) => (
+            <button
+              key={key}
+              onClick={() => setPartnerFilter(partnerFilter === key ? "all" : key)}
+              className={`inline-flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 border transition shrink-0 ${
+                partnerFilter === key
+                  ? "bg-blue-600 text-white border-blue-600 font-bold"
+                  : "bg-gray-800 text-gray-300 border-gray-700 hover:border-blue-500"
+              }`}
+            >
+              {color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />}
+              <span className="max-w-[120px] truncate">{label}</span>
+              <span className={partnerFilter === key ? "text-blue-200" : "text-gray-500"}>{count}</span>
+            </button>
+          );
+          return (
+            <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 -mx-1 px-1 [scrollbar-width:none]">
+              <button
+                onClick={() => setPartnerFilter("all")}
+                className={`text-xs rounded-full px-3 py-1.5 border transition shrink-0 ${
+                  partnerFilter === "all" ? "bg-blue-600 text-white border-blue-600 font-bold" : "bg-gray-800 text-gray-300 border-gray-700 hover:border-blue-500"
+                }`}
+              >全て {activeProjects.length}</button>
+              {selfCount > 0 && chip("self", "自社", null, selfCount)}
+              {Array.from(counts.entries())
+                .sort((a, b) => b[1].count - a[1].count)
+                .map(([id, v]) => chip(id, v.label, v.color, v.count))}
+            </div>
+          );
+        })()}
 
         {/* 基本情報未入力バナー（パートナー用） */}
         {role === "PARTNER" && profileIncomplete && (

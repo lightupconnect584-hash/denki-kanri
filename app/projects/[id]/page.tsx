@@ -1601,6 +1601,16 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
+        {/* 管理者: 協力会社案件の代理完了報告（使用頻度低のため控えめなリンク） */}
+        {role === "ADMIN" && !isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
+          <div className="mb-4 text-right">
+            <Link
+              href={`/projects/${id}/inspect`}
+              className="text-xs text-gray-500 hover:text-gray-300 underline underline-offset-2"
+            >📋 代理で完了報告を入力（管理者）</Link>
+          </div>
+        )}
+
         {/* 協力会社向けアクションボタン */}
         {canInspect && (
           <div className="mb-4 space-y-3">

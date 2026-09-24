@@ -1601,6 +1601,16 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
+        {/* 管理者: 関連工事の作成（過去案件から物件情報を引き継いで新規依頼） */}
+        {role === "ADMIN" && ["CONFIRMED", "COMPLETED"].includes(project.status) && (
+          <div className="mb-4 text-right">
+            <Link
+              href={`/projects/new?from=${id}`}
+              className="text-xs text-gray-500 hover:text-gray-300 underline underline-offset-2"
+            >＋ この物件の関連工事を作成</Link>
+          </div>
+        )}
+
         {/* 管理者: 協力会社案件の代理完了報告（使用頻度低のため控えめなリンク） */}
         {role === "ADMIN" && !isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (
           <div className="mb-4 text-right">

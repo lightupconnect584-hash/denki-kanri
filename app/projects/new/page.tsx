@@ -255,6 +255,33 @@ export default function NewProjectPage() {
   const selectedClientTop = clients.find((c) => c.id === form.clientId);
   const isSekisui = !!selectedClientTop && selectedClientTop.name.includes("積水"); // 積水案件のみ表示する項目の判定
 
+  // 関連工事の作成：?from=ID の過去案件から物件情報を引き継ぐ
+  const [fromProject, setFromProject] = useState<string | null>(null);
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const params = new URLSearchParams(window.location.search);
+    const fid = params.get("from");
+    if (!fid) return;
+    (async () => {
+      try {
+        const r = await fetch(`/api/projects/${fid}`);
+        if (!r.ok) return;
+        const p = await r.json();
+        setFromProject(p.title || "過去案件");
+        setForm((prev) => ({
+          ...prev,
+          title: p.title || prev.title,
+          location: p.location || prev.location,
+          roomNumber: p.roomNumber || prev.roomNumber,
+          region: p.region || prev.region,
+          clientId: p.client?.id || prev.clientId,
+          parkingInfo: p.parkingInfo || prev.parkingInfo,
+        }));
+      } catch { /* ignore */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   // 受付ボックスからの振り分け：?intake=ID の依頼書を自動で読み取り
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -487,6 +514,11 @@ export default function NewProjectPage() {
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">新規依頼登録</h2>
+        {fromProject && (
+          <p className="text-xs text-sky-300 bg-sky-950/40 border border-sky-800 rounded-lg px-3 py-2 mt-2 w-full">
+            🔗 「{fromProject}」の関連工事として物件情報を引き継ぎました（依頼内容・金額は新規に入力してください）
+          </p>
+        )}
         </div>
 
         <div className={intakeDoc ? "lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start" : ""}>

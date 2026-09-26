@@ -189,6 +189,62 @@ export default function ProjectDetailPage() {
     fetchProject(true);
   };
 
+  // 選択した写真を1枚に合成（2枚=横並び、3〜4枚=2×2、5枚以上=3列グリッド）。名前入りキャプション付き
+  const [combining, setCombining] = useState(false);
+  const combineSelected = async (photos: { id: string; originalName: string }[], projectTitle: string) => {
+    const targets = photos.filter((ph) => photoSelected[ph.id]);
+    if (targets.length < 2) return;
+    setCombining(true);
+    try {
+      const imgs = await Promise.all(targets.map(async (ph) => {
+        const r = await fetch(`/api/photos/${ph.id}/file`);
+        const blob = await r.blob();
+        return { bmp: await createImageBitmap(blob), name: photoDisplayName(ph) };
+      }));
+      const n = imgs.length;
+      const cols = n <= 2 ? n : n <= 4 ? 2 : 3;
+      const rows = Math.ceil(n / cols);
+      const CW = 780, CH = 585, CAP = 44, GAP = 10;
+      const canvas = document.createElement("canvas");
+      canvas.width = cols * CW + (cols + 1) * GAP;
+      canvas.height = rows * (CH + CAP) + (rows + 1) * GAP;
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      imgs.forEach((im, i) => {
+        const cx = GAP + (i % cols) * (CW + GAP);
+        const cy = GAP + Math.floor(i / cols) * (CH + CAP + GAP);
+        // cover配置
+        const scale = Math.max(CW / im.bmp.width, CH / im.bmp.height);
+        const sw = CW / scale, sh = CH / scale;
+        const sx = (im.bmp.width - sw) / 2, sy = (im.bmp.height - sh) / 2;
+        ctx.drawImage(im.bmp, sx, sy, sw, sh, cx, cy, CW, CH);
+        ctx.strokeStyle = "#d1d5db";
+        ctx.strokeRect(cx + 0.5, cy + 0.5, CW - 1, CH - 1);
+        // キャプション（写真の名前）
+        ctx.fillStyle = "#111827";
+        ctx.font = "bold 24px sans-serif";
+        ctx.textBaseline = "middle";
+        let label = im.name || "";
+        while (label && ctx.measureText(label).width > CW - 16) label = label.slice(0, -1);
+        ctx.fillText(label, cx + 8, cy + CH + CAP / 2);
+      });
+      const outBlob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.85));
+      if (outBlob) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(outBlob);
+        a.download = `${projectTitle || "写真まとめ"}_写真${n}枚.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      }
+    } catch {
+      alert("写真の合成に失敗しました");
+    }
+    setCombining(false);
+  };
+
   const downloadSelected = (photos: { id: string; originalName: string }[]) => {
     const targets = photos.filter((ph) => photoSelected[ph.id]);
     targets.forEach((ph, i) => {
@@ -1946,6 +2002,11 @@ export default function ProjectDetailPage() {
                                 disabled={insp.photos.every((ph) => !photoSelected[ph.id])}
                                 className="text-xs text-green-300 border border-green-700 rounded-lg px-3 py-1.5 hover:bg-green-900/40 disabled:opacity-40 transition"
                               >↓ 選択した写真をダウンロード（{insp.photos.filter((ph) => !!photoSelected[ph.id]).length}枚）</button>
+                              <button
+                                onClick={() => combineSelected(insp.photos, project.title)}
+                                disabled={combining || insp.photos.filter((ph) => !!photoSelected[ph.id]).length < 2}
+                                className="text-xs text-purple-300 border border-purple-700 rounded-lg px-3 py-1.5 hover:bg-purple-900/40 disabled:opacity-40 transition"
+                              >{combining ? "合成中..." : "🧩 選択した写真を1枚にまとめる"}</button>
                               <button
                                 onClick={() => {
                                   const all = insp.photos.every((ph) => !!photoSelected[ph.id]);

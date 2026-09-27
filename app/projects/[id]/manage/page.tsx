@@ -46,6 +46,20 @@ export default function ManagePage() {
   const [saved, setSaved] = useState(false);
   const [viewer, setViewer] = useState<{ url: string; label: string } | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  // 担当者番号リスト（積水担当への発信用。名前で照合）
+  const [staffPhones, setStaffPhones] = useState<{ phone: string; label: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/staff-phones").then((r) => (r.ok ? r.json() : [])).then((d) => setStaffPhones(Array.isArray(d) ? d : [])).catch(() => {});
+  }, []);
+  const staffPhoneFor = (name: string) => {
+    const n = name.trim();
+    if (!n) return null;
+    const hit = staffPhones.find((sp) => {
+      const l = (sp.label || "").trim();
+      return l && (l.includes(n) || n.includes(l));
+    });
+    return hit?.phone || null;
+  };
 
   // 依頼書原本を後から追加（2枚目など）。【依頼書原本】マーカー付きで添付＝協力会社には非表示
   const uploadOriginal = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,11 +213,21 @@ export default function ManagePage() {
           <p className="text-sm font-bold text-gray-100">担当者（依頼元）</p>
           <div>
             <label className="block text-xs text-gray-400 mb-1">管理担当者名</label>
-            <input value={managerName} onChange={(e) => setManagerName(e.target.value)} onBlur={() => save({ managerName })} className={inputClass} placeholder="依頼元の管理担当" />
+            <div className="flex items-center gap-2">
+              <input value={managerName} onChange={(e) => setManagerName(e.target.value)} onBlur={() => save({ managerName })} className={inputClass} placeholder="依頼元の管理担当" />
+              {staffPhoneFor(managerName) && (
+                <a href={`tel:${staffPhoneFor(managerName)}`} title={`${managerName}に電話`} className="shrink-0 text-lg bg-green-900/40 border border-green-700 rounded-lg px-2.5 py-1.5 hover:bg-green-900/70 transition">📞</a>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">アフター担当者名</label>
-            <input value={afterManagerName} onChange={(e) => setAfterManagerName(e.target.value)} onBlur={() => save({ afterManagerName })} className={inputClass} placeholder="アフター担当" />
+            <div className="flex items-center gap-2">
+              <input value={afterManagerName} onChange={(e) => setAfterManagerName(e.target.value)} onBlur={() => save({ afterManagerName })} className={inputClass} placeholder="アフター担当" />
+              {staffPhoneFor(afterManagerName) && (
+                <a href={`tel:${staffPhoneFor(afterManagerName)}`} title={`${afterManagerName}に電話`} className="shrink-0 text-lg bg-green-900/40 border border-green-700 rounded-lg px-2.5 py-1.5 hover:bg-green-900/70 transition">📞</a>
+              )}
+            </div>
           </div>
         </div>
 

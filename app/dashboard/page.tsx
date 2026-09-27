@@ -30,7 +30,7 @@ interface Project {
   updatedAt: string;
   notifyAdminAt: string | null;
   notifyPartnerAt: string | null;
-  assignedTo: { id: string; name: string; companyName: string | null; color: string | null } | null;
+  assignedTo: { id: string; name: string; companyName: string | null; color: string | null; phone: string | null } | null;
   inspections: { id: string; workDate: string }[];
   quotes: { id: string; status: string }[];
   comments: { createdAt: string }[];
@@ -509,6 +509,14 @@ export default function DashboardPage() {
                 <span className="text-xs flex items-center gap-1">
                   {partnerColor && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: partnerColor }} />}
                   <span className="text-gray-500">{p.assignedTo.companyName || p.assignedTo.name}</span>
+                  {p.assignedTo.phone && (
+                    <a
+                      href={`tel:${p.assignedTo.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      title={`${p.assignedTo.name}に電話`}
+                      className="text-green-400 hover:text-green-300 px-1"
+                    >📞</a>
+                  )}
                 </span>
               )}
               {visitBadge && (

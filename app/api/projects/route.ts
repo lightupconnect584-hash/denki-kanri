@@ -21,7 +21,7 @@ export async function GET() {
         },
     include: {
       client: { select: { id: true, name: true, color: true } },
-      assignedTo: { select: { id: true, name: true, companyName: true, color: true } },
+      assignedTo: { select: { id: true, name: true, companyName: true, color: true, phone: true } },
       subAssignees: { select: { amount: true, user: { select: { id: true, name: true, companyName: true, color: true } } } },
       createdBy: { select: { name: true, avatarUrl: true, thankYouEnabled: true, thankYouImageUrl: true, thankYouMessage: true } },
       // 一覧では workDate / status しか使わない。写真・見積もり本文は転送しない（通信量削減）
@@ -51,7 +51,8 @@ export async function GET() {
       const amountBreakdown = isMain ? rest.amountBreakdown : null;
       const { clientId: _cid, ...clean } = rest;
       void _cid;
-      return { ...clean, amount, amountBreakdown, subAssignees };
+      const assignedTo = clean.assignedTo ? { ...clean.assignedTo, phone: null } : clean.assignedTo;
+      return { ...clean, assignedTo, amount, amountBreakdown, subAssignees };
     });
     return NextResponse.json(sanitized);
   }

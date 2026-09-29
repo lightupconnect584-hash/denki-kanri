@@ -71,6 +71,21 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true);
   const [showExpenses, setShowExpenses] = useState(false);
   const [openBreakdownId, setOpenBreakdownId] = useState<string | null>(null);
+  // 単価検索（作業名 → 過去実績）
+  const [showPriceSearch, setShowPriceSearch] = useState(false);
+  const [priceQ, setPriceQ] = useState("");
+  const [priceResult, setPriceResult] = useState<{ items: { id: string; title: string; workType: string | null; salesAmount: number | null; amount: number | null; partner: string | null; date: string }[]; stats: { count: number; salesAvg: number | null; salesMode: number | null; payAvg: number | null } | null }>({ items: [], stats: null });
+  useEffect(() => {
+    const q = priceQ.trim();
+    if (q.length < 2) { setPriceResult({ items: [], stats: null }); return; }
+    const t = setTimeout(() => {
+      fetch(`/api/work-history?q=${encodeURIComponent(q)}&limit=15`)
+        .then((r) => (r.ok ? r.json() : { items: [], stats: null }))
+        .then(setPriceResult)
+        .catch(() => {});
+    }, 400);
+    return () => clearTimeout(t);
+  }, [priceQ]);
   const [newExpLabel, setNewExpLabel] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
   // 📄 依頼書原本の拡大ビューア
@@ -269,6 +284,11 @@ export default function SalesPage() {
             <p className="text-lg font-bold text-white w-36 text-center">{monthLabel}</p>
             <button onClick={() => shiftMonth(1)} className="text-gray-400 hover:text-white text-xl px-3 py-1">›</button>
           </div>
+          <button
+            onClick={() => setShowPriceSearch((v) => !v)}
+            className={`shrink-0 text-xs sm:text-sm rounded-lg px-3 py-1.5 border transition ${showPriceSearch ? "bg-amber-600 text-white border-amber-600" : "bg-gray-800 text-gray-300 border-gray-700 hover:border-amber-500 hover:text-amber-300"}`}
+            title="作業名から過去の金額実績を検索"
+          >🔎 単価</button>
           <a
             href={`/api/sales/pdf?month=${month}`}
             target="_blank"
@@ -277,6 +297,43 @@ export default function SalesPage() {
             title="この月の売上集計をPDFで開く"
           >📄 PDF</a>
         </div>
+
+        {/* 単価検索（作業名 → 過去実績） */}
+        {showPriceSearch && (
+          <div className="bg-gray-800 border border-amber-700/60 rounded-xl p-3 mb-4">
+            <input
+              autoFocus
+              value={priceQ}
+              onChange={(e) => setPriceQ(e.target.value)}
+              placeholder="作業名で過去の金額を検索（例: 分電盤交換）"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            {priceResult.stats && priceResult.stats.count > 0 && (
+              <div className="flex items-center gap-4 flex-wrap mt-2 text-xs">
+                <span className="text-amber-300 font-bold">{priceResult.stats.count}件</span>
+                {priceResult.stats.salesMode != null && <span className="text-gray-200">売上の最頻 <b>¥{priceResult.stats.salesMode.toLocaleString()}</b></span>}
+                {priceResult.stats.salesAvg != null && <span className="text-gray-400">売上平均 ¥{priceResult.stats.salesAvg.toLocaleString()}</span>}
+                {priceResult.stats.payAvg != null && <span className="text-gray-400">支払平均 ¥{priceResult.stats.payAvg.toLocaleString()}</span>}
+              </div>
+            )}
+            {priceResult.items.length > 0 && (
+              <div className="mt-2 divide-y divide-gray-700/60 max-h-64 overflow-y-auto">
+                {priceResult.items.map((h) => (
+                  <div key={h.id} className="flex items-center gap-3 py-1.5 text-xs">
+                    <span className="text-gray-500 shrink-0 w-16">{h.date.slice(2).replace(/-/g, "/")}</span>
+                    <span className="text-gray-200 flex-1 min-w-0 truncate">{h.title}{h.workType ? `（${h.workType}）` : ""}</span>
+                    {h.partner && <span className="text-gray-500 shrink-0 hidden sm:inline max-w-[100px] truncate">{h.partner}</span>}
+                    <span className="text-gray-100 shrink-0">{h.salesAmount != null ? `売上¥${h.salesAmount.toLocaleString()}` : "-"}</span>
+                    <span className="text-gray-400 shrink-0 hidden sm:inline">{h.amount != null ? `支払¥${h.amount.toLocaleString()}` : ""}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {priceQ.trim().length >= 2 && priceResult.items.length === 0 && (
+              <p className="text-xs text-gray-500 mt-2">該当する過去案件がありません</p>
+            )}
+          </div>
+        )}
 
         {/* サマリー */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-5">

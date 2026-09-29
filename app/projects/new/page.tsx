@@ -255,6 +255,20 @@ export default function NewProjectPage() {
   const selectedClientTop = clients.find((c) => c.id === form.clientId);
   const isSekisui = !!selectedClientTop && selectedClientTop.name.includes("積水"); // 積水案件のみ表示する項目の判定
 
+  // 過去の金額実績（依頼名から自動表示。単価の参考用）
+  const [workHistory, setWorkHistory] = useState<{ items: { id: string; title: string; salesAmount: number | null; amount: number | null; partner: string | null; date: string }[]; stats: { count: number } | null }>({ items: [], stats: null });
+  useEffect(() => {
+    const q = form.workType.trim();
+    if (q.length < 2) { setWorkHistory({ items: [], stats: null }); return; }
+    const t = setTimeout(() => {
+      fetch(`/api/work-history?q=${encodeURIComponent(q)}&limit=3`)
+        .then((r) => (r.ok ? r.json() : { items: [], stats: null }))
+        .then(setWorkHistory)
+        .catch(() => {});
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form.workType]);
+
   // 関連工事の作成：?from=ID の過去案件から物件情報を引き継ぐ
   const [fromProject, setFromProject] = useState<string | null>(null);
   useEffect(() => {
@@ -836,6 +850,18 @@ export default function NewProjectPage() {
                     </button>
                   )}
                 </div>
+                {workHistory.items.length > 0 && (
+                  <div className="mt-1.5 bg-amber-950/30 border border-amber-800/50 rounded-lg px-3 py-2">
+                    <p className="text-[11px] text-amber-300 mb-1">💰 過去の実績{workHistory.stats?.count ? `（${workHistory.stats.count}件）` : ""}</p>
+                    {workHistory.items.map((h) => (
+                      <p key={h.id} className="text-[11px] text-gray-300 truncate">
+                        {h.date.slice(5).replace("-", "/")} {h.title}
+                        {h.salesAmount != null && <span className="ml-2 text-gray-100">売上¥{h.salesAmount.toLocaleString()}</span>}
+                        {h.amount != null && <span className="ml-2 text-gray-400">支払¥{h.amount.toLocaleString()}</span>}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 {showWorkTypeList && workTypeMasters.length > 0 && (
                   <div className="absolute z-10 left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl max-h-52 overflow-y-auto">
                     {workTypeMasters.map((w) => (

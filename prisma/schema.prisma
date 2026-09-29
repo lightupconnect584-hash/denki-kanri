@@ -399,6 +399,8 @@ model WorkTypeMaster {
 model DirectMessage {
   id        String    @id @default(cuid())
   content   String
+  attachmentUrl  String? // 添付（画像/PDF）のURL
+  attachmentName String? // 添付の表示名
   createdAt DateTime  @default(now())
   readAt    DateTime?
 

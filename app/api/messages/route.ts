@@ -89,7 +89,9 @@ export async function POST(req: NextRequest) {
   const myRole = (session.user as { role?: string }).role;
 
   const body = await req.json();
-  if (!body.toId || !body.content?.trim()) {
+  const attachmentUrl = typeof body.attachmentUrl === "string" && body.attachmentUrl.startsWith("http") ? body.attachmentUrl : null;
+  const attachmentName = attachmentUrl ? String(body.attachmentName || "添付ファイル").slice(0, 100) : null;
+  if (!body.toId || (!body.content?.trim() && !attachmentUrl)) {
     return NextResponse.json({ error: "toId and content required" }, { status: 400 });
   }
 
@@ -97,7 +99,9 @@ export async function POST(req: NextRequest) {
     data: {
       fromId: myId,
       toId: body.toId,
-      content: body.content.trim(),
+      content: (body.content || "").trim(),
+      attachmentUrl,
+      attachmentName,
     },
     include: {
       from: { select: userSelect },
@@ -108,7 +112,7 @@ export async function POST(req: NextRequest) {
   // プッシュ通知（自分宛て＝マイチャットはスキップ）
   if (body.toId !== myId) {
     try {
-      const notifBody = `${myName}：${body.content.trim().slice(0, 60)}`;
+      const notifBody = `${myName}：${(body.content || "").trim().slice(0, 60) || (attachmentName ? `📎 ${attachmentName}` : "")}`;
       console.log(`[messages/push] myRole=${myRole} myId=${myId} toId=${body.toId}`);
       if (myRole === "ADMIN") {
         await sendPushToUsers([body.toId], {

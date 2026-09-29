@@ -38,6 +38,8 @@ interface UserMini {
 interface DirectMessage {
   id: string;
   content: string;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
   createdAt: string;
   readAt: string | null;
   fromId: string;
@@ -196,6 +198,58 @@ function MessagesInner() {
   const selectThread = (userId: string) => {
     setSelectedId(userId);
     setShowNewChat(false);
+  };
+
+  // 📎 添付（画像は1600pxに圧縮、PDFはそのまま）→ アップロードして即送信
+  const [attaching, setAttaching] = useState(false);
+  const handleAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !selectedId || attaching) return;
+    if (file.size > 15 * 1024 * 1024) { alert("ファイルが大きすぎます（15MBまで）"); return; }
+    setAttaching(true);
+    try {
+      let toUpload = file;
+      if (file.type.startsWith("image/")) {
+        toUpload = await new Promise<File>((resolve) => {
+          const img = new window.Image();
+          const url = URL.createObjectURL(file);
+          img.onload = () => {
+            const MAX = 1600;
+            let w = img.width, h = img.height;
+            if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+            const canvas = document.createElement("canvas");
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) { resolve(file); return; }
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+              URL.revokeObjectURL(url);
+              resolve(blob ? new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }) : file);
+            }, "image/jpeg", 0.8);
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+          img.src = url;
+        });
+      }
+      const fd = new FormData();
+      fd.append("file", toUpload);
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!up.ok) throw new Error("upload failed");
+      const data = await up.json();
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toId: selectedId, content: "", attachmentUrl: data.url, attachmentName: file.name }),
+      });
+      if (!res.ok) throw new Error("send failed");
+      forceScrollRef.current = true;
+      await fetchMessages(selectedId, false);
+      fetchThreads();
+    } catch {
+      alert("添付の送信に失敗しました");
+    }
+    setAttaching(false);
   };
 
   const sendMessage = async () => {
@@ -473,7 +527,21 @@ function MessagesInner() {
                                   : "bg-gray-700 text-gray-100 rounded-bl-sm"
                               }`}
                             >
-                              {renderWithLinks(msg.content, isMine)}
+                              {msg.attachmentUrl && (
+                                /\.pdf$/i.test(msg.attachmentName || "") ? (
+                                  <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                                    className={`flex items-center gap-2 rounded-lg px-3 py-2 mb-1 ${isMine ? "bg-white/15 hover:bg-white/25" : "bg-black/20 hover:bg-black/30"} transition`}>
+                                    <span className="text-xl shrink-0">📄</span>
+                                    <span className="text-xs underline break-all">{msg.attachmentName}</span>
+                                  </a>
+                                ) : (
+                                  <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block mb-1">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={msg.attachmentUrl} alt={msg.attachmentName || "画像"} className="max-h-56 w-auto rounded-lg" />
+                                  </a>
+                                )
+                              )}
+                              {msg.content && renderWithLinks(msg.content, isMine)}
                             </div>
                             <span className="text-xs text-gray-500 px-1 flex items-center gap-2">
                               <span>
@@ -502,6 +570,10 @@ function MessagesInner() {
               {/* 入力欄 */}
               <div className="border-t border-gray-700 bg-gray-900 px-4 py-3 shrink-0">
                 <div className="flex items-end gap-2">
+                  <label className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center border transition cursor-pointer ${attaching ? "bg-gray-700 text-gray-500 border-gray-600" : "bg-gray-800 text-gray-300 border-gray-600 hover:border-blue-500 hover:text-blue-300"}`} title="画像・PDFを添付">
+                    {attaching ? <span className="text-xs">...</span> : <span className="text-lg">📎</span>}
+                    <input type="file" accept="image/*,.pdf,application/pdf" className="hidden" disabled={attaching} onChange={handleAttach} />
+                  </label>
                   <textarea
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}

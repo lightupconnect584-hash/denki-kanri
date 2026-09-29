@@ -214,11 +214,11 @@ export default function ProjectDetailPage() {
       imgs.forEach((im, i) => {
         const cx = GAP + (i % cols) * (CW + GAP);
         const cy = GAP + Math.floor(i / cols) * (CH + CAP + GAP);
-        // cover配置
-        const scale = Math.max(CW / im.bmp.width, CH / im.bmp.height);
-        const sw = CW / scale, sh = CH / scale;
-        const sx = (im.bmp.width - sw) / 2, sy = (im.bmp.height - sh) / 2;
-        ctx.drawImage(im.bmp, sx, sy, sw, sh, cx, cy, CW, CH);
+        // contain配置（写真全体を切り抜かずに収める。余白は白）
+        const scale = Math.min(CW / im.bmp.width, CH / im.bmp.height);
+        const dw = im.bmp.width * scale, dh = im.bmp.height * scale;
+        const dx = cx + (CW - dw) / 2, dy = cy + (CH - dh) / 2;
+        ctx.drawImage(im.bmp, dx, dy, dw, dh);
         ctx.strokeStyle = "#d1d5db";
         ctx.strokeRect(cx + 0.5, cy + 0.5, CW - 1, CH - 1);
         // キャプション（写真の名前）

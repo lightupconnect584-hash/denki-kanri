@@ -250,6 +250,7 @@ model MonthlyInvoice {
   yearMonth    String   // 例: "2026-06"
   filename     String
   originalName String
+  paidAt       DateTime? // 支払い完了日時（管理者がチェック）
   createdAt    DateTime @default(now())
 
   partner   User   @relation("PartnerMonthlyInvoices", fields: [partnerId], references: [id])

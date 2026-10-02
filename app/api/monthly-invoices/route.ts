@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { put, del } from "@vercel/blob";
+import { sendPushToUsers, getAdminIds } from "@/lib/push";
 
 export const maxDuration = 60;
 
@@ -55,6 +56,48 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // 管理者へ通知（支払い漏れ防止）
+  try {
+    const me = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, companyName: true } });
+    const who = me?.companyName || me?.name || "協力会社";
+    const [y, m] = month.split("-");
+    const adminIds = await getAdminIds();
+    await sendPushToUsers(adminIds, {
+      title: "🧾 請求書が届きました",
+      body: `${who}から${parseInt(m)}月分の請求書が添付されました`,
+      url: "/billing",
+    });
+    void y;
+  } catch { /* 通知失敗は無視 */ }
+
+  return NextResponse.json(invoice);
+}
+
+// PATCH: 支払い完了チェックの切り替え（管理者のみ）
+//   { invoiceId, paid: boolean }
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if ((session.user as { role?: string })?.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const { invoiceId, paid } = await req.json();
+  if (!invoiceId) return NextResponse.json({ error: "invoiceId required" }, { status: 400 });
+  const invoice = await prisma.monthlyInvoice.update({
+    where: { id: invoiceId },
+    data: { paidAt: paid ? new Date() : null },
+  });
+  // 支払い完了をその協力会社へ通知（チェックを外した時は通知しない）
+  if (paid) {
+    try {
+      const [, m] = invoice.yearMonth.split("-");
+      await sendPushToUsers([invoice.partnerId], {
+        title: "💰 お支払い完了",
+        body: `${parseInt(m)}月分のお支払いが完了しました`,
+        url: "/billing",
+      });
+    } catch { /* 通知失敗は無視 */ }
+  }
   return NextResponse.json(invoice);
 }
 

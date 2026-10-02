@@ -28,6 +28,7 @@ interface MonthlyInvoice {
   yearMonth: string;
   filename: string;
   originalName: string;
+  paidAt: string | null;
   createdAt: string;
   partner: { id: string; name: string; companyName: string | null } | null;
 }
@@ -196,6 +197,18 @@ export default function BillingPage() {
     setUploadingMonthly(false);
     e.target.value = "";
     if (errors.length > 0) alert("添付できなかったファイルがあります:\n" + errors.join("\n"));
+  };
+
+  // 支払い完了チェック（管理者）。チェック時は協力会社に通知が飛ぶ
+  const togglePaid = async (mi: MonthlyInvoice) => {
+    const next = !mi.paidAt;
+    if (next && !confirm(`「${mi.partner?.companyName || mi.partner?.name || ""}」の${monthLabel(mi.yearMonth)}分を支払い済みにしますか？\n（協力会社に完了通知が送られます）`)) return;
+    await fetch("/api/monthly-invoices", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoiceId: mi.id, paid: next }),
+    });
+    await fetchMonthlyInvoices();
   };
 
   const handleDeleteMonthly = async (invoiceId: string) => {
@@ -385,6 +398,15 @@ export default function BillingPage() {
                     </span>
                   </a>
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    {role === "ADMIN" ? (
+                      <button
+                        onClick={() => togglePaid(mi)}
+                        title={mi.paidAt ? `支払済み（${new Date(mi.paidAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）タップで取消` : "支払いが完了したらタップ"}
+                        className={`text-xs rounded px-2 py-0.5 border font-medium transition ${mi.paidAt ? "bg-green-600 text-white border-green-600" : "text-amber-300 border-amber-700 hover:bg-amber-900/40"}`}
+                      >{mi.paidAt ? "✓ 支払済" : "未払い"}</button>
+                    ) : mi.paidAt ? (
+                      <span className="text-xs bg-green-900/50 text-green-300 border border-green-700 rounded px-2 py-0.5">✓ 支払済み</span>
+                    ) : null}
                     <a href={url} download={mi.originalName}
                       className="text-xs text-green-400 border border-green-700 rounded px-2 py-0.5 hover:bg-green-900/40 transition">↓ DL</a>
                     {(role === "ADMIN" || mi.partner?.id === userId) && (

@@ -187,9 +187,10 @@ export default function ProjectDetailPage() {
 
   // 選択した写真を1枚に合成（2枚=横並び、3〜4枚=2×2、5枚以上=3列グリッド）。名前入りキャプション付き
   const [combining, setCombining] = useState(false);
-  const combineSelected = async (photos: { id: string; originalName: string }[], projectTitle: string) => {
+  const combineSelected = async (inspectionId: string, photos: { id: string; originalName: string }[], projectTitle: string) => {
     const targets = photos.filter((ph) => photoSelected[ph.id]);
     if (targets.length < 2) return;
+    if (!confirm(`選択した${targets.length}枚を1枚の画像にまとめて報告に保存し、元の${targets.length}枚は削除します。\nよろしいですか？（元に戻せません）`)) return;
     setCombining(true);
     try {
       const imgs = await Promise.all(targets.map(async (ph) => {
@@ -226,17 +227,28 @@ export default function ProjectDetailPage() {
         ctx.fillText(label, cx + 8, cy + CH + CAP / 2);
       });
       const outBlob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.85));
-      if (outBlob) {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(outBlob);
-        a.download = `${projectTitle || "写真まとめ"}_写真${n}枚.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      if (!outBlob) throw new Error("toBlob failed");
+      // 合成画像をアップロードして報告に追加
+      const fname = `${projectTitle || "写真まとめ"}_まとめ${n}枚.jpg`;
+      const fd = new FormData();
+      fd.append("file", new File([outBlob], fname, { type: "image/jpeg" }));
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!up.ok) throw new Error("upload failed");
+      const data = await up.json();
+      const addRes = await fetch(`/api/inspections/${inspectionId}/photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos: [{ filename: data.url, originalName: fname, category: targets[0] ? "other" : "other" }] }),
+      });
+      if (!addRes.ok) throw new Error("add failed");
+      // 元の写真を削除（ストレージ節約）
+      for (const ph of targets) {
+        await fetch(`/api/photos/${ph.id}`, { method: "DELETE" }).catch(() => {});
       }
+      setPhotoSelected({});
+      fetchProject(true);
     } catch {
-      alert("写真の合成に失敗しました");
+      alert("写真の合成に失敗しました（元の写真はそのままです）");
     }
     setCombining(false);
   };
@@ -2130,10 +2142,10 @@ export default function ProjectDetailPage() {
                                 className="text-xs text-green-300 border border-green-700 rounded-lg px-3 py-1.5 hover:bg-green-900/40 disabled:opacity-40 transition"
                               >↓ 選択した写真をダウンロード（{insp.photos.filter((ph) => !!photoSelected[ph.id]).length}枚）</button>
                               <button
-                                onClick={() => combineSelected(insp.photos, project.title)}
+                                onClick={() => combineSelected(insp.id, insp.photos, project.title)}
                                 disabled={combining || insp.photos.filter((ph) => !!photoSelected[ph.id]).length < 2}
                                 className="text-xs text-purple-300 border border-purple-700 rounded-lg px-3 py-1.5 hover:bg-purple-900/40 disabled:opacity-40 transition"
-                              >{combining ? "合成中..." : "🧩 選択した写真を1枚にまとめる"}</button>
+                              >{combining ? "合成中..." : "🧩 1枚にまとめて置き換え"}</button>
                               <label className={`text-xs rounded-lg px-3 py-1.5 border transition cursor-pointer ${addingPhotos ? "bg-gray-700 text-gray-500 border-gray-600" : "text-sky-300 border-sky-700 hover:bg-sky-900/40"}`}>
                                 {addingPhotos ? "追加中..." : "＋ 写真を追加"}
                                 <input type="file" accept="image/*" multiple className="hidden" disabled={addingPhotos} onChange={(e) => addPhotosToInspection(insp.id, e)} />

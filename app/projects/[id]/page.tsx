@@ -245,6 +245,62 @@ export default function ProjectDetailPage() {
     setCombining(false);
   };
 
+  // 完了報告に写真を後から追加（管理者。圧縮してアップロード→報告に紐付け）
+  const [addingPhotos, setAddingPhotos] = useState(false);
+  const addPhotosToInspection = async (inspectionId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
+    e.target.value = "";
+    if (files.length === 0) return;
+    setAddingPhotos(true);
+    try {
+      const uploaded: { filename: string; originalName: string; category: string }[] = [];
+      for (const file of files) {
+        const compressed = await new Promise<File>((resolve) => {
+          const img = new window.Image();
+          const url = URL.createObjectURL(file);
+          img.onload = () => {
+            const MAX = 1280;
+            let w = img.width, h = img.height;
+            if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+            const canvas = document.createElement("canvas");
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) { resolve(file); return; }
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+              URL.revokeObjectURL(url);
+              resolve(blob ? new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }) : file);
+            }, "image/jpeg", 0.62);
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+          img.src = url;
+        });
+        const fd = new FormData();
+        fd.append("file", compressed);
+        const up = await fetch("/api/upload", { method: "POST", body: fd });
+        if (up.ok) {
+          const d = await up.json();
+          uploaded.push({ filename: d.url, originalName: file.name, category: "other" });
+        }
+      }
+      if (uploaded.length > 0) {
+        const res = await fetch(`/api/inspections/${inspectionId}/photos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photos: uploaded }),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => null);
+          alert(d?.error || "写真の追加に失敗しました");
+        }
+        fetchProject(true);
+      }
+    } catch {
+      alert("写真の追加に失敗しました");
+    }
+    setAddingPhotos(false);
+  };
+
   const downloadSelected = (photos: { id: string; originalName: string }[]) => {
     const targets = photos.filter((ph) => photoSelected[ph.id]);
     targets.forEach((ph, i) => {
@@ -2007,6 +2063,10 @@ export default function ProjectDetailPage() {
                                 disabled={combining || insp.photos.filter((ph) => !!photoSelected[ph.id]).length < 2}
                                 className="text-xs text-purple-300 border border-purple-700 rounded-lg px-3 py-1.5 hover:bg-purple-900/40 disabled:opacity-40 transition"
                               >{combining ? "合成中..." : "🧩 選択した写真を1枚にまとめる"}</button>
+                              <label className={`text-xs rounded-lg px-3 py-1.5 border transition cursor-pointer ${addingPhotos ? "bg-gray-700 text-gray-500 border-gray-600" : "text-sky-300 border-sky-700 hover:bg-sky-900/40"}`}>
+                                {addingPhotos ? "追加中..." : "＋ 写真を追加"}
+                                <input type="file" accept="image/*" multiple className="hidden" disabled={addingPhotos} onChange={(e) => addPhotosToInspection(insp.id, e)} />
+                              </label>
                               <button
                                 onClick={() => {
                                   const all = insp.photos.every((ph) => !!photoSelected[ph.id]);

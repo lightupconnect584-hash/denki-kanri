@@ -297,6 +297,21 @@ export default function ProjectDetailPage() {
     setAddingPhotos(false);
   };
 
+  // 選択した写真をまとめて削除（管理者）
+  const [deletingPhotos, setDeletingPhotos] = useState(false);
+  const deleteSelectedPhotos = async (photos: { id: string; originalName: string }[]) => {
+    const targets = photos.filter((ph) => photoSelected[ph.id]);
+    if (targets.length === 0) return;
+    if (!confirm(`選択した${targets.length}枚の写真を報告から削除しますか？\n元に戻せません`)) return;
+    setDeletingPhotos(true);
+    for (const ph of targets) {
+      await fetch(`/api/photos/${ph.id}`, { method: "DELETE" }).catch(() => {});
+    }
+    setPhotoSelected({});
+    setDeletingPhotos(false);
+    fetchProject(true);
+  };
+
   const downloadSelected = (photos: { id: string; originalName: string }[]) => {
     const targets = photos.filter((ph) => photoSelected[ph.id]);
     targets.forEach((ph, i) => {
@@ -2040,15 +2055,6 @@ export default function ProjectDetailPage() {
                                       />
                                       <span className="text-[11px] text-gray-300">{pi + 1}/{insp.photos.length}・{catLabels[photo.category || "before"] || ""}</span>
                                     </label>
-                                    <button
-                                      onClick={async () => {
-                                        if (!confirm(`この写真（${photoDisplayName(photo) || "名称なし"}）を報告から削除しますか？\n元に戻せません`)) return;
-                                        await fetch(`/api/photos/${photo.id}`, { method: "DELETE" });
-                                        fetchProject(true);
-                                      }}
-                                      title="この写真を削除"
-                                      className="absolute top-2 right-2 bg-gray-900/80 text-gray-400 hover:text-red-400 hover:bg-red-950/80 rounded-lg px-2.5 py-1.5 text-sm transition"
-                                    >🗑</button>
                                   </div>
                                   <input
                                     type="text"
@@ -2077,6 +2083,11 @@ export default function ProjectDetailPage() {
                                 {addingPhotos ? "追加中..." : "＋ 写真を追加"}
                                 <input type="file" accept="image/*" multiple className="hidden" disabled={addingPhotos} onChange={(e) => addPhotosToInspection(insp.id, e)} />
                               </label>
+                              <button
+                                onClick={() => deleteSelectedPhotos(insp.photos)}
+                                disabled={deletingPhotos || insp.photos.every((ph) => !photoSelected[ph.id])}
+                                className="text-xs text-red-300 border border-red-800 rounded-lg px-3 py-1.5 hover:bg-red-900/40 disabled:opacity-40 transition"
+                              >{deletingPhotos ? "削除中..." : `🗑 選択した写真を削除（${insp.photos.filter((ph) => !!photoSelected[ph.id]).length}枚）`}</button>
                               <button
                                 onClick={() => {
                                   const all = insp.photos.every((ph) => !!photoSelected[ph.id]);

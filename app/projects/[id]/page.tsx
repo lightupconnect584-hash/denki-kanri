@@ -329,12 +329,16 @@ export default function ProjectDetailPage() {
     ids.splice(idx, 0, dragId);
     saveOrder(insp.id, ids);
   };
-  const movePhoto = (insp: { id: string; photos: { id: string }[] }, photoId: string, dir: -1 | 1) => {
-    const ids = insp.photos.map((p) => p.id);
-    const i = ids.indexOf(photoId);
-    const j = i + dir;
-    if (i === -1 || j < 0 || j >= ids.length) return;
-    [ids[i], ids[j]] = [ids[j], ids[i]];
+  const [reorderMode, setReorderMode] = useState(false);
+  const [pickedPhotoId, setPickedPhotoId] = useState<string | null>(null);
+  // タップで並び替え: 1回目で写真を選び、2回目でその位置へ移動
+  const tapReorder = (insp: { id: string; photos: { id: string }[] }, photoId: string) => {
+    if (!pickedPhotoId) { setPickedPhotoId(photoId); return; }
+    if (pickedPhotoId === photoId) { setPickedPhotoId(null); return; }
+    const ids = insp.photos.map((p) => p.id).filter((pid) => pid !== pickedPhotoId);
+    const idx = ids.indexOf(photoId);
+    ids.splice(idx, 0, pickedPhotoId);
+    setPickedPhotoId(null);
     saveOrder(insp.id, ids);
   };
 
@@ -2065,17 +2069,45 @@ export default function ProjectDetailPage() {
                         >🗂 写真の名前変更・持ち出し</button>
                         {photoOrganizeId === insp.id && (
                           <div className="mt-2 bg-gray-900/60 border border-blue-800/60 rounded-xl p-3 space-y-3">
-                            <p className="text-[11px] text-gray-400">名前は書き換えると<span className="text-gray-200">自動で保存</span>。並び順は<span className="text-gray-200">≡をドラッグ</span>か↑↓で入替。写真をPCへドラッグすると新しい名前で保存。まとめたい時は☑して「ダウンロード」。</p>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-[11px] text-gray-400 flex-1">名前は書き換えると<span className="text-gray-200">自動で保存</span>。写真をPCへドラッグすると新しい名前で保存。まとめたい時は☑して「ダウンロード」。</p>
+                              <button
+                                onClick={() => { setReorderMode(!reorderMode); setPickedPhotoId(null); }}
+                                className={`shrink-0 text-xs rounded-lg px-3 py-1.5 border transition ${reorderMode ? "bg-blue-600 text-white border-blue-600" : "text-blue-300 border-blue-700 hover:bg-blue-900/40"}`}
+                              >↕ 並び替え</button>
+                            </div>
+                            {reorderMode && (
+                              <div className="bg-gray-800/80 border border-blue-800/60 rounded-lg p-2.5">
+                                <p className="text-[11px] text-blue-300 mb-2">{pickedPhotoId ? "移動先の写真をタップ（もう一度同じ写真で解除）" : "動かしたい写真をタップ（ドラッグでもOK）"}</p>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                                  {insp.photos.map((photo, ri) => (
+                                    <div
+                                      key={photo.id}
+                                      draggable
+                                      onDragStart={(e) => { reorderDragId.current = photo.id; e.dataTransfer.setData("text/plain", "reorder"); }}
+                                      onDragEnd={() => { reorderDragId.current = null; }}
+                                      onDragOver={(e) => { if (reorderDragId.current) e.preventDefault(); }}
+                                      onDrop={(e) => { if (reorderDragId.current) { e.preventDefault(); reorderTo(insp, photo.id); } }}
+                                      onClick={() => tapReorder(insp, photo.id)}
+                                      className={`relative rounded-md overflow-hidden border-2 cursor-pointer transition ${pickedPhotoId === photo.id ? "border-blue-400 ring-2 ring-blue-400/50 scale-95" : "border-gray-700 hover:border-blue-500"}`}
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={photo.filename.startsWith("http") ? photo.filename : `/uploads/${photo.filename}`}
+                                        alt=""
+                                        className="w-full h-16 object-cover pointer-events-none select-none"
+                                      />
+                                      <span className="absolute top-0.5 left-0.5 bg-gray-950/80 text-gray-200 text-[10px] font-bold rounded px-1">{ri + 1}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             <div className="space-y-4">
                               {insp.photos.map((photo, pi) => {
                                 const catLabels: Record<string, string> = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
                                 return (
-                                <div
-                                  key={photo.id}
-                                  className="bg-gray-800/80 border border-gray-700 rounded-lg overflow-hidden"
-                                  onDragOver={(e) => { if (reorderDragId.current) e.preventDefault(); }}
-                                  onDrop={(e) => { if (reorderDragId.current) { e.preventDefault(); reorderTo(insp, photo.id); } }}
-                                >
+                                <div key={photo.id} className="bg-gray-800/80 border border-gray-700 rounded-lg overflow-hidden">
                                   <div className="relative bg-black/40">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
@@ -2101,27 +2133,7 @@ export default function ProjectDetailPage() {
                                       />
                                       <span className="text-[11px] text-gray-300">{pi + 1}/{insp.photos.length}・{catLabels[photo.category || "before"] || ""}</span>
                                     </label>
-                                    <div className="absolute top-2 right-2 flex items-center gap-1">
-                                      <button
-                                        onClick={() => movePhoto(insp, photo.id, -1)}
-                                        disabled={pi === 0}
-                                        title="1つ上へ"
-                                        className="bg-gray-900/80 text-gray-300 hover:text-white rounded px-2 py-1 text-xs disabled:opacity-30 transition"
-                                      >↑</button>
-                                      <button
-                                        onClick={() => movePhoto(insp, photo.id, 1)}
-                                        disabled={pi === insp.photos.length - 1}
-                                        title="1つ下へ"
-                                        className="bg-gray-900/80 text-gray-300 hover:text-white rounded px-2 py-1 text-xs disabled:opacity-30 transition"
-                                      >↓</button>
-                                      <span
-                                        draggable
-                                        onDragStart={(e) => { reorderDragId.current = photo.id; e.dataTransfer.setData("text/plain", "reorder"); }}
-                                        onDragEnd={() => { reorderDragId.current = null; }}
-                                        title="ドラッグで並び替え"
-                                        className="bg-gray-900/80 text-gray-400 hover:text-white rounded px-2 py-1 text-sm cursor-grab active:cursor-grabbing select-none"
-                                      >≡</span>
-                                    </div>
+
                                   </div>
                                   <input
                                     type="text"

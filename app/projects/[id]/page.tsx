@@ -2045,6 +2045,15 @@ export default function ProjectDetailPage() {
                                       />
                                       <span className="text-[11px] text-gray-300">{pi + 1}/{insp.photos.length}・{catLabels[photo.category || "before"] || ""}</span>
                                     </label>
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm(`この写真（${photoDisplayName(photo) || "名称なし"}）を報告から削除しますか？\n元に戻せません`)) return;
+                                        await fetch(`/api/photos/${photo.id}`, { method: "DELETE" });
+                                        fetchProject(true);
+                                      }}
+                                      title="この写真を削除"
+                                      className="absolute top-2 right-2 bg-gray-900/80 text-gray-400 hover:text-red-400 hover:bg-red-950/80 rounded-lg px-2.5 py-1.5 text-sm transition"
+                                    >🗑</button>
                                   </div>
                                   <input
                                     type="text"

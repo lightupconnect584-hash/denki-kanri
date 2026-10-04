@@ -41,3 +41,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   });
   return NextResponse.json({ added: toAdd.length, skipped: valid.length - toAdd.length });
 }
+
+// PATCH: 写真の並び順を保存（管理者のみ）
+//   body: { photoIds: ["id1","id2",...] } の順にorderを振り直す
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if ((session.user as { role?: string })?.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const { id } = await params;
+  const { photoIds } = await req.json();
+  if (!Array.isArray(photoIds) || photoIds.length === 0) {
+    return NextResponse.json({ error: "photoIds required" }, { status: 400 });
+  }
+  // この報告に属する写真だけを対象にする
+  const photos = await prisma.photo.findMany({ where: { inspectionId: id }, select: { id: true } });
+  const valid = new Set(photos.map((p) => p.id));
+  let order = 0;
+  for (const pid of photoIds) {
+    if (typeof pid === "string" && valid.has(pid)) {
+      await prisma.photo.update({ where: { id: pid }, data: { order: order++ } });
+    }
+  }
+  return NextResponse.json({ ok: true });
+}

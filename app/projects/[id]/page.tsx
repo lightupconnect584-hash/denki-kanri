@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 
@@ -295,6 +295,35 @@ export default function ProjectDetailPage() {
       alert("写真の追加に失敗しました");
     }
     setAddingPhotos(false);
+  };
+
+  // 写真の並び替え（整理パネル。≡ドラッグ or ↑↓）
+  const reorderDragId = useRef<string | null>(null);
+  const saveOrder = async (inspectionId: string, ids: string[]) => {
+    await fetch(`/api/inspections/${inspectionId}/photos`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoIds: ids }),
+    }).catch(() => {});
+    fetchProject(true);
+  };
+  const reorderTo = (insp: { id: string; photos: { id: string }[] }, targetId: string) => {
+    const dragId = reorderDragId.current;
+    reorderDragId.current = null;
+    if (!dragId || dragId === targetId) return;
+    const ids = insp.photos.map((p) => p.id).filter((pid) => pid !== dragId);
+    const idx = ids.indexOf(targetId);
+    if (idx === -1) return;
+    ids.splice(idx, 0, dragId);
+    saveOrder(insp.id, ids);
+  };
+  const movePhoto = (insp: { id: string; photos: { id: string }[] }, photoId: string, dir: -1 | 1) => {
+    const ids = insp.photos.map((p) => p.id);
+    const i = ids.indexOf(photoId);
+    const j = i + dir;
+    if (i === -1 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    saveOrder(insp.id, ids);
   };
 
   // 選択した写真をまとめて削除（管理者）
@@ -2024,12 +2053,17 @@ export default function ProjectDetailPage() {
                         >🗂 写真の名前変更・持ち出し</button>
                         {photoOrganizeId === insp.id && (
                           <div className="mt-2 bg-gray-900/60 border border-blue-800/60 rounded-xl p-3 space-y-3">
-                            <p className="text-[11px] text-gray-400">名前は書き換えると<span className="text-gray-200">自動で保存</span>されます。写真は<span className="text-gray-200">そのままPCへドラッグ</span>すると新しい名前で保存。まとめて欲しい時は☑して「ダウンロード」。</p>
+                            <p className="text-[11px] text-gray-400">名前は書き換えると<span className="text-gray-200">自動で保存</span>。並び順は<span className="text-gray-200">≡をドラッグ</span>か↑↓で入替。写真をPCへドラッグすると新しい名前で保存。まとめたい時は☑して「ダウンロード」。</p>
                             <div className="space-y-4">
                               {insp.photos.map((photo, pi) => {
                                 const catLabels: Record<string, string> = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
                                 return (
-                                <div key={photo.id} className="bg-gray-800/80 border border-gray-700 rounded-lg overflow-hidden">
+                                <div
+                                  key={photo.id}
+                                  className="bg-gray-800/80 border border-gray-700 rounded-lg overflow-hidden"
+                                  onDragOver={(e) => { if (reorderDragId.current) e.preventDefault(); }}
+                                  onDrop={(e) => { if (reorderDragId.current) { e.preventDefault(); reorderTo(insp, photo.id); } }}
+                                >
                                   <div className="relative bg-black/40">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
@@ -2055,6 +2089,27 @@ export default function ProjectDetailPage() {
                                       />
                                       <span className="text-[11px] text-gray-300">{pi + 1}/{insp.photos.length}・{catLabels[photo.category || "before"] || ""}</span>
                                     </label>
+                                    <div className="absolute top-2 right-2 flex items-center gap-1">
+                                      <button
+                                        onClick={() => movePhoto(insp, photo.id, -1)}
+                                        disabled={pi === 0}
+                                        title="1つ上へ"
+                                        className="bg-gray-900/80 text-gray-300 hover:text-white rounded px-2 py-1 text-xs disabled:opacity-30 transition"
+                                      >↑</button>
+                                      <button
+                                        onClick={() => movePhoto(insp, photo.id, 1)}
+                                        disabled={pi === insp.photos.length - 1}
+                                        title="1つ下へ"
+                                        className="bg-gray-900/80 text-gray-300 hover:text-white rounded px-2 py-1 text-xs disabled:opacity-30 transition"
+                                      >↓</button>
+                                      <span
+                                        draggable
+                                        onDragStart={(e) => { reorderDragId.current = photo.id; e.dataTransfer.setData("text/plain", "reorder"); }}
+                                        onDragEnd={() => { reorderDragId.current = null; }}
+                                        title="ドラッグで並び替え"
+                                        className="bg-gray-900/80 text-gray-400 hover:text-white rounded px-2 py-1 text-sm cursor-grab active:cursor-grabbing select-none"
+                                      >≡</span>
+                                    </div>
                                   </div>
                                   <input
                                     type="text"

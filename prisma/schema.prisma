@@ -294,6 +294,7 @@ model Photo {
   filename     String
   originalName String
   category     String     @default("before")
+  order        Int        @default(0) // 表示順（整理パネルでドラッグ入替）
   createdAt    DateTime   @default(now())
 
   inspection   Inspection @relation(fields: [inspectionId], references: [id])

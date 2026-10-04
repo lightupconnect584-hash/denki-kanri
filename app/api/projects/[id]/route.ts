@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       },
       inspections: {
         include: {
-          photos: true,
+          photos: { orderBy: [{ order: "asc" }, { createdAt: "asc" }] },
           inspector: { select: { name: true, companyName: true } },
         },
         orderBy: { createdAt: "desc" },

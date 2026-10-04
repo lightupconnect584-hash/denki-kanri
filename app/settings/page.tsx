@@ -1538,6 +1538,14 @@ export default function SettingsPage() {
           </Link>
         )}
 
+        {/* オートロック解除番号の管理（管理者） */}
+        {role === "ADMIN" && (
+          <Link href="/autolock" className="flex items-center justify-between bg-gray-800 rounded-xl border border-gray-700 px-4 py-3 mb-3 text-sm text-gray-200 hover:bg-gray-700 transition">
+            <span>🔑 オートロック解除番号</span>
+            <span className="text-gray-400">→</span>
+          </Link>
+        )}
+
         {/* 基本情報（パートナーのみ） */}
         {role === "PARTNER" && (() => {
           const colorSelected = !!(myColor || pendingColor);

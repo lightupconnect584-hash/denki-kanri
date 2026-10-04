@@ -60,9 +60,28 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   });
 
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // オートロック解除番号: 建物名が一致する登録があれば表示（現場で必要なため協力会社にも見せる）
+  const norm = (v: string) => v.replace(/[\s\u3000]/g, "").toLowerCase();
+  const title = norm(project.title || "");
+  let autolock: { code: string; note: string | null; buildingName: string } | null = null;
+  if (title.length >= 2) {
+    const codes = await prisma.autolockCode.findMany({ select: { buildingName: true, address: true, code: true, note: true } });
+    const location = norm(project.location || "");
+    const hit = codes.find((c) => {
+      const b = norm(c.buildingName);
+      const nameOk = b.length >= 2 && (title.includes(b) || b.includes(title));
+      if (!nameOk) return false;
+      // 住所が登録されていれば住所も一致必須（同名建物の判別）
+      const a = norm(c.address || "");
+      if (!a) return true;
+      return location.includes(a) || a.includes(location);
+    });
+    if (hit) autolock = { code: hit.code, note: hit.note, buildingName: hit.buildingName };
+  }
   // 共同担当を平坦化（応援費は本人と管理者のみ閲覧可）
   const flat = {
     ...project,
+    autolock,
     subAssignees: project.subAssignees.map((sa) => ({ ...sa.user, amount: sa.amount })),
   };
   // 協力会社には売上（積水請求額）・材料費・管理者メモを見せない（協力会社メモは見せる）

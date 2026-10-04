@@ -83,6 +83,7 @@ interface Project {
   id: string;
   title: string;
   location: string;
+  autolock: { code: string; note: string | null; buildingName: string } | null;
   roomNumber: string | null;
   workType: string | null;
   contractorName: string | null;
@@ -1192,6 +1193,15 @@ export default function ProjectDetailPage() {
               <span>📍</span>
               <span>{project.location}{project.roomNumber ? `　${project.roomNumber}` : ""}</span>
             </a>
+            {project.autolock && (
+              <p className="mt-1 text-sm">
+                <span className="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-700/60 rounded-lg px-2.5 py-1">
+                  <span>🔑</span>
+                  <span className="text-amber-200 font-bold tracking-wider">{project.autolock.code}</span>
+                  {project.autolock.note && <span className="text-xs text-amber-300/80">{project.autolock.note}</span>}
+                </span>
+              </p>
+            )}
           </div>
           {project.workType && (
             <div>

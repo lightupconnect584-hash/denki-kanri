@@ -228,6 +228,17 @@ model ProjectSubAssignee {
 }
 
 // 積水担当者などの電話番号リスト（折り返し先への混入を自動除外する）
+// オートロック解除番号（建物名で案件に自動表示）
+model AutolockCode {
+  id           String   @id @default(cuid())
+  buildingName String
+  address      String?  // 同名建物の判別用（部分一致で照合）
+  code         String
+  note         String?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
 model StaffPhone {
   id        String   @id @default(cuid())
   phone     String   @unique // 数字のみに正規化して保存

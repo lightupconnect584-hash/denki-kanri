@@ -238,7 +238,7 @@ export default function ProjectDetailPage() {
       const addRes = await fetch(`/api/inspections/${inspectionId}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photos: [{ filename: data.url, originalName: fname, category: targets[0] ? "other" : "other" }] }),
+        body: JSON.stringify({ photos: [{ filename: data.url, originalName: fname, category: "other" }], willRemove: targets.length }),
       });
       if (!addRes.ok) throw new Error("add failed");
       // 元の写真を削除（ストレージ節約）

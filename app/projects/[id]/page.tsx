@@ -182,7 +182,7 @@ export default function ProjectDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ originalName: name }),
     }).catch(() => {});
-    fetchProject(true);
+    // その場で保存完了（再取得すると写真が動いて見えるためしない。photoNamesの表示がそのまま有効）
   };
 
   // 選択した写真を1枚に合成（2枚=横並び、3〜4枚=2×2、5枚以上=3列グリッド）。名前入りキャプション付き

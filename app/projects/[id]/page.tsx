@@ -199,32 +199,46 @@ export default function ProjectDetailPage() {
         return { bmp: await createImageBitmap(blob), name: photoDisplayName(ph) };
       }));
       const n = imgs.length;
-      const cols = n <= 2 ? n : n <= 4 ? 2 : 3;
-      const rows = Math.ceil(n / cols);
-      const CW = 780, CH = 585, CAP = 44, GAP = 10;
+      // 写真の縦横比に合わせて段ごとに幅を割り付け（切り抜きなし・余白最小のジャスティファイ配置）
+      const W = 1600, GAP = 12, CAP = 44, MAXROWH = 950;
+      const perRow = n <= 4 ? 2 : 3;
+      const rows: { bmp: ImageBitmap; name: string }[][] = [];
+      for (let i = 0; i < n; i += perRow) rows.push(imgs.slice(i, i + perRow));
+      // 各段の高さを計算（段内の写真は同じ高さで横に詰める）
+      const rowDims = rows.map((row) => {
+        const aspects = row.map((im) => im.bmp.width / im.bmp.height);
+        const sum = aspects.reduce((a, b) => a + b, 0);
+        const h = Math.min(MAXROWH, (W - GAP * (row.length + 1)) / sum);
+        return { h, aspects };
+      });
+      const totalH = rowDims.reduce((a, r) => a + r.h + CAP + GAP, 0) + GAP;
       const canvas = document.createElement("canvas");
-      canvas.width = cols * CW + (cols + 1) * GAP;
-      canvas.height = rows * (CH + CAP) + (rows + 1) * GAP;
+      canvas.width = W;
+      canvas.height = Math.round(totalH);
       const ctx = canvas.getContext("2d")!;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      imgs.forEach((im, i) => {
-        const cx = GAP + (i % cols) * (CW + GAP);
-        const cy = GAP + Math.floor(i / cols) * (CH + CAP + GAP);
-        // contain配置（写真全体を切り抜かずに収める。余白は白）
-        const scale = Math.min(CW / im.bmp.width, CH / im.bmp.height);
-        const dw = im.bmp.width * scale, dh = im.bmp.height * scale;
-        const dx = cx + (CW - dw) / 2, dy = cy + (CH - dh) / 2;
-        ctx.drawImage(im.bmp, dx, dy, dw, dh);
-        ctx.strokeStyle = "#d1d5db";
-        ctx.strokeRect(cx + 0.5, cy + 0.5, CW - 1, CH - 1);
-        // キャプション（写真の名前）
-        ctx.fillStyle = "#111827";
-        ctx.font = "bold 24px sans-serif";
-        ctx.textBaseline = "middle";
-        let label = im.name || "";
-        while (label && ctx.measureText(label).width > CW - 16) label = label.slice(0, -1);
-        ctx.fillText(label, cx + 8, cy + CH + CAP / 2);
+      let y = GAP;
+      rows.forEach((row, ri) => {
+        const { h, aspects } = rowDims[ri];
+        const widths = aspects.map((a) => a * h);
+        const rowW = widths.reduce((a, b) => a + b, 0) + GAP * (row.length - 1);
+        let x = (W - rowW) / 2; // 段が狭い時（最終段など）は中央寄せ
+        row.forEach((im, ci) => {
+          const w = widths[ci];
+          ctx.drawImage(im.bmp, x, y, w, h);
+          ctx.strokeStyle = "#d1d5db";
+          ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+          // キャプション（写真の名前）
+          ctx.fillStyle = "#111827";
+          ctx.font = "bold 26px sans-serif";
+          ctx.textBaseline = "middle";
+          let label = im.name || "";
+          while (label && ctx.measureText(label).width > w - 16) label = label.slice(0, -1);
+          ctx.fillText(label, x + 8, y + h + CAP / 2);
+          x += w + GAP;
+        });
+        y += h + CAP + GAP;
       });
       const outBlob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.85));
       if (!outBlob) throw new Error("toBlob failed");

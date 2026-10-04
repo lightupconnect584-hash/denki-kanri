@@ -169,24 +169,19 @@ export default function ProjectDetailPage() {
   const [photoOrganizeId, setPhotoOrganizeId] = useState<string | null>(null);
   const [photoNames, setPhotoNames] = useState<Record<string, string>>({});
   const [photoSelected, setPhotoSelected] = useState<Record<string, boolean>>({});
-  const [photoSaving, setPhotoSaving] = useState(false);
 
   const photoDisplayName = (photo: { id: string; originalName: string }) =>
     photoNames[photo.id] !== undefined ? photoNames[photo.id] : photo.originalName;
 
-  const savePhotoNames = async (photos: { id: string; originalName: string }[]) => {
-    setPhotoSaving(true);
-    for (const ph of photos) {
-      const name = photoNames[ph.id];
-      if (name !== undefined && name.trim() && name.trim() !== ph.originalName) {
-        await fetch(`/api/photos/${ph.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ originalName: name }),
-        }).catch(() => {});
-      }
-    }
-    setPhotoSaving(false);
+  // 名前は入力欄を離れたら自動保存
+  const autoSavePhotoName = async (ph: { id: string; originalName: string }) => {
+    const name = photoNames[ph.id];
+    if (name === undefined || !name.trim() || name.trim() === ph.originalName) return;
+    await fetch(`/api/photos/${ph.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ originalName: name }),
+    }).catch(() => {});
     fetchProject(true);
   };
 
@@ -2014,7 +2009,7 @@ export default function ProjectDetailPage() {
                         >🗂 写真の名前変更・持ち出し</button>
                         {photoOrganizeId === insp.id && (
                           <div className="mt-2 bg-gray-900/60 border border-blue-800/60 rounded-xl p-3 space-y-3">
-                            <p className="text-[11px] text-gray-400">名前を書き換えて「名前をすべて保存」。写真は<span className="text-gray-200">そのままPCへドラッグ</span>すると新しい名前で保存されます。まとめて欲しい時は☑して「ダウンロード」。</p>
+                            <p className="text-[11px] text-gray-400">名前は書き換えると<span className="text-gray-200">自動で保存</span>されます。写真は<span className="text-gray-200">そのままPCへドラッグ</span>すると新しい名前で保存。まとめて欲しい時は☑して「ダウンロード」。</p>
                             <div className="space-y-4">
                               {insp.photos.map((photo, pi) => {
                                 const catLabels: Record<string, string> = { before: "点検前", during: "点検中", after: "点検後", other: "その他" };
@@ -2059,7 +2054,8 @@ export default function ProjectDetailPage() {
                                     type="text"
                                     value={photoDisplayName(photo)}
                                     onChange={(e) => setPhotoNames((prev) => ({ ...prev, [photo.id]: e.target.value }))}
-                                    placeholder="写真の名前"
+                                    onBlur={() => autoSavePhotoName(photo)}
+                                    placeholder="写真の名前（自動保存）"
                                     className="w-full bg-gray-900/60 border-0 border-t border-gray-700 focus:outline-none focus:bg-gray-900 text-sm text-gray-100 px-3 py-2.5"
                                   />
                                 </div>
@@ -2067,11 +2063,6 @@ export default function ProjectDetailPage() {
                               })}
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <button
-                                onClick={() => savePhotoNames(insp.photos)}
-                                disabled={photoSaving}
-                                className="text-xs bg-blue-600 text-white rounded-lg px-3 py-1.5 hover:bg-blue-700 disabled:opacity-50 transition"
-                              >{photoSaving ? "保存中..." : "名前をすべて保存"}</button>
                               <button
                                 onClick={() => downloadSelected(insp.photos)}
                                 disabled={insp.photos.every((ph) => !photoSelected[ph.id])}

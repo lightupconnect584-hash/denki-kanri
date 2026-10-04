@@ -529,7 +529,7 @@ export default function ProjectDetailPage() {
     setDeletingCommentId(null);
   };
 
-  const MAX_PROJECT_PHOTOS = 5; // 現場写真・PDFの上限
+  const MAX_PROJECT_PHOTOS = 6; // 現場写真・PDFの上限
   const handleProjectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;

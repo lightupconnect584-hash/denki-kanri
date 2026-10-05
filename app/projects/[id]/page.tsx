@@ -2041,6 +2041,12 @@ export default function ProjectDetailPage() {
                     )}
                   </div>
                 )}
+                {insp.photos.length === 0 && role === "ADMIN" && (
+                  <label className={`inline-flex items-center gap-1.5 text-xs rounded-lg px-3 py-1.5 border transition cursor-pointer ${addingPhotos ? "bg-gray-700 text-gray-500 border-gray-600" : "text-sky-300 border-sky-700 hover:bg-sky-900/40"}`}>
+                    {addingPhotos ? "追加中..." : "📷 ＋ この報告に写真を追加（管理者）"}
+                    <input type="file" accept="image/*" multiple className="hidden" disabled={addingPhotos} onChange={(e) => addPhotosToInspection(insp.id, e)} />
+                  </label>
+                )}
                 {insp.photos.length > 0 && (
                   <div className="space-y-3">
                     <p className="text-xs text-gray-400">作業写真 ({insp.photos.length}枚)</p>

@@ -656,6 +656,7 @@ export default function ProjectDetailPage() {
   };
 
   const MAX_PROJECT_PHOTOS = 6; // 現場写真・PDFの上限
+  const [projectPhotoEdit, setProjectPhotoEdit] = useState(false); // 現場写真の編集モード（🗑表示）
   const handleProjectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -1639,6 +1640,13 @@ export default function ProjectDetailPage() {
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-gray-100">現場写真・PDF</h3>
+            <div className="flex items-center gap-2">
+            {role === "ADMIN" && (project.projectPhotos?.length ?? 0) > 0 && (
+              <button
+                onClick={() => setProjectPhotoEdit(!projectPhotoEdit)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition ${projectPhotoEdit ? "bg-red-600 text-white border-red-600" : "text-gray-300 border-gray-600 hover:border-red-500 hover:text-red-300"}`}
+              >{projectPhotoEdit ? "完了" : "編集"}</button>
+            )}
             <label className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition ${uploadingPhoto ? "bg-gray-700 text-gray-500 border-gray-700" : "bg-blue-900/40 text-blue-400 border-blue-700 hover:bg-blue-900/50"}`}>
               <span>{uploadingPhoto ? "アップロード中..." : "＋ 追加"}</span>
               <input
@@ -1650,6 +1658,7 @@ export default function ProjectDetailPage() {
                 onChange={handleProjectPhotoUpload}
               />
             </label>
+            </div>
           </div>
           {photoUploadError && <p className="text-xs text-red-500 mb-2">{photoUploadError}</p>}
           {project.projectPhotos && project.projectPhotos.length > 0 ? (
@@ -1673,18 +1682,22 @@ export default function ProjectDetailPage() {
                                 className="w-full h-24 object-cover rounded-lg border border-gray-700 hover:opacity-80 transition"
                               />
                             </a>
-                            {role === "ADMIN" && (
+                            {role === "ADMIN" && projectPhotoEdit && (
+                              <button
+                                onClick={() => handleDeleteProjectPhoto(photo.id)}
+                                disabled={deletingPhotoId === photo.id}
+                                className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg disabled:opacity-50"
+                              >
+                                <span className="bg-red-600 text-white text-xl rounded-full w-10 h-10 flex items-center justify-center shadow-lg">🗑</span>
+                              </button>
+                            )}
+                            {role === "ADMIN" && !projectPhotoEdit && (
                               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition">
                                 <a
                                   href={url}
                                   download={photo.originalName}
                                   className="bg-blue-600 text-white text-xs rounded px-1.5 py-0.5 hover:bg-blue-700"
                                 >↓</a>
-                                <button
-                                  onClick={() => handleDeleteProjectPhoto(photo.id)}
-                                  disabled={deletingPhotoId === photo.id}
-                                  className="bg-red-900/300 text-white text-xs rounded px-1.5 py-0.5 hover:bg-red-600 disabled:opacity-50"
-                                >×</button>
                               </div>
                             )}
                           </div>

@@ -1683,13 +1683,34 @@ export default function ProjectDetailPage() {
                               />
                             </a>
                             {role === "ADMIN" && projectPhotoEdit && (
-                              <button
-                                onClick={() => handleDeleteProjectPhoto(photo.id)}
-                                disabled={deletingPhotoId === photo.id}
-                                className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg disabled:opacity-50"
-                              >
-                                <span className="bg-red-600 text-white text-xl rounded-full w-10 h-10 flex items-center justify-center shadow-lg">🗑</span>
-                              </button>
+                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 rounded-lg">
+                                {project.inspections.length > 0 && (
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm(`「${photo.originalName}」を完了報告の写真へ移動しますか？`)) return;
+                                      const inspId = project.inspections[project.inspections.length - 1].id;
+                                      const res = await fetch(`/api/projects/${id}/photos`, {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ photoId: photo.id, toInspectionId: inspId }),
+                                      });
+                                      if (!res.ok) {
+                                        const d = await res.json().catch(() => null);
+                                        alert(d?.error || "移動に失敗しました");
+                                      }
+                                      fetchProject(true);
+                                    }}
+                                    title="完了報告の写真へ移動"
+                                    className="bg-blue-600 text-white text-lg rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-blue-700"
+                                  >📋</button>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteProjectPhoto(photo.id)}
+                                  disabled={deletingPhotoId === photo.id}
+                                  title="削除"
+                                  className="bg-red-600 text-white text-xl rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-red-700 disabled:opacity-50"
+                                >🗑</button>
+                              </div>
                             )}
                             {role === "ADMIN" && !projectPhotoEdit && (
                               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition">

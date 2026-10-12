@@ -35,6 +35,7 @@ interface SalesClient {
   name: string;
   color: string | null;
   feePercent: number;
+  archived?: boolean;
 }
 
 const fmt = (n: number) => n.toLocaleString();
@@ -380,9 +381,14 @@ export default function SalesPage() {
         {/* カテゴリ別明細（PCでは2列） */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 items-start">
           {[
-            ...salesClients.map((c) => ({ key: c.id as string | null, name: c.name, color: c.color, fee: c.feePercent || 0 })),
-            { key: null as string | null, name: "その他", color: null, fee: 0 },
-          ].filter((card) => card.key !== null || entries.some((e) => !e.clientId)).map(({ key, name, color, fee: cardFee }) => {
+            ...salesClients.map((c) => ({ key: c.id as string | null, name: c.name, color: c.color, fee: c.feePercent || 0, archived: !!c.archived })),
+            { key: null as string | null, name: "その他", color: null, fee: 0, archived: false },
+          ].filter((card) =>
+            card.key === null
+              ? entries.some((e) => !e.clientId)
+              // アーカイブ済み（退会した取引先など）はその月に明細がある時だけ表示
+              : !card.archived || entries.some((e) => e.clientId === card.key)
+          ).map(({ key, name, color, fee: cardFee }) => {
             const rows = entries.filter((e) => (key === null ? !e.clientId : e.clientId === key));
             const sub = {
               sales: rows.reduce((s, e) => s + e.sales, 0),

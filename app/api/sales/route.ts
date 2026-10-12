@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const [entries, expenses, clients] = await Promise.all([
     prisma.salesEntry.findMany({ where: { yearMonth: month }, orderBy: { order: "asc" } }),
     prisma.expenseItem.findMany({ orderBy: { order: "asc" } }),
-    prisma.client.findMany({ where: { archived: false }, orderBy: { order: "asc" } }),
+    prisma.client.findMany({ orderBy: { order: "asc" } }), // アーカイブ済みも返す（過去月の表示・手数料計算用。表示側で出し分け）
   ]);
 
   // 依頼書原本（受付アーカイブ）を各行に結合（請求書作成時に原本を見ながら作れるように）

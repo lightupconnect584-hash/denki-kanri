@@ -8,7 +8,7 @@ export const maxDuration = 60;
 
 const DONE_STATUSES = ["CONFIRMED", "COMPLETED"];
 // 完了からこの月数を過ぎた案件の現場写真を削除（請求書・PDFは対象外）
-const RETENTION_MONTHS = 5; // 2026-08: 容量対策で6→5ヶ月に短縮
+const RETENTION_MONTHS = 15; // 2026-10: Pro継続につき5→15ヶ月へ延長（アフター問い合わせ対応。容量見込み約3.8GB）
 
 export async function GET(req: NextRequest) {
   // Vercel Cron は CRON_SECRET を付与。管理者は手動実行も可。

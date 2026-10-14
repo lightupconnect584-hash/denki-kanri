@@ -392,8 +392,14 @@ export default function NewProjectPage() {
   }, [status]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+    if (!e.target.files) return;
+    await uploadProjectFiles(Array.from(e.target.files));
+    e.target.value = "";
+  };
+
+  const [photoDragOver, setPhotoDragOver] = useState(false);
+  const uploadProjectFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploading(true);
     const uploaded: UploadedFile[] = [];
 
@@ -1009,10 +1015,22 @@ export default function NewProjectPage() {
           {/* 添付ファイル */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 p-4">
             <label className="block text-sm font-medium text-gray-300 mb-2">現場写真・PDF</label>
-            <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-600 rounded-xl py-4 cursor-pointer hover:border-blue-500 hover:bg-blue-900/10 transition">
+            <label
+              className={`flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl py-4 cursor-pointer transition ${photoDragOver ? "border-blue-400 bg-blue-900/40" : "border-gray-600 hover:border-blue-500 hover:bg-blue-900/10"}`}
+              onDragOver={(e) => { e.preventDefault(); if (!uploading) setPhotoDragOver(true); }}
+              onDragLeave={() => setPhotoDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setPhotoDragOver(false);
+                if (uploading) return;
+                const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/") || f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+                if (files.length > 0) uploadProjectFiles(files);
+              }}
+            >
               <span className="text-2xl">📎</span>
               <span className="text-sm text-gray-400">
-                {uploading ? "アップロード中..." : "写真・PDFを添付（複数可）"}
+                {uploading ? "アップロード中..." : photoDragOver ? "ここにドロップで添付" : "写真・PDFを添付 or ここにドロップ（複数可）"}
               </span>
               <input type="file" accept="image/*,application/pdf" multiple className="hidden"
                 onChange={handleFileUpload} disabled={uploading} />

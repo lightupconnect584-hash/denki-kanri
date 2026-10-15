@@ -156,6 +156,7 @@ export default function ProjectDetailPage() {
   // PC右カラムの管理者情報カード（管理ページ相当のクイック編集）
   const [adm, setAdm] = useState({ sekisuiNumber: "", managerName: "", afterManagerName: "", salesAmount: "", materialCost: "" });
   const [admSaved, setAdmSaved] = useState(false);
+  const [admOpen, setAdmOpen] = useState(false); // スマホでの折りたたみ（PCは常時展開）
   const saveAdm = async (fields: Record<string, unknown>) => {
     await fetch(`/api/projects/${id}`, {
       method: "PATCH",
@@ -1332,22 +1333,7 @@ export default function ProjectDetailPage() {
               <p className="text-sm text-gray-200">{project.receivedAt}</p>
             </div>
           )}
-          {role === "ADMIN" && !isSekisui && (project.managerName || project.afterManagerName) && (
-            <div className="col-span-2 flex gap-6 flex-wrap">
-              {project.managerName && (
-                <div>
-                  <p className="text-xs text-gray-400">管理担当 <span className="text-gray-600">🔒</span></p>
-                  <p className="text-sm text-gray-200">{project.managerName}</p>
-                </div>
-              )}
-              {project.afterManagerName && (
-                <div>
-                  <p className="text-xs text-gray-400">アフター担当 <span className="text-gray-600">🔒</span></p>
-                  <p className="text-sm text-gray-200">{project.afterManagerName}</p>
-                </div>
-              )}
-            </div>
-          )}
+
           {project.preferredContactAt && (
             <div>
               <p className="text-xs text-gray-400">連絡希望日時</p>
@@ -1390,15 +1376,7 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           )}
-          {role === "ADMIN" && project.client && (
-            <div className="lg:hidden">
-              <p className="text-xs text-gray-400">取引先</p>
-              <p className="text-sm text-gray-200 flex items-center gap-1.5">
-                {project.client.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.client.color }} />}
-                {project.client.name}
-              </p>
-            </div>
-          )}
+
           <div>
             <p className="text-xs text-gray-400">緊急度</p>
             <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${
@@ -1446,31 +1424,7 @@ export default function ProjectDetailPage() {
               )}
             </div>
           )}
-          {role === "ADMIN" && !isSekisui && (project.salesAmount != null || project.materialCost != null) && (
-            <div className="col-span-2 flex gap-6 flex-wrap">
-              {project.salesAmount != null && (
-                <div>
-                  <p className="text-xs text-gray-400">売上{project.client?.name?.includes("積水") ? "（積水請求・税別）" : "（税別）"}<span className="ml-1">🔒</span></p>
-                  <p className="text-sm font-medium text-gray-100">¥{project.salesAmount.toLocaleString()}</p>
-                  {Array.isArray(project.salesBreakdown) && project.salesBreakdown.length > 0 && (
-                    <div className="mt-0.5 space-y-0.5">
-                      {project.salesBreakdown.map((r, i) => (
-                        <p key={i} className="text-xs text-gray-400">
-                          {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}{r.label ? `　${r.label}` : ""}　¥{(r.amount || 0).toLocaleString()}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {project.materialCost != null && (
-                <div>
-                  <p className="text-xs text-gray-400">材料費（税別）<span className="ml-1">🔒</span></p>
-                  <p className="text-sm font-medium text-gray-100">¥{project.materialCost.toLocaleString()}</p>
-                </div>
-              )}
-            </div>
-          )}
+
           {project.parkingInfo && (
             <div>
               <p className="text-xs text-gray-400">駐車場空き区画</p>
@@ -2338,12 +2292,19 @@ export default function ProjectDetailPage() {
         <div className="min-w-0 lg:sticky lg:top-4">
         {/* 🔒 管理者情報（PCのみ・管理ページを開かずに確認/編集できるクイックカード） */}
         {role === "ADMIN" && (
-          <div className="hidden lg:block bg-gray-800 rounded-xl border border-amber-700/50 p-4 mb-4">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-gray-800 rounded-xl border border-amber-700/50 p-4 mb-4 mt-4 lg:mt-0">
+            <button
+              type="button"
+              onClick={() => setAdmOpen(!admOpen)}
+              className="w-full flex items-center justify-between lg:pointer-events-none"
+            >
               <p className="text-sm font-bold text-amber-300">🔒 管理者情報 <span className="text-[10px] font-normal text-gray-500">協力会社には非表示</span></p>
-              {admSaved && <span className="text-[11px] text-green-400">✓ 保存</span>}
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+              <span className="flex items-center gap-2">
+                {admSaved && <span className="text-[11px] text-green-400">✓ 保存</span>}
+                <span className="text-gray-500 text-xs lg:hidden">{admOpen ? "▲" : "▼"}</span>
+              </span>
+            </button>
+            <div className={`grid-cols-2 gap-x-3 gap-y-2.5 mt-3 ${admOpen ? "grid" : "hidden lg:grid"}`}>
               {project.client && (
                 <div className="col-span-2">
                   <p className="text-[11px] text-gray-500 mb-0.5">取引先</p>

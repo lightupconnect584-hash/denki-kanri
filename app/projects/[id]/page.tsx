@@ -165,6 +165,21 @@ export default function ProjectDetailPage() {
     setAdmSaved(true);
     setTimeout(() => setAdmSaved(false), 1500);
   };
+  const [admDocs, setAdmDocs] = useState<{ id: string; originalName: string; url: string }[]>([]);
+  useEffect(() => {
+    if (role !== "ADMIN" || !id) return;
+    fetch(`/api/projects/${id}/manage`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        const docs: { id: string; originalName: string; url: string }[] = [];
+        for (const it of d.intakes || []) docs.push({ id: it.id, originalName: it.originalName || "依頼書", url: `/api/intake/view?id=${it.id}` });
+        for (const ph of d.attachedOriginals || []) docs.push({ id: ph.id, originalName: ph.originalName, url: ph.filename.startsWith("http") ? ph.filename : `/uploads/${ph.filename}` });
+        setAdmDocs(docs);
+      })
+      .catch(() => {});
+  }, [role, id]);
+
   const admNum = (v: string) => {
     const n = v.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[^0-9]/g, "");
     return n ? Number(n) : null;
@@ -2326,12 +2341,7 @@ export default function ProjectDetailPage() {
           <div className="hidden lg:block bg-gray-800 rounded-xl border border-amber-700/50 p-4 mb-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold text-amber-300">🔒 管理者情報 <span className="text-[10px] font-normal text-gray-500">協力会社には非表示</span></p>
-              <div className="flex items-center gap-2">
-                {admSaved && <span className="text-[11px] text-green-400">✓ 保存</span>}
-                {isSekisui && (
-                  <Link href={`/projects/${id}/manage`} className="text-xs text-sky-400 border border-sky-800 rounded-lg px-2.5 py-1 hover:bg-sky-900/40 transition">📄 原本・管理ページ</Link>
-                )}
-              </div>
+              {admSaved && <span className="text-[11px] text-green-400">✓ 保存</span>}
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
               {isSekisui && (
@@ -2391,6 +2401,19 @@ export default function ProjectDetailPage() {
                     </p>
                   ))}
                   <p className="text-[10px] text-gray-500 mt-0.5">売上は内訳の合計（変更は編集ページから）</p>
+                </div>
+              )}
+              {admDocs.length > 0 && (
+                <div className="col-span-2">
+                  <p className="text-[11px] text-gray-500 mb-1">依頼書原本</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {admDocs.map((d) => (
+                      <a key={d.id} href={d.url} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-sky-300 border border-sky-800 rounded-lg px-2.5 py-1 hover:bg-sky-900/40 transition truncate max-w-[220px]">
+                        📄 {d.originalName.replace("【依頼書原本】", "")}
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

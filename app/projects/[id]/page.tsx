@@ -1527,7 +1527,7 @@ export default function ProjectDetailPage() {
         {role === "ADMIN" && isSekisui && (
           <Link
             href={`/projects/${id}/manage`}
-            className="flex items-center gap-3 bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 mb-4 hover:border-blue-500 hover:bg-gray-750 transition"
+            className="lg:hidden flex items-center gap-3 bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 mb-4 hover:border-blue-500 hover:bg-gray-750 transition"
           >
             <span className="text-lg">🔒</span>
             <div className="flex-1 min-w-0">

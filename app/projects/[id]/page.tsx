@@ -165,21 +165,6 @@ export default function ProjectDetailPage() {
     setAdmSaved(true);
     setTimeout(() => setAdmSaved(false), 1500);
   };
-  const [admDocs, setAdmDocs] = useState<{ id: string; originalName: string; url: string }[]>([]);
-  useEffect(() => {
-    if (role !== "ADMIN" || !id) return;
-    fetch(`/api/projects/${id}/manage`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!d) return;
-        const docs: { id: string; originalName: string; url: string }[] = [];
-        for (const it of d.intakes || []) docs.push({ id: it.id, originalName: it.originalName || "依頼書", url: `/api/intake/view?id=${it.id}` });
-        for (const ph of d.attachedOriginals || []) docs.push({ id: ph.id, originalName: ph.originalName, url: ph.filename.startsWith("http") ? ph.filename : `/uploads/${ph.filename}` });
-        setAdmDocs(docs);
-      })
-      .catch(() => {});
-  }, [role, id]);
-
   const admNum = (v: string) => {
     const n = v.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[^0-9]/g, "");
     return n ? Number(n) : null;
@@ -497,6 +482,21 @@ export default function ProjectDetailPage() {
   };
 
   const role = (session?.user as { role?: string })?.role;
+    const [admDocs, setAdmDocs] = useState<{ id: string; originalName: string; url: string }[]>([]);
+  useEffect(() => {
+    if (role !== "ADMIN" || !id) return;
+    fetch(`/api/projects/${id}/manage`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        const docs: { id: string; originalName: string; url: string }[] = [];
+        for (const it of d.intakes || []) docs.push({ id: it.id, originalName: it.originalName || "依頼書", url: `/api/intake/view?id=${it.id}` });
+        for (const ph of d.attachedOriginals || []) docs.push({ id: ph.id, originalName: ph.originalName, url: ph.filename.startsWith("http") ? ph.filename : `/uploads/${ph.filename}` });
+        setAdmDocs(docs);
+      })
+      .catch(() => {});
+  }, [role, id]);
+
   const userId = (session?.user as { id?: string })?.id;
 
   useEffect(() => {
@@ -1391,7 +1391,7 @@ export default function ProjectDetailPage() {
             </div>
           )}
           {role === "ADMIN" && project.client && (
-            <div>
+            <div className="lg:hidden">
               <p className="text-xs text-gray-400">取引先</p>
               <p className="text-sm text-gray-200 flex items-center gap-1.5">
                 {project.client.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.client.color }} />}
@@ -2344,6 +2344,15 @@ export default function ProjectDetailPage() {
               {admSaved && <span className="text-[11px] text-green-400">✓ 保存</span>}
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+              {project.client && (
+                <div className="col-span-2">
+                  <p className="text-[11px] text-gray-500 mb-0.5">取引先</p>
+                  <p className="text-sm text-gray-100 flex items-center gap-1.5">
+                    {project.client.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.client.color }} />}
+                    {project.client.name}
+                  </p>
+                </div>
+              )}
               {isSekisui && (
                 <div className="col-span-2">
                   <p className="text-[11px] text-gray-500 mb-0.5">積水受付番号</p>

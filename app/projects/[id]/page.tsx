@@ -98,6 +98,7 @@ interface Project {
   client: { id: string; name: string; color: string | null } | null;
   managerName: string | null;
   afterManagerName: string | null;
+  sekisuiNumber: string | null;
   urgency: string;
   materialSupplied: boolean;
   amount: number | null;
@@ -152,6 +153,22 @@ export default function ProjectDetailPage() {
   const [holdCustom, setHoldCustom] = useState("");
   const [savingHold, setSavingHold] = useState(false);
   const [memoInput, setMemoInput] = useState("");
+  // PC右カラムの管理者情報カード（管理ページ相当のクイック編集）
+  const [adm, setAdm] = useState({ sekisuiNumber: "", managerName: "", afterManagerName: "", salesAmount: "", materialCost: "" });
+  const [admSaved, setAdmSaved] = useState(false);
+  const saveAdm = async (fields: Record<string, unknown>) => {
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    }).catch(() => {});
+    setAdmSaved(true);
+    setTimeout(() => setAdmSaved(false), 1500);
+  };
+  const admNum = (v: string) => {
+    const n = v.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[^0-9]/g, "");
+    return n ? Number(n) : null;
+  };
   const [memoSaved, setMemoSaved] = useState(false);
   const [savingMemo, setSavingMemo] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -491,6 +508,15 @@ export default function ProjectDetailPage() {
         setProject(data);
         // 管理者は memo、協力会社は partnerMemo を編集
         if (!isRefresh) setMemoInput((role === "PARTNER" ? data.partnerMemo : data.memo) || "");
+        if (!isRefresh && role === "ADMIN") {
+          setAdm({
+            sekisuiNumber: data.sekisuiNumber || "",
+            managerName: data.managerName || "",
+            afterManagerName: data.afterManagerName || "",
+            salesAmount: data.salesAmount != null ? String(data.salesAmount) : "",
+            materialCost: data.materialCost != null ? String(data.materialCost) : "",
+          });
+        }
         // visitDateを日付のみ（YYYY-MM-DD）に変換してセット
         if (data.visitDate) {
           const d = new Date(data.visitDate);
@@ -2295,6 +2321,81 @@ export default function ProjectDetailPage() {
         </div>
 
         <div className="min-w-0 lg:sticky lg:top-4">
+        {/* 🔒 管理者情報（PCのみ・管理ページを開かずに確認/編集できるクイックカード） */}
+        {role === "ADMIN" && (
+          <div className="hidden lg:block bg-gray-800 rounded-xl border border-amber-700/50 p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-amber-300">🔒 管理者情報 <span className="text-[10px] font-normal text-gray-500">協力会社には非表示</span></p>
+              <div className="flex items-center gap-2">
+                {admSaved && <span className="text-[11px] text-green-400">✓ 保存</span>}
+                {isSekisui && (
+                  <Link href={`/projects/${id}/manage`} className="text-xs text-sky-400 border border-sky-800 rounded-lg px-2.5 py-1 hover:bg-sky-900/40 transition">📄 原本・管理ページ</Link>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+              {isSekisui && (
+                <div className="col-span-2">
+                  <p className="text-[11px] text-gray-500 mb-0.5">積水受付番号</p>
+                  <input value={adm.sekisuiNumber}
+                    onChange={(e) => setAdm({ ...adm, sekisuiNumber: e.target.value })}
+                    onBlur={() => saveAdm({ sekisuiNumber: adm.sekisuiNumber || null })}
+                    placeholder="受付番号"
+                    className="w-full border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-gray-100 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                </div>
+              )}
+              <div>
+                <p className="text-[11px] text-gray-500 mb-0.5">管理担当</p>
+                <input value={adm.managerName}
+                  onChange={(e) => setAdm({ ...adm, managerName: e.target.value })}
+                  onBlur={() => saveAdm({ managerName: adm.managerName || null })}
+                  placeholder="担当者名"
+                  className="w-full border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-gray-100 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-500 mb-0.5">アフター担当</p>
+                <input value={adm.afterManagerName}
+                  onChange={(e) => setAdm({ ...adm, afterManagerName: e.target.value })}
+                  onBlur={() => saveAdm({ afterManagerName: adm.afterManagerName || null })}
+                  placeholder="担当者名"
+                  className="w-full border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-gray-100 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-500 mb-0.5">売上{isSekisui ? "（積水請求・税別）" : "（税別）"}</p>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">¥</span>
+                  <input inputMode="numeric" value={adm.salesAmount}
+                    disabled={Array.isArray(project.salesBreakdown) && project.salesBreakdown.length > 0}
+                    onChange={(e) => setAdm({ ...adm, salesAmount: e.target.value })}
+                    onBlur={() => saveAdm({ salesAmount: admNum(adm.salesAmount) })}
+                    placeholder="0"
+                    className="w-full border border-gray-600 rounded-lg pl-6 pr-2.5 py-1.5 text-sm text-gray-100 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-60" />
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-500 mb-0.5">材料費</p>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">¥</span>
+                  <input inputMode="numeric" value={adm.materialCost}
+                    onChange={(e) => setAdm({ ...adm, materialCost: e.target.value })}
+                    onBlur={() => saveAdm({ materialCost: admNum(adm.materialCost) })}
+                    placeholder="0"
+                    className="w-full border border-gray-600 rounded-lg pl-6 pr-2.5 py-1.5 text-sm text-gray-100 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                </div>
+              </div>
+              {Array.isArray(project.salesBreakdown) && project.salesBreakdown.length > 0 && (
+                <div className="col-span-2">
+                  {project.salesBreakdown.map((r, i) => (
+                    <p key={i} className="text-[11px] text-amber-300/90">
+                      {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "日付未定"}{r.label ? `　${r.label}` : ""}　¥{(r.amount || 0).toLocaleString()}
+                    </p>
+                  ))}
+                  <p className="text-[10px] text-gray-500 mt-0.5">売上は内訳の合計（変更は編集ページから）</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {/* 急ぎの電話（チャット上） */}
         {role === "PARTNER" && project.createdBy.phone && (
           <div className="mt-4 flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">

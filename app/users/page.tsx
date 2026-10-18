@@ -42,7 +42,7 @@ export default function UsersPage() {
   // 受付→完了報告のリードタイム（直近90日・要アポ除外）
   const [leadtime, setLeadtime] = useState<Record<string, { n: number; avg: number; med: number }>>({});
   useEffect(() => {
-    fetch("/api/leadtime").then((r) => (r.ok ? r.json() : {})).then((d) => setLeadtime(d && typeof d === "object" && !d.error ? (d as Record<string, { n: number; avg: number; med: number }>) : {})).catch(() => {});
+    fetch("/api/leadtime").then((r) => (r.ok ? r.json() : {})).then((d: Record<string, { n: number; avg: number; med: number }>) => setLeadtime(d || {})).catch(() => {});
   }, []);
   const [showForm, setShowForm] = useState(false);
   const [newRole, setNewRole] = useState<"PARTNER" | "ADMIN">("PARTNER");

@@ -95,6 +95,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "toId and content required" }, { status: 400 });
   }
 
+  // 協力会社が送れる相手は管理者と自分（マイメモ）のみ（協力会社同士の直接連絡・他社の存在推測を遮断）
+  if (myRole === "PARTNER" && body.toId !== myId) {
+    const to = await prisma.user.findUnique({ where: { id: body.toId }, select: { role: true } });
+    if (!to || to.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const msg = await prisma.directMessage.create({
     data: {
       fromId: myId,

@@ -120,6 +120,7 @@ export default function ReplacementModelsPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
+    if (status === "authenticated" && !isAdmin) router.push("/dashboard");
   }, [status, router]);
 
   const fetchAll = useCallback(async (q: string) => {

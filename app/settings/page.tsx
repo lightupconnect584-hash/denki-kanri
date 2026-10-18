@@ -1417,10 +1417,12 @@ export default function SettingsPage() {
         )}
 
         {/* 交換機種表リンク */}
+        {role === "ADMIN" && (
         <Link href="/replacement-models" className="bg-gray-800 rounded-xl border border-gray-700 mb-3 flex items-center justify-between px-4 py-3.5 hover:bg-gray-700 transition block">
           <span className="text-sm font-bold text-gray-100">🔌 交換機種表</span>
           <span className="text-gray-400 text-xs">→</span>
         </Link>
+        )}
 
 
         {/* 売上集計リンク（管理者のみ） */}

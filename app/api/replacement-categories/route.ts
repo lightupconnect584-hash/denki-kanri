@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if ((session!.user as { role?: string })?.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const categories = await prisma.replacementCategory.findMany({
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
@@ -17,6 +18,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session || role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if ((session!.user as { role?: string })?.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const last = await prisma.replacementCategory.findFirst({ orderBy: { order: "desc" } });
@@ -30,6 +32,7 @@ export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session || role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if ((session!.user as { role?: string })?.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const { id, ...rest } = body;
@@ -46,6 +49,7 @@ export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session || role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if ((session!.user as { role?: string })?.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");

@@ -10,6 +10,7 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if ((session!.user as { role?: string })?.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI機能が未設定です" }, { status: 500 });
   }

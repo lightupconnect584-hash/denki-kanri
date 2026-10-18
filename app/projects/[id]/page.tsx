@@ -107,7 +107,10 @@ interface Project {
   memo: string | null;
   partnerMemo: string | null;
   contactRequired: boolean;
+  contactTag: string | null;
   contactedAt: string | null;
+  afterContactRequired: boolean;
+  afterContactedAt: string | null;
   contactMethod: string | null;
   amountBreakdown: { date: string; amount: number }[] | null;
   salesBreakdown: { date: string; label?: string; amount: number }[] | null;
@@ -1001,6 +1004,45 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
+        {/* ✅ 完了後連絡バナー（作業完了後、入居者/積水への連絡が済むまで） */}
+        {project.afterContactRequired && ["CONFIRMED", "COMPLETED"].includes(project.status) && role === "ADMIN" && (
+          !project.afterContactedAt ? (
+            <div className="mb-4 bg-green-950/40 border border-green-700 rounded-xl p-4 flex items-center gap-3">
+              <span className="text-xl shrink-0">✅</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-green-300">完了後の連絡が必要な案件です</p>
+                <p className="text-xs text-green-400/80 mt-0.5">作業完了の連絡を入れたら右のボタンを押してください</p>
+              </div>
+              <button
+                onClick={async () => {
+                  await fetch(`/api/projects/${id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ afterContacted: true }),
+                  });
+                  fetchProject(true);
+                }}
+                className="shrink-0 text-xs bg-green-700 text-white rounded-lg px-3 py-2 font-bold hover:bg-green-600 transition"
+              >連絡した</button>
+            </div>
+          ) : (
+            <div className="mb-4 bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-2.5 flex items-center justify-between">
+              <p className="text-xs text-gray-400">✅ 完了後連絡済み（{new Date(project.afterContactedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}）</p>
+              <button
+                onClick={async () => {
+                  await fetch(`/api/projects/${id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ afterContacted: false }),
+                  });
+                  fetchProject(true);
+                }}
+                className="text-xs text-gray-500 hover:text-gray-300 underline"
+              >取消</button>
+            </div>
+          )
+        )}
+
         {/* 📞 入居者立ち会い・要連絡バナー */}
         {project.contactRequired && !["CONFIRMED", "COMPLETED", "REJECTED"].includes(project.status) && (
           !project.contactedAt ? (
@@ -1008,9 +1050,11 @@ export default function ProjectDetailPage() {
               <div className="flex items-start gap-3">
                 <span className="text-xl shrink-0">📞</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-red-300">入居者とのアポイントが必要な案件です</p>
+                  <p className="text-sm font-bold text-red-300">{project.contactTag === "CALLBACK" ? "入居者への折り返し連絡が必要な案件です" : "入居者と訪問日程を合わせる必要がある案件です"}</p>
                   <p className="text-xs text-red-400 mt-0.5">
-                    入居者（折り返し先）に連絡して訪問日程のアポイントを取ってください。アポが取れたら下のボタンを押すと表示が消えます
+                    {project.contactTag === "CALLBACK"
+                      ? "入居者（折り返し先）に連絡してください。連絡できたら下のボタンを押すと表示が消えます"
+                      : "入居者（折り返し先）に連絡して訪問日程のアポイントを取ってください。アポが取れたら下のボタンを押すと表示が消えます"}
                   </p>
                   {project.contractorPhone && (
                     <div className="flex gap-2 flex-wrap mt-2">

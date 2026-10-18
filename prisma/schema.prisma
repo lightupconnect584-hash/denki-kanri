@@ -94,6 +94,9 @@ model Project {
   contactRequired    Boolean   @default(false) // 入居者立ち会い・要連絡
   contactedAt        DateTime? // 入居者と連絡が取れた日時（nullなら未連絡）
   contactMethod      String?   // 解決手段: "appointment"（アポ取得） | "note"（共用部・完了後メモ投函予定）
+  contactTag           String?   // SCHEDULE=📅日程調整(入居者と訪問日を合わせる) / CALLBACK=📞要連絡(折り返しのみ)
+  afterContactRequired Boolean   @default(false) // ✅完了後連絡（作業後に入居者/積水へ連絡）
+  afterContactedAt     DateTime? // 完了後連絡を済ませた日時
   partnerMemo        String?   // 協力会社専用メモ（管理者には非公開）
   urgency          String    @default("LOW")
   materialSupplied Boolean   @default(false)

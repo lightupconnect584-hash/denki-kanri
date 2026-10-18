@@ -313,7 +313,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.parkingInfo !== undefined) updateData.parkingInfo = body.parkingInfo || null;
   if (body.region !== undefined) updateData.region = body.region || null;
   if (body.clientId !== undefined && role === "ADMIN") updateData.clientId = body.clientId || null;
-  if (body.contactRequired !== undefined && role === "ADMIN") updateData.contactRequired = Boolean(body.contactRequired);
+  if (body.contactRequired !== undefined && role === "ADMIN") {
+    updateData.contactRequired = Boolean(body.contactRequired);
+    updateData.contactTag = body.contactRequired ? (body.contactTag === "CALLBACK" ? "CALLBACK" : "SCHEDULE") : null;
+  }
+  if (body.afterContactRequired !== undefined && role === "ADMIN") updateData.afterContactRequired = Boolean(body.afterContactRequired);
+  // 完了後連絡を済ませた／取り消し
+  if (body.afterContacted !== undefined) {
+    updateData.afterContactedAt = body.afterContacted ? new Date() : null;
+  }
   // 入居者と連絡が取れた／取り消し（担当者・管理者）
   if (body.contacted !== undefined) {
     const method = body.contacted

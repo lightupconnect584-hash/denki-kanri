@@ -51,6 +51,8 @@ export default function EditProjectPage() {
     region: "",
     clientId: "",
     contactRequired: false,
+    contactTag: "SCHEDULE",
+    afterContactRequired: false,
     managerName: "",
     afterManagerName: "",
   });
@@ -113,6 +115,8 @@ export default function EditProjectPage() {
             region: data.region || "",
             clientId: data.client?.id || "",
             contactRequired: Boolean(data.contactRequired),
+            contactTag: data.contactTag || "SCHEDULE",
+            afterContactRequired: Boolean(data.afterContactRequired),
             managerName: data.managerName || "",
             afterManagerName: data.afterManagerName || "",
             simpleReport: data.simpleReport ?? false,
@@ -496,15 +500,35 @@ export default function EditProjectPage() {
 
           {isSekisui && (
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1.5">入居者アポイント</label>
+            <label className="block text-sm font-medium text-gray-200 mb-1.5">入居者への連絡</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button"
+                onClick={() => setForm({ ...form, contactRequired: !(form.contactRequired && form.contactTag === "SCHEDULE"), contactTag: "SCHEDULE" })}
+                className={`py-2 rounded-lg text-sm font-medium border transition ${
+                  form.contactRequired && form.contactTag === "SCHEDULE"
+                    ? "bg-red-600 text-white border-red-600"
+                    : "bg-gray-700 text-gray-300 border-gray-600 hover:border-red-500"
+                }`}>
+                📅 日程調整
+              </button>
+              <button type="button"
+                onClick={() => setForm({ ...form, contactRequired: !(form.contactRequired && form.contactTag === "CALLBACK"), contactTag: "CALLBACK" })}
+                className={`py-2 rounded-lg text-sm font-medium border transition ${
+                  form.contactRequired && form.contactTag === "CALLBACK"
+                    ? "bg-orange-600 text-white border-orange-600"
+                    : "bg-gray-700 text-gray-300 border-gray-600 hover:border-orange-500"
+                }`}>
+                📞 要連絡
+              </button>
+            </div>
             <button type="button"
-              onClick={() => setForm({ ...form, contactRequired: !form.contactRequired })}
-              className={`w-full py-2 rounded-lg text-sm font-medium border transition ${
-                form.contactRequired
-                  ? "bg-red-600 text-white border-red-600"
-                  : "bg-gray-700 text-gray-300 border-gray-600 hover:border-red-500"
+              onClick={() => setForm({ ...form, afterContactRequired: !form.afterContactRequired })}
+              className={`mt-2 w-full py-2 rounded-lg text-sm font-medium border transition ${
+                form.afterContactRequired
+                  ? "bg-green-700 text-white border-green-700"
+                  : "bg-gray-700 text-gray-300 border-gray-600 hover:border-green-500"
               }`}>
-              📞 {form.contactRequired ? "アポイント必要" : "アポイント不要"}
+              ✅ 完了後連絡 {form.afterContactRequired ? "あり" : "なし"}
             </button>
           </div>
           )}

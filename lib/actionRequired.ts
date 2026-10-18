@@ -4,7 +4,10 @@ export interface ActionCheckProject {
   status: string;
   visitDate: string | Date | null;
   contactRequired?: boolean;
+  contactTag?: string | null;
   contactedAt?: string | Date | null;
+  afterContactRequired?: boolean;
+  afterContactedAt?: string | Date | null;
   updatedAt: string | Date;
   assignedTo?: { id: string } | null;
   assignedToId?: string | null;
@@ -46,7 +49,14 @@ export function adminActionReason(p: ActionCheckProject): ActionReason | null {
 
   // 入居者立ち会い・要連絡（連絡が取れるまで表示）
   if (p.contactRequired && !p.contactedAt && !DONE.includes(p.status)) {
-    return { label: "アポイントを取る", color: "bg-red-100 text-red-700" };
+    return p.contactTag === "CALLBACK"
+      ? { label: "📞 入居者へ折り返し連絡", color: "bg-orange-100 text-orange-700" }
+      : { label: "📅 日程調整（アポを取る）", color: "bg-red-100 text-red-700" };
+  }
+
+  // ✅ 完了後連絡（作業完了後、入居者/積水への連絡が済むまで表示）
+  if (p.afterContactRequired && !p.afterContactedAt && DONE.includes(p.status)) {
+    return { label: "✅ 完了後の連絡をする", color: "bg-green-100 text-green-700" };
   }
 
   if (p.status === "INSPECTED") {
@@ -92,7 +102,9 @@ export function partnerActionReason(p: ActionCheckProject): ActionReason | null 
 
   // 入居者立ち会い・要連絡（連絡が取れるまで表示）
   if (p.contactRequired && !p.contactedAt && !DONE.includes(p.status)) {
-    return { label: "アポイントを取る", color: "bg-red-100 text-red-700" };
+    return p.contactTag === "CALLBACK"
+      ? { label: "📞 入居者へ折り返し連絡", color: "bg-orange-100 text-orange-700" }
+      : { label: "📅 日程調整（アポを取る）", color: "bg-red-100 text-red-700" };
   }
 
   // 通常の流れ（受注→訪問日→報告）は一覧のステータスで分かるので、

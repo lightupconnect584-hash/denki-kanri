@@ -104,6 +104,8 @@ export async function POST(req: NextRequest) {
       region: body.region || null,
       clientId: body.clientId || null,
       contactRequired: Boolean(body.contactRequired),
+      contactTag: body.contactRequired ? (body.contactTag === "CALLBACK" ? "CALLBACK" : "SCHEDULE") : null,
+      afterContactRequired: Boolean(body.afterContactRequired),
       createdById: userId,
       // 自社案件（担当＝作成者）は受注済みで作成
       status: body.assignedToId && body.assignedToId === userId && body.status === "ACCEPTED" ? "ACCEPTED" : "PENDING",

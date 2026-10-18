@@ -23,7 +23,10 @@ interface Project {
   region: string | null;
   client: { id: string; name: string; color: string | null } | null;
   contactRequired: boolean;
+  contactTag: string | null;
   contactedAt: string | null;
+  afterContactRequired: boolean;
+  afterContactedAt: string | null;
   onHold: boolean;
   holdReason: string | null;
   holdAt: string | null;
@@ -492,7 +495,11 @@ export default function DashboardPage() {
           {/* ステータス＋バッジ行 */}
           <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
             <StatusBadge status={p.status} />
-            {p.contactRequired && !p.contactedAt && <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要アポ</span>}
+            {p.contactRequired && !p.contactedAt && (
+              p.contactTag === "CALLBACK"
+                ? <span className="text-xs bg-orange-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要連絡</span>
+                : <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold">📅 日程調整</span>
+            )}
             {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium">緊急</span>}
             {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium">中</span>}
             {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium">📦 材料支給</span>}

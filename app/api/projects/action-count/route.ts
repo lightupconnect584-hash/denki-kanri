@@ -21,6 +21,7 @@ export async function GET() {
       status: true,
       visitDate: true,
       contactRequired: true,
+      contactTag: true,
       contactedAt: true,
       onHold: true,
       holdAt: true,
@@ -30,6 +31,12 @@ export async function GET() {
     },
   });
 
-  const count = projects.filter((p) => actionReason(role, p) !== null).length;
+  let count = projects.filter((p) => actionReason(role, p) !== null).length;
+  // ✅ 完了後連絡が未了の完了案件も要対応に数える（管理者のみ）
+  if (role !== "PARTNER") {
+    count += await prisma.project.count({
+      where: { status: { in: ["CONFIRMED", "COMPLETED"] }, afterContactRequired: true, afterContactedAt: null },
+    });
+  }
   return NextResponse.json({ count });
 }

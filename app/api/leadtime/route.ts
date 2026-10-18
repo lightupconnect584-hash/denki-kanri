@@ -15,7 +15,7 @@ export async function GET() {
   const since = new Date(Date.now() - 90 * 86400000);
   const projects = await prisma.project.findMany({
     where: {
-      contactRequired: false,
+      NOT: { contactRequired: true, contactTag: "SCHEDULE" }, // 📅日程調整（入居者と予定合わせ）だけ除外。📞要連絡は対象
       inspections: { some: {} },
       createdAt: { gte: since },
       assignedToId: { not: null },

@@ -212,11 +212,24 @@ export default function UsersPage() {
               📞 {u.phone}
             </a>
           )}
-          {leadtime[u.id] && (
-            <p className="text-xs text-amber-300/90 truncate" title="受付（受付ボックス受信または登録）から最初の完了報告までの日数。入居者アポが必要な案件（📞要アポ）は除外。直近90日">
-              ⏱ 受付→報告 中央値{leadtime[u.id].med}日・平均{leadtime[u.id].avg}日（{leadtime[u.id].n}件）
+          {leadtime[u.id] && (() => {
+            const lt = leadtime[u.id];
+            // 件数を考慮したランク: 高負荷(30件〜)は基準を緩め、少件数は参考扱い
+            const th = lt.n >= 30 ? [3, 5, 8] : [2, 4, 7];
+            const grade = lt.med <= th[0] ? "S" : lt.med <= th[1] ? "A" : lt.med <= th[2] ? "B" : "C";
+            const gradeColor = grade === "S" ? "bg-purple-600 text-white" : grade === "A" ? "bg-blue-600 text-white" : grade === "B" ? "bg-gray-600 text-gray-100" : "bg-red-600 text-white";
+            const provisional = lt.n < 10; // 10件未満は参考評価
+            return (
+            <p className="text-xs text-amber-300/90 truncate flex items-center gap-1.5" title={`受付から最初の完了報告までの日数（直近90日・📅日程調整の案件は除外）。ランクは件数考慮: ${lt.n >= 30 ? "高負荷帯(30件〜) S≤3/A≤5/B≤8日" : "S≤2/A≤4/B≤7日"}${provisional ? "・10件未満は参考評価" : ""}`}>
+              {lt.n >= 5 && (
+                <span className={`shrink-0 text-[10px] font-bold rounded px-1.5 py-0.5 ${gradeColor} ${provisional ? "opacity-50" : ""}`}>
+                  {grade}{provisional ? "?" : ""}
+                </span>
+              )}
+              <span className="truncate">⏱ 受付→報告 中央値{lt.med}日・平均{lt.avg}日（{lt.n}件）</span>
             </p>
-          )}
+            );
+          })()}
           {u.role === "PARTNER" && (
             <button
               onClick={() => setLoginLogId(loginLogId === u.id ? null : u.id)}

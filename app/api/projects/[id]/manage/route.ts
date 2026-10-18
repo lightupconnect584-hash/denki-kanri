@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // 依頼書原本（受付ボックス経由で紐づいたもの・複数枚対応）
   const intakes = await prisma.intakeDoc.findMany({
     where: { projectId: id },
-    select: { id: true, originalName: true },
+    select: { id: true, originalName: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });
   const intake = intakes[0] ?? null;

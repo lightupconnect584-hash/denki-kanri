@@ -484,6 +484,7 @@ export default function ProjectDetailPage() {
 
   const role = (session?.user as { role?: string })?.role;
     const [admDocs, setAdmDocs] = useState<{ id: string; originalName: string; url: string }[]>([]);
+  const [admIntakeAt, setAdmIntakeAt] = useState<string | null>(null); // 受付ボックスに届いた日時
   useEffect(() => {
     if (role !== "ADMIN" || !id) return;
     fetch(`/api/projects/${id}/manage`)
@@ -492,6 +493,7 @@ export default function ProjectDetailPage() {
         if (!d) return;
         const docs: { id: string; originalName: string; url: string }[] = [];
         for (const it of d.intakes || []) docs.push({ id: it.id, originalName: it.originalName || "依頼書", url: `/api/intake/view?id=${it.id}` });
+        if ((d.intakes || []).length > 0 && d.intakes[0].createdAt) setAdmIntakeAt(d.intakes[0].createdAt);
         for (const ph of d.attachedOriginals || []) docs.push({ id: ph.id, originalName: ph.originalName, url: ph.filename.startsWith("http") ? ph.filename : `/uploads/${ph.filename}` });
         setAdmDocs(docs);
       })
@@ -2312,6 +2314,12 @@ export default function ProjectDetailPage() {
                     {project.client.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.client.color }} />}
                     {project.client.name}
                   </p>
+                </div>
+              )}
+              {admIntakeAt && (
+                <div className="col-span-2">
+                  <p className="text-[11px] text-gray-500 mb-0.5">受付ボックス受信</p>
+                  <p className="text-sm text-gray-200">📥 {new Date(admIntakeAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
                 </div>
               )}
               {isSekisui && (

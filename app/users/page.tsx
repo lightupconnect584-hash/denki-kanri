@@ -39,6 +39,11 @@ export default function UsersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
+  // 受付→完了報告のリードタイム（直近90日・要アポ除外）
+  const [leadtime, setLeadtime] = useState<Record<string, { n: number; avg: number; med: number }>>({});
+  useEffect(() => {
+    fetch("/api/leadtime").then((r) => (r.ok ? r.json() : {})).then((d) => setLeadtime(d && typeof d === "object" ? d : {})).catch(() => {});
+  }, []);
   const [showForm, setShowForm] = useState(false);
   const [newRole, setNewRole] = useState<"PARTNER" | "ADMIN">("PARTNER");
   const [form, setForm] = useState({ name: "", email: "", password: "", companyName: "" });
@@ -206,6 +211,11 @@ export default function UsersPage() {
             <a href={`tel:${u.phone.replace(/[^0-9+]/g, "")}`} className="text-xs text-green-400 hover:text-green-300 truncate inline-block">
               📞 {u.phone}
             </a>
+          )}
+          {leadtime[u.id] && (
+            <p className="text-xs text-amber-300/90 truncate" title="受付（受付ボックス受信または登録）から最初の完了報告までの日数。入居者アポが必要な案件（📞要アポ）は除外。直近90日">
+              ⏱ 受付→報告 中央値{leadtime[u.id].med}日・平均{leadtime[u.id].avg}日（{leadtime[u.id].n}件）
+            </p>
           )}
           {u.role === "PARTNER" && (
             <button

@@ -8,8 +8,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = (session.user as { id: string }).id;
+  const role = (session.user as { role?: string })?.role;
   const { commentId, emoji } = await req.json();
-  await params;
+  const { id: projectId } = await params;
+
+  // コメントがこの案件のものか＋協力会社は自分の案件のみ（他案件への操作・探索を遮断）
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { projectId: true, project: { select: { assignedToId: true, subAssignees: { select: { userId: true } } } } },
+  });
+  if (!comment || comment.projectId !== projectId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (role === "PARTNER") {
+    const ok = comment.project.assignedToId === userId || comment.project.subAssignees.some((u) => u.userId === userId);
+    if (!ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const existing = await prisma.reaction.findUnique({
     where: { commentId_userId_emoji: { commentId, userId, emoji } },

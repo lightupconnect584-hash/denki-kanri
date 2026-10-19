@@ -63,6 +63,10 @@ export default function BottomNav() {
         if (!v || v === "dev") return;
         if (initial === null) { initial = v; return; }
         if (v !== initial && !reloaded) {
+          // 入力中の画面ではリロードしない（フォームが消えるため）。別画面に移った後の次回チェックで更新される
+          const path = window.location.pathname;
+          const isFormPage = path === "/projects/new" || /\/projects\/[^/]+\/(edit|inspect|quote)$/.test(path);
+          if (isFormPage) return;
           reloaded = true;
           window.location.reload();
         }

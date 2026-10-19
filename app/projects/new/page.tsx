@@ -271,6 +271,46 @@ export default function NewProjectPage() {
     return () => clearTimeout(t);
   }, [form.workType]);
 
+  // ✏ 入力内容の自動保存・復元（リロード・更新で入力が消えないように）
+  const draftKey = typeof window !== "undefined" ? `np-draft:${window.location.search || "manual"}` : "np-draft";
+  const [restoredDraft, setRestoredDraft] = useState(false);
+  const skipExtractRef = useRef(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (!d?.form || Date.now() - (d.savedAt || 0) > 24 * 3600 * 1000) { localStorage.removeItem(draftKey); return; }
+      setForm((prev) => ({ ...prev, ...d.form }));
+      if (Array.isArray(d.photos)) {
+        setPhotos(d.photos.map((ph: { filename: string; originalName: string; isPdf: boolean }) => ({
+          ...ph,
+          preview: ph.filename?.startsWith("http") ? ph.filename : "",
+        })));
+      }
+      skipExtractRef.current = true; // 復元時はAI読み取りをやり直さない
+      setRestoredDraft(true);
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // 変更のたびに保存（軽いdebounce）
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const hasInput = form.title || form.location || form.description || photos.length > 0;
+        if (hasInput) {
+          localStorage.setItem(draftKey, JSON.stringify({ form, photos: photos.map((p) => ({ filename: p.filename, originalName: p.originalName, isPdf: p.isPdf })), savedAt: Date.now() }));
+        }
+      } catch { /* ignore */ }
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, photos]);
+  const discardDraft = () => {
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+    window.location.reload();
+  };
+
   // 関連工事の作成：?from=ID の過去案件から物件情報を引き継ぐ
   const [fromProject, setFromProject] = useState<string | null>(null);
   useEffect(() => {
@@ -322,7 +362,11 @@ export default function NewProjectPage() {
           objUrl: URL.createObjectURL(typed),
         });
         const file = new File([blob], doc.originalName || "依頼書.pdf", { type: blob.type || "application/pdf" });
-        runExtract(file);
+        if (skipExtractRef.current) {
+          extractFileRef.current = file; // 自社案件の原本自動添付用に保持
+        } else {
+          runExtract(file);
+        }
       } catch {
         setExtractMsg("受付ボックスの依頼書の取得に失敗しました");
       }
@@ -513,6 +557,7 @@ export default function NewProjectPage() {
     });
 
     if (res.ok) {
+      try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
       // 受付ボックス経由なら振り分け済みにする
       if (intakeId) {
         try {
@@ -539,6 +584,12 @@ export default function NewProjectPage() {
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-white">←</button>
           <h2 className="text-lg font-bold text-white">新規依頼登録</h2>
+        {restoredDraft && (
+          <div className="w-full flex items-center gap-2 bg-emerald-950/40 border border-emerald-700 rounded-lg px-3 py-2 mt-2">
+            <p className="text-xs text-emerald-300 flex-1">✏ 入力途中の内容を復元しました（自動保存）</p>
+            <button type="button" onClick={discardDraft} className="text-xs text-gray-400 hover:text-red-300 underline shrink-0">破棄して最初から</button>
+          </div>
+        )}
         {fromProject && (
           <p className="text-xs text-sky-300 bg-sky-950/40 border border-sky-800 rounded-lg px-3 py-2 mt-2 w-full">
             🔗 「{fromProject}」の関連工事として物件情報を引き継ぎました（依頼内容・金額は新規に入力してください）

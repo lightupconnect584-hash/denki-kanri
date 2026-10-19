@@ -471,8 +471,11 @@ export default function NewProjectPage() {
     }
     const sc = clients.find((c) => c.id === form.clientId);
     if (sc?.name.includes("積水") && !form.assignedToId) {
-      document.getElementById("assignee-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
+      // 担当未定でも「準備中」として保存できる（協力会社には見えない。後から振り分け）
+      if (!confirm("担当を選ばずに【準備中】として保存しますか？\n\n・協力会社にはまだ見えません\n・案件を開けばいつでも振り分けできます")) {
+        document.getElementById("assignee-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
     }
 
     setLoading(true);
@@ -624,7 +627,7 @@ export default function NewProjectPage() {
                   <span className="text-xs bg-amber-500 text-gray-900 font-bold px-2 py-0.5 rounded-full animate-pulse">⚠ 未選択・登録に必須</span>
                 )}
               </label>
-              <select required value={form.assignedToId}
+              <select value={form.assignedToId}
                 onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
                 className={`${inputClass} ${!form.assignedToId ? "border-amber-500" : ""}`}>
                 <option value="">担当を選択してください</option>

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { syncSalesEntryForProject, currentMonthKey } from "@/lib/salesSync";
 import { stripPostal } from "@/lib/stripPostal";
+import { sendPushToUsers } from "@/lib/push";
 import { syncProjectToGoogle, deleteProjectFromGoogle } from "@/lib/googleCalendar";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -148,10 +149,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (role === "ADMIN") updateData.notifyPartnerAt = new Date();
     if (role === "PARTNER") updateData.notifyAdminAt = new Date();
   }
-  // 担当変更（再アサイン）→ 協力会社に通知
+  // 担当変更（再アサイン・準備中からの振り分け）→ 協力会社に通知
+  let newAssigneeId: string | null = null;
   if (body.assignedToId !== undefined) {
     updateData.assignedToId = body.assignedToId !== "" ? body.assignedToId : null;
-    if (role === "ADMIN" && body.assignedToId) updateData.notifyPartnerAt = new Date();
+    if (role === "ADMIN" && body.assignedToId) {
+      updateData.notifyPartnerAt = new Date();
+      const prev = await prisma.project.findUnique({ where: { id }, select: { assignedToId: true } });
+      if (prev?.assignedToId !== body.assignedToId) newAssigneeId = body.assignedToId;
+    }
   }
   // 共同担当の設定（管理者のみ）。配列で全置き換え＋応援費（subAssigneeAmounts: {userId: 金額}）
   if (Array.isArray(body.subAssigneeIds) && role === "ADMIN") {
@@ -370,6 +376,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: whereClause,
     data: updateData,
   });
+
+  // 新しく担当になった協力会社へプッシュ通知（自分への割り当ては除く）
+  if (newAssigneeId && newAssigneeId !== userId) {
+    try {
+      await sendPushToUsers([newAssigneeId], {
+        title: "📋 新しい依頼が届きました",
+        body: project.title || "新しい依頼",
+        url: `/projects/${id}`,
+      });
+    } catch { /* 通知失敗は無視 */ }
+  }
 
   // 完了になったら売上集計に自動登録
   // 計上月は「請求月の上書き > 作業日（最新の完了報告）> 今月」の順で決める

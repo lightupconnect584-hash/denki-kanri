@@ -487,6 +487,29 @@ export default function ProjectDetailPage() {
 
   const role = (session?.user as { role?: string })?.role;
     const [admDocs, setAdmDocs] = useState<{ id: string; originalName: string; url: string }[]>([]);
+  // 準備中（担当未定）案件の振り分け
+  const [assignList, setAssignList] = useState<{ id: string; name: string; companyName: string | null }[]>([]);
+  const [assignTo, setAssignTo] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  useEffect(() => {
+    if (role !== "ADMIN") return;
+    fetch("/api/users").then((r) => (r.ok ? r.json() : [])).then((d) => {
+      if (Array.isArray(d)) setAssignList(d.filter((u: { role: string; inviteToken?: string | null }) => !u.inviteToken));
+    }).catch(() => {});
+  }, [role]);
+  const assignPartner = async () => {
+    if (!assignTo || assigning) return;
+    const target = assignList.find((u) => u.id === assignTo);
+    if (!confirm(`「${target?.companyName || target?.name}」に振り分けますか？\n（相手に通知が届き、案件が見えるようになります）`)) return;
+    setAssigning(true);
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignedToId: assignTo }),
+    }).catch(() => {});
+    setAssigning(false);
+    fetchProject(true);
+  };
   const [admIntakeAt, setAdmIntakeAt] = useState<string | null>(null); // 受付ボックスに届いた日時
   useEffect(() => {
     if (role !== "ADMIN" || !id) return;
@@ -1330,6 +1353,31 @@ export default function ProjectDetailPage() {
         {/* PC: 左=情報 / 右=チャット の2カラム。モバイルは従来順のまま */}
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_480px] lg:gap-6 lg:items-start">
         <div className="min-w-0">
+        {/* 🕓 準備中: 担当未定 → ここから振り分け */}
+        {role === "ADMIN" && !project.assignedTo && !["CONFIRMED", "COMPLETED", "REJECTED"].includes(project.status) && (
+          <div className="mb-4 bg-sky-950/40 border border-sky-700 rounded-xl p-4">
+            <p className="text-sm font-bold text-sky-300 mb-1">🕓 準備中の案件（担当未定）</p>
+            <p className="text-xs text-sky-400/80 mb-3">協力会社にはまだ見えていません。対応OKが取れたら振り分けてください（相手に通知が届きます）</p>
+            <div className="flex items-center gap-2">
+              <select
+                value={assignTo}
+                onChange={(e) => setAssignTo(e.target.value)}
+                className="flex-1 min-w-0 border border-sky-800 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              >
+                <option value="">担当を選択…</option>
+                {myId && <option value={myId}>🔧 自分で施工</option>}
+                {assignList.filter((u) => u.id !== myId).map((u) => (
+                  <option key={u.id} value={u.id}>{u.companyName || u.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={assignPartner}
+                disabled={!assignTo || assigning}
+                className="shrink-0 bg-sky-600 text-white text-sm font-bold rounded-lg px-4 py-2 hover:bg-sky-700 disabled:opacity-50 transition"
+              >{assigning ? "振り分け中…" : "振り分ける"}</button>
+            </div>
+          </div>
+        )}
         {/* 基本情報 */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3 grid grid-cols-2 gap-x-4 gap-y-3">
           <div className="col-span-2">

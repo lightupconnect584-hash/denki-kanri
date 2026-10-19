@@ -500,6 +500,9 @@ export default function DashboardPage() {
                 ? <span className="text-xs bg-orange-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要連絡</span>
                 : <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold">📅 日程調整</span>
             )}
+            {role === "ADMIN" && !p.assignedTo && !["CONFIRMED", "COMPLETED", "REJECTED"].includes(p.status) && (
+              <span className="text-xs bg-gray-600 text-gray-100 px-1.5 py-0.5 rounded-full font-bold">🕓 準備中（担当未定）</span>
+            )}
             {p.urgency === "HIGH" && <span className="text-xs bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-full font-medium">緊急</span>}
             {p.urgency === "MEDIUM" && <span className="text-xs bg-yellow-900/50 text-yellow-400 px-1.5 py-0.5 rounded-full font-medium">中</span>}
             {p.materialSupplied && <span className="text-xs bg-teal-900/50 text-teal-300 border border-teal-700 px-1.5 py-0.5 rounded-full font-medium">📦 材料支給</span>}

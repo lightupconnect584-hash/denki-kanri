@@ -414,7 +414,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const newAmount = body.amount !== undefined && body.amount !== "" && body.amount !== null ? parseInt(body.amount) : null;
     const oldStr = oldAmount != null ? `¥${oldAmount.toLocaleString()}` : "未設定";
     const newStr = newAmount != null ? `¥${newAmount.toLocaleString()}` : "未設定";
-    if (oldAmount !== newAmount) {
+    // 未設定→金額 は「初回設定」であり変更ではない（自社案件の手配変え等で変更済み表示にしない）
+    if (oldAmount !== newAmount && oldAmount !== null) {
       await prisma.activityLog.create({
         data: {
           projectId: id,

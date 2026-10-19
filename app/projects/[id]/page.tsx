@@ -1365,8 +1365,8 @@ export default function ProjectDetailPage() {
                 className="flex-1 min-w-0 border border-sky-800 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 <option value="">担当を選択…</option>
-                {myId && <option value={myId}>🔧 自分で施工</option>}
-                {assignList.filter((u) => u.id !== myId).map((u) => (
+                {userId && <option value={userId}>🔧 自分で施工</option>}
+                {assignList.filter((u) => u.id !== userId).map((u) => (
                   <option key={u.id} value={u.id}>{u.companyName || u.name}</option>
                 ))}
               </select>

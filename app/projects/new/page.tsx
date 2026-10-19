@@ -106,10 +106,7 @@ export default function NewProjectPage() {
       roomNumber: s(d.roomNumber) || prev.roomNumber,
       contractorName: s(d.contractorName) || prev.contractorName,
       contractorPhone: s(d.contractorPhone) || prev.contractorPhone,
-      // 下書きメモがある場合は先頭に残し、AI読み取り結果を後ろに結合
-      description: prev.description
-        ? (s(d.description) && !prev.description.includes(s(d.description)) ? prev.description + "\n\n" + s(d.description) : prev.description)
-        : s(d.description) || "",
+      description: s(d.description) || prev.description,
       moveInDate: s(d.moveInDate) || prev.moveInDate,
       preferredContactAt: s(d.preferredContactAt) || prev.preferredContactAt,
       receivedAt: s(d.receivedAt) || prev.receivedAt,
@@ -313,10 +310,6 @@ export default function NewProjectPage() {
         if (!r.ok) return;
         const doc = await r.json();
         setIntakeId(doc.id);
-        // 振り分け前の下書きメモを依頼内容へ引き継ぐ（AI読み取り結果より前に置く）
-        if (doc.draft) {
-          setForm((prev) => ({ ...prev, description: doc.draft + (prev.description ? "\n\n" + prev.description : "") }));
-        }
         setExtractMsg("受付ボックスの依頼書を読み取っています…");
         const fr = await fetch(doc.filename);
         const blob = await fr.blob();

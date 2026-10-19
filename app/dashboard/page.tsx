@@ -73,17 +73,7 @@ export default function DashboardPage() {
   const myId = (session?.user as { id?: string })?.id;
 
   // 📥 受付ボックス（依頼書のペーパーレス受付）
-  const [intakeDocs, setIntakeDocs] = useState<{ id: string; filename: string; originalName: string; createdByName: string | null; createdAt: string; draft: string | null }[]>([]);
-  const [draftOpenId, setDraftOpenId] = useState<string | null>(null);
-  const [draftText, setDraftText] = useState("");
-  const saveDraft = async (intakeId: string) => {
-    await fetch("/api/intake", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: intakeId, draft: draftText }),
-    }).catch(() => {});
-    fetchIntake();
-  };
+  const [intakeDocs, setIntakeDocs] = useState<{ id: string; filename: string; originalName: string; createdByName: string | null; createdAt: string }[]>([]);
   const [intakeUploading, setIntakeUploading] = useState(false);
 
   const fetchIntake = useCallback(async () => {
@@ -792,41 +782,18 @@ export default function DashboardPage() {
                 ) : (
                   <div className="divide-y divide-sky-900/40">
                     {intakeDocs.map((d) => (
-                      <div key={d.id} className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <a href={d.filename} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80">
-                            <span className="shrink-0">📄</span>
-                            <span className="text-sm text-gray-200 truncate">{d.originalName}</span>
-                          </a>
-                          <span className="text-xs text-gray-500 shrink-0">
-                            {new Date(d.createdAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} {d.createdByName || ""}
-                          </span>
-                          <button
-                            onClick={() => {
-                              if (draftOpenId === d.id) { setDraftOpenId(null); return; }
-                              setDraftOpenId(d.id);
-                              setDraftText(d.draft || "");
-                            }}
-                            className={`text-xs rounded px-2 py-1 border transition shrink-0 ${d.draft ? "bg-amber-900/40 text-amber-300 border-amber-700" : "text-gray-400 border-gray-600 hover:border-amber-500"}`}
-                            title="振り分け前の下書きメモ（登録時に依頼内容へ引き継がれます）"
-                          >📝{d.draft ? "あり" : ""}</button>
-                          <Link href={`/projects/new?intake=${d.id}`} className="text-xs bg-sky-600 text-white rounded px-2.5 py-1 hover:bg-sky-700 transition shrink-0">
-                            振り分け
-                          </Link>
-                          <button onClick={() => deleteIntake(d.id)} className="text-gray-600 hover:text-red-400 text-xs shrink-0">✕</button>
-                        </div>
-                        {draftOpenId === d.id && (
-                          <div className="mt-2">
-                            <textarea
-                              value={draftText}
-                              onChange={(e) => setDraftText(e.target.value)}
-                              onBlur={() => saveDraft(d.id)}
-                              rows={3}
-                              placeholder="依頼内容の下書き（自動保存。振り分けで登録を開くと依頼内容に入ります）"
-                              className="w-full bg-gray-900 border border-amber-800/60 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"
-                            />
-                          </div>
-                        )}
+                      <div key={d.id} className="flex items-center gap-2 px-4 py-2.5">
+                        <a href={d.filename} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80">
+                          <span className="shrink-0">📄</span>
+                          <span className="text-sm text-gray-200 truncate">{d.originalName}</span>
+                        </a>
+                        <span className="text-xs text-gray-500 shrink-0">
+                          {new Date(d.createdAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} {d.createdByName || ""}
+                        </span>
+                        <Link href={`/projects/new?intake=${d.id}`} className="text-xs bg-sky-600 text-white rounded px-2.5 py-1 hover:bg-sky-700 transition shrink-0">
+                          振り分け
+                        </Link>
+                        <button onClick={() => deleteIntake(d.id)} className="text-gray-600 hover:text-red-400 text-xs shrink-0">✕</button>
                       </div>
                     ))}
                   </div>

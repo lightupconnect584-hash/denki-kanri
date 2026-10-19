@@ -197,7 +197,6 @@ model IntakeDoc {
   originalName  String
   createdByName String?
   status        String   @default("PENDING") // PENDING / PROCESSED
-  draft         String?  // 振り分け前の下書きメモ（登録時に依頼内容へ引き継ぎ）
   projectId     String?  // 振り分け先の案件
   createdAt     DateTime @default(now())
 }

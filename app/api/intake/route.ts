@@ -95,17 +95,8 @@ export async function PATCH(req: NextRequest) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { id, projectId, draft } = await req.json();
+  const { id, projectId } = await req.json();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
-
-  // 下書きメモだけの保存（振り分け前）
-  if (draft !== undefined && projectId === undefined) {
-    const doc = await prisma.intakeDoc.update({
-      where: { id },
-      data: { draft: String(draft || "").slice(0, 2000) || null },
-    });
-    return NextResponse.json(doc);
-  }
 
   const doc = await prisma.intakeDoc.update({
     where: { id },

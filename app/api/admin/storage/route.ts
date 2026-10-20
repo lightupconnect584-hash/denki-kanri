@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { list } from "@vercel/blob";
 
 const DB_LIMIT = 500 * 1024 * 1024;
-// Vercel Blob (Hobby) は 1GB まで無料
-const BLOB_LIMIT = 1024 * 1024 * 1024;
+// Vercel Blob (Pro) は 5GB まで込み（2026-10-20: Hobby時代の1GBから更新。超過しても停止せず従量課金のみ）
+const BLOB_LIMIT = 5 * 1024 * 1024 * 1024;
 
 export async function GET() {
   const session = await getServerSession(authOptions);

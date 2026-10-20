@@ -140,6 +140,35 @@ export default function CollageEditor({
     drawCollage(previewRef.current, 760, true);
   }, [loading, drawCollage]);
 
+  // ≡ハンドルのドラッグ並び替え（Pointer Eventsなのでスマホのタッチでも動く）
+  const listRef = useRef<HTMLDivElement>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const dragStart = (id: string) => (ev: React.PointerEvent) => {
+    ev.preventDefault();
+    (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
+    setDraggingId(id);
+  };
+  const dragMove = (ev: React.PointerEvent) => {
+    if (!draggingId || !listRef.current) return;
+    const rows = Array.from(listRef.current.children) as HTMLElement[];
+    const ids = order;
+    const curIdx = ids.indexOf(draggingId);
+    let newIdx = curIdx;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i].getBoundingClientRect();
+      if (ev.clientY < r.top + r.height / 2) { newIdx = i; break; }
+      newIdx = i;
+    }
+    if (newIdx !== curIdx) {
+      setOrder((prev) => {
+        const next = prev.filter((v) => v !== draggingId);
+        next.splice(newIdx, 0, draggingId);
+        return next;
+      });
+    }
+  };
+  const dragEnd = () => setDraggingId(null);
+
   const move = (id: string, dir: -1 | 1) => {
     setOrder((prev) => {
       const i = prev.indexOf(id);
@@ -199,21 +228,27 @@ export default function CollageEditor({
                 ))}
               </div>
 
-              {/* 写真ごとの調整 */}
-              <div className="space-y-2">
+              {/* 写真ごとの調整（≡をドラッグ or ↑↓で並び替え） */}
+              <p className="text-[11px] text-gray-500 -mb-2">≡ を押したまま上下にドラッグで並び替え（↑↓ボタンでも可）</p>
+              <div className="space-y-2" ref={listRef} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}>
                 {order.map((id, i) => {
                   const p = photoById(id);
                   const e = edits[id];
                   return (
-                    <div key={id} className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5">
+                    <div key={id} className={`flex items-center gap-2 border rounded-lg px-2 py-1.5 transition ${draggingId === id ? "bg-blue-900/50 border-blue-500 shadow-lg" : "bg-gray-800 border-gray-700"}`}>
+                      <span
+                        onPointerDown={dragStart(id)}
+                        className="text-gray-400 text-lg px-1.5 py-1 cursor-grab active:cursor-grabbing touch-none select-none shrink-0"
+                        title="ドラッグで並び替え"
+                      >≡</span>
                       <span className="text-xs text-gray-500 w-5 text-center shrink-0">{i + 1}</span>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p.url} alt="" className={`w-12 h-9 object-cover rounded shrink-0 ${e?.flipH ? "scale-x-[-1]" : ""}`} />
                       <span className="text-xs text-gray-300 flex-1 min-w-0 truncate">{p.name || "（名称なし）"}</span>
                       <button onClick={() => move(id, -1)} disabled={i === 0}
-                        className="text-xs text-gray-300 border border-gray-600 rounded px-2 py-1 disabled:opacity-30">◀</button>
+                        className="text-xs text-gray-300 border border-gray-600 rounded px-2 py-1 disabled:opacity-30">↑</button>
                       <button onClick={() => move(id, 1)} disabled={i === order.length - 1}
-                        className="text-xs text-gray-300 border border-gray-600 rounded px-2 py-1 disabled:opacity-30">▶</button>
+                        className="text-xs text-gray-300 border border-gray-600 rounded px-2 py-1 disabled:opacity-30">↓</button>
                       <button onClick={() => cycleScale(id)}
                         className={`text-xs rounded px-2 py-1 border transition ${e?.scale !== 1 ? "bg-amber-700 text-white border-amber-700" : "text-gray-300 border-gray-600"}`}
                         title="表示サイズ（小/標準/大）">{scaleLabel(e?.scale ?? 1)}</button>

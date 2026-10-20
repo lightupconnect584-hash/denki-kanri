@@ -209,7 +209,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (role !== "ADMIN") return;
-    const CACHE_KEY = "storage-warning-cache";
+    const CACHE_KEY = "storage-warning-cache-v2"; // v2: Blob上限を5GBに修正した際に旧キャッシュ（81%警告）を無効化
     const CACHE_TTL = 6 * 60 * 60 * 1000; // 6時間
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);

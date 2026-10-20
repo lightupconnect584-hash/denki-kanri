@@ -20,6 +20,7 @@ function renderWithLinks(text: string) {
 import Link from "next/link";
 import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
+import CollageEditor, { type CollagePhoto } from "@/components/CollageEditor";
 
 interface Photo {
   id: string;
@@ -208,79 +209,45 @@ export default function ProjectDetailPage() {
 
   // 選択した写真を1枚に合成（2枚=横並び、3〜4枚=2×2、5枚以上=3列グリッド）。名前入りキャプション付き
   const [combining, setCombining] = useState(false);
-  const combineSelected = async (inspectionId: string, photos: { id: string; originalName: string }[], projectTitle: string) => {
+  // 🧩 まとめ編集画面を開く
+  const [collagePhotos, setCollagePhotos] = useState<CollagePhoto[] | null>(null);
+  const [collageInspId, setCollageInspId] = useState<string | null>(null);
+  const openCollage = (inspectionId: string, photos: { id: string; originalName: string }[]) => {
     const targets = photos.filter((ph) => photoSelected[ph.id]);
     if (targets.length < 2) return;
-    if (!confirm(`選択した${targets.length}枚を1枚の画像にまとめて報告に保存し、元の${targets.length}枚は削除します。\nよろしいですか？（元に戻せません）`)) return;
+    setCollageInspId(inspectionId);
+    setCollagePhotos(targets.map((ph) => ({
+      id: ph.id,
+      name: photoDisplayName(ph),
+      url: `/api/photos/${ph.id}/file`,
+    })));
+  };
+
+  // エディタで確定 → アップロードして報告に追加・元の写真を削除
+  const confirmCollage = async (outBlob: Blob) => {
+    if (!collagePhotos || !collageInspId) return;
+    const targets = collagePhotos;
+    if (!confirm(`この配置で1枚にまとめて報告に保存し、元の${targets.length}枚は削除します。\nよろしいですか？（元に戻せません）`)) return;
     setCombining(true);
     try {
-      const imgs = await Promise.all(targets.map(async (ph) => {
-        const r = await fetch(`/api/photos/${ph.id}/file`);
-        const blob = await r.blob();
-        return { bmp: await createImageBitmap(blob), name: photoDisplayName(ph) };
-      }));
-      const n = imgs.length;
-      // 写真の縦横比に合わせて段ごとに幅を割り付け（切り抜きなし・余白最小のジャスティファイ配置）
-      const W = 1600, GAP = 12, CAP = 44, MAXROWH = 950;
-      const perRow = n <= 4 ? 2 : 3;
-      const rows: { bmp: ImageBitmap; name: string }[][] = [];
-      for (let i = 0; i < n; i += perRow) rows.push(imgs.slice(i, i + perRow));
-      // 各段の高さを計算（段内の写真は同じ高さで横に詰める）
-      const rowDims = rows.map((row) => {
-        const aspects = row.map((im) => im.bmp.width / im.bmp.height);
-        const sum = aspects.reduce((a, b) => a + b, 0);
-        const h = Math.min(MAXROWH, (W - GAP * (row.length + 1)) / sum);
-        return { h, aspects };
-      });
-      const totalH = rowDims.reduce((a, r) => a + r.h + CAP + GAP, 0) + GAP;
-      const canvas = document.createElement("canvas");
-      canvas.width = W;
-      canvas.height = Math.round(totalH);
-      const ctx = canvas.getContext("2d")!;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      let y = GAP;
-      rows.forEach((row, ri) => {
-        const { h, aspects } = rowDims[ri];
-        const widths = aspects.map((a) => a * h);
-        const rowW = widths.reduce((a, b) => a + b, 0) + GAP * (row.length - 1);
-        let x = (W - rowW) / 2; // 段が狭い時（最終段など）は中央寄せ
-        row.forEach((im, ci) => {
-          const w = widths[ci];
-          ctx.drawImage(im.bmp, x, y, w, h);
-          ctx.strokeStyle = "#d1d5db";
-          ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-          // キャプション（写真の名前）
-          ctx.fillStyle = "#111827";
-          ctx.font = "bold 26px sans-serif";
-          ctx.textBaseline = "middle";
-          let label = im.name || "";
-          while (label && ctx.measureText(label).width > w - 16) label = label.slice(0, -1);
-          ctx.fillText(label, x + 8, y + h + CAP / 2);
-          x += w + GAP;
-        });
-        y += h + CAP + GAP;
-      });
-      const outBlob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.85));
-      if (!outBlob) throw new Error("toBlob failed");
-      // 合成画像をアップロードして報告に追加
-      const fname = `${projectTitle || "写真まとめ"}_まとめ${n}枚.jpg`;
+      const fname = `${project?.title || "写真まとめ"}_まとめ${targets.length}枚.jpg`;
       const fd = new FormData();
       fd.append("file", new File([outBlob], fname, { type: "image/jpeg" }));
       const up = await fetch("/api/upload", { method: "POST", body: fd });
       if (!up.ok) throw new Error("upload failed");
       const data = await up.json();
-      const addRes = await fetch(`/api/inspections/${inspectionId}/photos`, {
+      const addRes = await fetch(`/api/inspections/${collageInspId}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ photos: [{ filename: data.url, originalName: fname, category: "other" }], willRemove: targets.length }),
       });
       if (!addRes.ok) throw new Error("add failed");
-      // 元の写真を削除（ストレージ節約）
       for (const ph of targets) {
         await fetch(`/api/photos/${ph.id}`, { method: "DELETE" }).catch(() => {});
       }
       setPhotoSelected({});
+      setCollagePhotos(null);
+      setCollageInspId(null);
       fetchProject(true);
     } catch {
       alert("写真の合成に失敗しました（元の写真はそのままです）");
@@ -986,6 +953,14 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-full flex flex-col bg-gray-900 [color-scheme:dark]">
       <Header />
+      {collagePhotos && (
+        <CollageEditor
+          photos={collagePhotos}
+          confirming={combining}
+          onConfirm={confirmCollage}
+          onCancel={() => { setCollagePhotos(null); setCollageInspId(null); }}
+        />
+      )}
       <main className="flex-1 max-w-2xl lg:max-w-[1700px] mx-auto w-full px-4 py-4 sm:py-6">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => router.back()} className="text-gray-500 hover:text-white text-lg">
@@ -2297,7 +2272,7 @@ export default function ProjectDetailPage() {
                                 className="text-xs text-green-300 border border-green-700 rounded-lg px-3 py-1.5 hover:bg-green-900/40 disabled:opacity-40 transition"
                               >↓ 選択した写真をダウンロード（{insp.photos.filter((ph) => !!photoSelected[ph.id]).length}枚）</button>
                               <button
-                                onClick={() => combineSelected(insp.id, insp.photos, project.title)}
+                                onClick={() => openCollage(insp.id, insp.photos)}
                                 disabled={combining || insp.photos.filter((ph) => !!photoSelected[ph.id]).length < 2}
                                 className="text-xs text-purple-300 border border-purple-700 rounded-lg px-3 py-1.5 hover:bg-purple-900/40 disabled:opacity-40 transition"
                               >{combining ? "合成中..." : "🧩 1枚にまとめて置き換え"}</button>

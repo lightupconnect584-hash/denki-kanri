@@ -38,6 +38,7 @@ export default function CollageEditor({
     Object.fromEntries(photos.map((p) => [p.id, { scale: 1, flipH: false, crop: null }]))
   );
   const [perRow, setPerRow] = useState<number>(0); // 0=自動
+  const [showNumbers, setShowNumbers] = useState(true); // 各写真に順番の番号バッジを描く
   const [cropTarget, setCropTarget] = useState<string | null>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
 
@@ -128,11 +129,31 @@ export default function CollageEditor({
           while (label && ctx.measureText(label).width > w - 16) label = label.slice(0, -1);
           ctx.fillText(label, x + 8, y + h + cap / 2);
         }
+        if (showNumbers) {
+          // 順番の番号バッジ（左上の紺色の丸に白数字）
+          const num = order.indexOf(id) + 1;
+          const r = Math.max(14, 26 * (outW / OUT_W));
+          const cx = x + r + 6 * (outW / OUT_W);
+          const cy = y + r + 6 * (outW / OUT_W);
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(20, 35, 70, 0.92)";
+          ctx.fill();
+          ctx.lineWidth = Math.max(1.5, 3 * (outW / OUT_W));
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold ${Math.round(r * 1.15)}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(num), cx, cy + r * 0.05);
+          ctx.textAlign = "left";
+        }
         x += w + gap;
       });
       y += h + cap + gap;
     });
-  }, [order, bitmaps, edits, perRow, effSize, photoById]);
+  }, [order, bitmaps, edits, perRow, effSize, photoById, showNumbers]);
 
   // プレビュー更新
   useEffect(() => {
@@ -217,8 +238,8 @@ export default function CollageEditor({
                 <canvas ref={previewRef} className="w-full h-auto rounded" />
               </div>
 
-              {/* 列数 */}
-              <div className="flex items-center gap-2">
+              {/* 列数・番号 */}
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-gray-400 shrink-0">列数:</span>
                 {[0, 1, 2, 3].map((v) => (
                   <button key={v} onClick={() => setPerRow(v)}
@@ -226,6 +247,12 @@ export default function CollageEditor({
                     {v === 0 ? "自動" : `${v}列`}
                   </button>
                 ))}
+                <span className="w-px h-5 bg-gray-700 mx-1" />
+                <button onClick={() => setShowNumbers(!showNumbers)}
+                  className={`text-xs rounded-lg px-3 py-1.5 border transition ${showNumbers ? "bg-blue-600 text-white border-blue-600" : "text-gray-300 border-gray-600 hover:border-blue-500"}`}
+                  title="各写真に①②③…の順番バッジを入れる">
+                  🔢 番号 {showNumbers ? "あり" : "なし"}
+                </button>
               </div>
 
               {/* 写真ごとの調整（≡をドラッグ or ↑↓で並び替え） */}

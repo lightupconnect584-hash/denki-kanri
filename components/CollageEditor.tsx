@@ -14,6 +14,8 @@ interface Edit {
   scale: number; // 幅の重み 0.7 / 1 / 1.4
   flipH: boolean;
   crop: { x: number; y: number; w: number; h: number } | null; // 画像ピクセル基準
+  fullRow: boolean; // この写真だけで1行（全幅）
+  breakAfter: boolean; // この写真の後で改行
 }
 
 const GAP = 12;
@@ -35,7 +37,7 @@ export default function CollageEditor({
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<string[]>(photos.map((p) => p.id));
   const [edits, setEdits] = useState<Record<string, Edit>>(
-    Object.fromEntries(photos.map((p) => [p.id, { scale: 1, flipH: false, crop: null }]))
+    Object.fromEntries(photos.map((p) => [p.id, { scale: 1, flipH: false, crop: null, fullRow: false, breakAfter: false }]))
   );
   const [perRow, setPerRow] = useState<number>(0); // 0=自動
   const [showNumbers, setShowNumbers] = useState(true); // 各写真に順番の番号バッジを描く
@@ -77,11 +79,23 @@ export default function CollageEditor({
     if (ids.length === 0) return;
     const n = ids.length;
     const pr = perRow || (n <= 4 ? 2 : 3);
+    // 行の組み立て: ⬜行いっぱい＝単独行、⏎改行＝その写真で行を終える、他は列数まで自動で詰める
     const rows: string[][] = [];
-    for (let i = 0; i < n; i += pr) rows.push(ids.slice(i, i + pr));
+    let cur: string[] = [];
+    for (const id of ids) {
+      const e = edits[id];
+      if (e?.fullRow) {
+        if (cur.length > 0) { rows.push(cur); cur = []; }
+        rows.push([id]);
+        continue;
+      }
+      cur.push(id);
+      if (e?.breakAfter || cur.length >= pr) { rows.push(cur); cur = []; }
+    }
+    if (cur.length > 0) rows.push(cur);
     const gap = GAP * (outW / OUT_W);
     const cap = withCaption ? CAP * (outW / OUT_W) : 0;
-    const maxRowH = 950 * (outW / OUT_W);
+    const maxRowH = 1400 * (outW / OUT_W);
 
     const rowDims = rows.map((row) => {
       const aspects = row.map((id) => {
@@ -256,13 +270,13 @@ export default function CollageEditor({
               </div>
 
               {/* 写真ごとの調整（≡をドラッグ or ↑↓で並び替え） */}
-              <p className="text-[11px] text-gray-500 -mb-2">≡ を押したまま上下にドラッグで並び替え（↑↓ボタンでも可）</p>
+              <p className="text-[11px] text-gray-500 -mb-2">≡ドラッグで並び替え ／ ⬜1行＝その写真を行いっぱいに ／ ⏎＝その写真の後で改行</p>
               <div className="space-y-2" ref={listRef} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}>
                 {order.map((id, i) => {
                   const p = photoById(id);
                   const e = edits[id];
                   return (
-                    <div key={id} className={`flex items-center gap-2 border rounded-lg px-2 py-1.5 transition ${draggingId === id ? "bg-blue-900/50 border-blue-500 shadow-lg" : "bg-gray-800 border-gray-700"}`}>
+                    <div key={id} className={`flex items-center gap-1.5 flex-wrap border rounded-lg px-2 py-1.5 transition ${draggingId === id ? "bg-blue-900/50 border-blue-500 shadow-lg" : "bg-gray-800 border-gray-700"}`}>
                       <span
                         onPointerDown={dragStart(id)}
                         className="text-gray-400 text-lg px-1.5 py-1 cursor-grab active:cursor-grabbing touch-none select-none shrink-0"
@@ -285,6 +299,12 @@ export default function CollageEditor({
                       <button onClick={() => setCropTarget(id)}
                         className={`text-xs rounded px-2 py-1 border transition ${e?.crop ? "bg-green-700 text-white border-green-700" : "text-gray-300 border-gray-600"}`}
                         title="切り取り">✂</button>
+                      <button onClick={() => setEdits((prev) => ({ ...prev, [id]: { ...prev[id], fullRow: !prev[id].fullRow } }))}
+                        className={`text-xs rounded px-2 py-1 border transition ${e?.fullRow ? "bg-purple-700 text-white border-purple-700" : "text-gray-300 border-gray-600"}`}
+                        title="この写真だけで1行（行いっぱいの全幅）">⬜ 1行</button>
+                      <button onClick={() => setEdits((prev) => ({ ...prev, [id]: { ...prev[id], breakAfter: !prev[id].breakAfter } }))}
+                        className={`text-xs rounded px-2 py-1 border transition ${e?.breakAfter ? "bg-purple-700 text-white border-purple-700" : "text-gray-300 border-gray-600"}`}
+                        title="この写真の後で改行（次の写真は下の行から）">⏎</button>
                     </div>
                   );
                 })}

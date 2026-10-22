@@ -503,7 +503,9 @@ export default function ProjectDetailPage() {
     if (!p.contractorPhone) return "#";
     // 会社名と担当者名（自社=ライトアップコネクト／協力会社=その会社名＋本人名）
     const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
-    const tanto = myName && myName !== company ? `\n担当の${myName}と申します。` : "";
+    // 自社アカウントの表示名は「管理者」のため、SMSでは本名（小林）を名乗る
+    const tantoName = role === "ADMIN" ? "小林" : myName;
+    const tanto = tantoName && tantoName !== company ? `\n担当の${tantoName}と申します。` : "";
     // 依頼元の表記: 管理者は取引先名（積水等）、協力会社には取引先情報が無いため「管理会社様」
     const from = role === "ADMIN" && p.client?.name ? `${p.client.name}様` : "管理会社様";
     const work = p.workType || "電気設備の点検・修理";

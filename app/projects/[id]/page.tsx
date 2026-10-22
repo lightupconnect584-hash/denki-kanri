@@ -547,6 +547,26 @@ export default function ProjectDetailPage() {
     return isIOS ? `sms:${num}&body=${enc}` : `sms:${num}?body=${enc}`;
   };
 
+  // 📱 到着時間の連絡SMS（遅れそうな時など・時刻をその場で入力）
+  const openSmsArrival = (p: { contractorPhone: string | null; contractorName: string | null; title: string }) => {
+    if (!p.contractorPhone) return;
+    const t = window.prompt("到着予定時刻を入力してください（例: 14:30頃）");
+    if (!t || !t.trim()) return;
+    const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
+    const tantoName = role === "ADMIN" ? "小林" : myName;
+    const tanto = tantoName && tantoName !== company ? `、担当の${tantoName}` : "";
+    const body =
+      `${p.title}\n` +
+      `${p.contractorName ? `${p.contractorName}様` : "ご入居者様"}\n\n` +
+      `お世話になります。電気工事店の${company}${tanto}です。\n\n` +
+      `本日お伺いの到着時刻のご連絡です。${t.trim()}の到着を予定しております。\n` +
+      `前後する場合は改めてご連絡いたします。よろしくお願いいたします。`;
+    const num = p.contractorPhone.replace(/[^0-9+]/g, "");
+    const enc = encodeURIComponent(body);
+    const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+    window.location.href = isIOS ? `sms:${num}&body=${enc}` : `sms:${num}?body=${enc}`;
+  };
+
   // 📱 完了報告用のSMS定型文（作業完了を入居者へシンプルに知らせる）
   const buildSmsDoneHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null }) => {
     if (!p.contractorPhone) return "#";
@@ -1700,12 +1720,21 @@ export default function ProjectDetailPage() {
             const dayDiff = Math.floor((new Date(v.getFullYear(), v.getMonth(), v.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000);
             if (dayDiff < 0 || dayDiff > 1) return null;
             return (
-              <a href={buildSmsVisitHref(project)}
-                className="flex items-center gap-2 bg-blue-900/40 border border-blue-700 rounded-lg px-3 py-2 mb-3 text-sm text-blue-200 hover:bg-blue-900/70 transition">
-                <span>💬</span>
-                <span className="flex-1">{dayDiff === 0 ? "本日" : "明日"}の訪問確認SMSを送る（文面入り・送信前に確認を）</span>
-                <span>→</span>
-              </a>
+              <div className="mb-3">
+                <a href={buildSmsVisitHref(project)}
+                  className="flex items-center gap-2 bg-blue-900/40 border border-blue-700 rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900/70 transition">
+                  <span>💬</span>
+                  <span className="flex-1">{dayDiff === 0 ? "本日" : "明日"}の訪問確認SMSを送る（文面入り・送信前に確認を）</span>
+                  <span>→</span>
+                </a>
+                {dayDiff === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openSmsArrival(project)}
+                    className="mt-1.5 text-xs text-gray-400 hover:text-blue-300 underline underline-offset-2"
+                  >⏰ 到着時間の連絡SMS（遅れそうな時など・時刻を入力して送信）</button>
+                )}
+              </div>
             );
           })()}
           <div className="flex items-center gap-2 mb-2">

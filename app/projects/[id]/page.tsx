@@ -494,6 +494,25 @@ export default function ProjectDetailPage() {
   }, [role, id]);
 
   const userId = (session?.user as { id?: string })?.id;
+  const myName = (session?.user as { name?: string })?.name || "";
+  const myCompany = (session?.user as { companyName?: string })?.companyName || "";
+
+  // 📱 SMS定型文: アポ取り/折り返し連絡の下書きを自動作成してSMSアプリに渡す
+  // （SMSアプリの送信前画面で必ず内容を確認・修正してもらう前提）
+  const buildSmsHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null; contactTag: string | null }) => {
+    if (!p.contractorPhone) return "#";
+    const sender = role === "ADMIN" ? "ライトアップコネクト" : `ライトアップコネクトより依頼を受けました${myCompany || myName}`;
+    const who = p.contractorName ? `${p.contractorName}様\n` : "";
+    const work = p.workType || "電気設備の点検・修理";
+    const body = p.contactTag === "CALLBACK"
+      ? `${who}お世話になります。${sender}の電気工事担当です。「${p.title}」の${work}の件でご連絡いたしました。お手すきの際に、この番号までお電話または返信をいただけますと幸いです。よろしくお願いいたします。`
+      : `${who}お世話になります。${sender}の電気工事担当です。「${p.title}」の${work}の件で、作業訪問の日程を調整させていただきたくご連絡いたしました。ご都合の良い日時を返信いただけますと幸いです。よろしくお願いいたします。`;
+    const num = p.contractorPhone.replace(/[^0-9+]/g, "");
+    const enc = encodeURIComponent(body);
+    // iOSは「&body=」、Androidは「?body=」
+    const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+    return isIOS ? `sms:${num}&body=${enc}` : `sms:${num}?body=${enc}`;
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -1061,12 +1080,15 @@ export default function ProjectDetailPage() {
                         📞 {project.contractorName ? `${project.contractorName} ` : ""}{project.contractorPhone}
                       </a>
                       {project.smsAllowed && (
-                        <a href={`sms:${project.contractorPhone}`}
+                        <a href={buildSmsHref(project)}
                           className="inline-flex items-center gap-1.5 text-sm text-blue-200 bg-blue-900/50 border border-blue-700 rounded-lg px-3 py-1.5 hover:bg-blue-900 transition">
-                          💬 SMSで連絡（可）
+                          💬 SMSで連絡（定型文入り）
                         </a>
                       )}
                     </div>
+                  )}
+                  {project.smsAllowed && (
+                    <p className="text-[11px] text-amber-300/90 mt-1.5">※ SMSには文面の下書きが自動で入ります。<span className="font-bold">送信前に必ず内容を確認・修正</span>してください（自動作成のため不自然な場合があります）</p>
                   )}
                 </div>
               </div>

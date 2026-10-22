@@ -54,6 +54,11 @@ export function adminActionReason(p: ActionCheckProject): ActionReason | null {
       : { label: "📅 日程調整（アポを取る）", color: "bg-red-100 text-red-700" };
   }
 
+  // 📵 連絡したのに応答がないまま日数が経過（訪問日が決まっていない）→ 再連絡か完了処理の判断を促す
+  if (p.contactRequired && p.contactedAt && !p.visitDate && !DONE.includes(p.status) && daysSince(p.contactedAt) >= 3) {
+    return { label: `📵 応答なし${daysSince(p.contactedAt)}日 — 再連絡か完了判断`, color: "bg-orange-100 text-orange-700" };
+  }
+
   // ✅ 完了後連絡（作業完了後、入居者/積水への連絡が済むまで表示）
   if (p.afterContactRequired && !p.afterContactedAt && DONE.includes(p.status)) {
     return { label: "✅ 完了後の連絡をする", color: "bg-green-100 text-green-700" };
@@ -105,6 +110,11 @@ export function partnerActionReason(p: ActionCheckProject): ActionReason | null 
     return p.contactTag === "CALLBACK"
       ? { label: "📞 入居者へ折り返し連絡", color: "bg-orange-100 text-orange-700" }
       : { label: "📅 日程調整（アポを取る）", color: "bg-red-100 text-red-700" };
+  }
+
+  // 📵 連絡したのに応答がないまま日数が経過（訪問日が決まっていない）→ 再連絡か完了処理の判断を促す
+  if (p.contactRequired && p.contactedAt && !p.visitDate && !DONE.includes(p.status) && daysSince(p.contactedAt) >= 3) {
+    return { label: `📵 応答なし${daysSince(p.contactedAt)}日 — 再連絡か完了判断`, color: "bg-orange-100 text-orange-700" };
   }
 
   // 通常の流れ（受注→訪問日→報告）は一覧のステータスで分かるので、

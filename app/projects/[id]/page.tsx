@@ -524,6 +524,29 @@ export default function ProjectDetailPage() {
     return isIOS ? `sms:${num}&body=${enc}` : `sms:${num}?body=${enc}`;
   };
 
+  // 📱 訪問確認用のSMS定型文（前日・当日の「お伺いします」連絡）
+  const buildSmsVisitHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null; visitDate: string | null; visitTime: string | null }) => {
+    if (!p.contractorPhone || !p.visitDate) return "#";
+    const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
+    const tantoName = role === "ADMIN" ? "小林" : myName;
+    const tanto = tantoName && tantoName !== company ? `、担当の${tantoName}` : "";
+    const v = new Date(p.visitDate);
+    const today = new Date();
+    const isToday = v.toDateString() === today.toDateString();
+    const when = `${isToday ? "本日" : `${v.getMonth() + 1}月${v.getDate()}日`}${p.visitTime ? ` ${p.visitTime}` : ""}`;
+    const work = p.workType || "電気設備の作業";
+    const body =
+      `${p.title}\n` +
+      `${p.contractorName ? `${p.contractorName}様` : "ご入居者様"}\n\n` +
+      `お世話になります。電気工事店の${company}${tanto}です。\n\n` +
+      `${when}に「${work}」の作業でお伺いいたします。ご在宅のほどよろしくお願いいたします。\n\n` +
+      `ご都合が悪くなった場合は、お手数ですがこの番号までご連絡ください。`;
+    const num = p.contractorPhone.replace(/[^0-9+]/g, "");
+    const enc = encodeURIComponent(body);
+    const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+    return isIOS ? `sms:${num}&body=${enc}` : `sms:${num}?body=${enc}`;
+  };
+
   // 📱 完了報告用のSMS定型文（作業完了を入居者へシンプルに知らせる）
   const buildSmsDoneHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null }) => {
     if (!p.contractorPhone) return "#";
@@ -1668,6 +1691,23 @@ export default function ProjectDetailPage() {
         {/* 訪問予定日 */}
         {!(role === "PARTNER" && ["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(project.status)) && (
         <div id="visit-section" className={`rounded-xl border p-5 mb-4 scroll-mt-20 ${!project.visitDate && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) ? "bg-amber-900/30 border-amber-700" : "bg-gray-800 border-gray-700"}`}>
+          {(() => {
+            // 訪問が明日/今日で、SMS可・未完了の案件には確認SMSの導線を出す
+            if (!project.visitDate || !project.smsAllowed || !project.contractorPhone) return null;
+            if (!["PENDING", "ACCEPTED", "REWORK"].includes(project.status)) return null;
+            const v = new Date(project.visitDate);
+            const now = new Date();
+            const dayDiff = Math.floor((new Date(v.getFullYear(), v.getMonth(), v.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000);
+            if (dayDiff < 0 || dayDiff > 1) return null;
+            return (
+              <a href={buildSmsVisitHref(project)}
+                className="flex items-center gap-2 bg-blue-900/40 border border-blue-700 rounded-lg px-3 py-2 mb-3 text-sm text-blue-200 hover:bg-blue-900/70 transition">
+                <span>💬</span>
+                <span className="flex-1">{dayDiff === 0 ? "本日" : "明日"}の訪問確認SMSを送る（文面入り・送信前に確認を）</span>
+                <span>→</span>
+              </a>
+            );
+          })()}
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-sm font-bold text-gray-100">📅 訪問予定日</h3>
             {!project.visitDate && isAssigned && ["PENDING", "ACCEPTED", "REWORK"].includes(project.status) && (

@@ -502,10 +502,10 @@ export default function ProjectDetailPage() {
   const buildSmsHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null; contactTag: string | null; client?: { name: string } | null }) => {
     if (!p.contractorPhone) return "#";
     // 会社名と担当者名（自社=ライトアップコネクト／協力会社=その会社名＋本人名）
-    const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
-    // 自社アカウントの表示名は「管理者」のため、SMSでは本名（小林）を名乗る
+    // 入居者向けの名乗りはライトアップコネクトに統一（積水アプリの対応工事店表記と一致させる）
+    const company = "ライトアップコネクト";
     const tantoName = role === "ADMIN" ? "小林" : myName;
-    const tanto = tantoName && tantoName !== company ? `\n担当の${tantoName}と申します。` : "";
+    const tanto = tantoName ? `\n工事担当の${tantoName}と申します。` : "";
     // 依頼元の表記: 管理者は取引先名（積水等）、協力会社には取引先情報が無いため「管理会社様」
     const from = role === "ADMIN" && p.client?.name ? `${p.client.name}様` : "管理会社様";
     const work = p.workType || "電気設備の点検・修理";
@@ -527,9 +527,9 @@ export default function ProjectDetailPage() {
   // 📱 訪問確認用のSMS定型文（前日・当日の「お伺いします」連絡）
   const buildSmsVisitHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null; visitDate: string | null; visitTime: string | null }) => {
     if (!p.contractorPhone || !p.visitDate) return "#";
-    const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
+    const company = "ライトアップコネクト"; // 名乗りは統一（積水アプリの対応工事店表記と一致）
     const tantoName = role === "ADMIN" ? "小林" : myName;
-    const tanto = tantoName && tantoName !== company ? `、担当の${tantoName}` : "";
+    const tanto = tantoName ? `、工事担当の${tantoName}` : "";
     const v = new Date(p.visitDate);
     const today = new Date();
     const isToday = v.toDateString() === today.toDateString();
@@ -552,9 +552,9 @@ export default function ProjectDetailPage() {
     if (!p.contractorPhone) return;
     const t = window.prompt("到着予定時刻を入力してください（例: 14:30頃）");
     if (!t || !t.trim()) return;
-    const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
+    const company = "ライトアップコネクト"; // 名乗りは統一（積水アプリの対応工事店表記と一致）
     const tantoName = role === "ADMIN" ? "小林" : myName;
-    const tanto = tantoName && tantoName !== company ? `、担当の${tantoName}` : "";
+    const tanto = tantoName ? `、工事担当の${tantoName}` : "";
     const body =
       `${p.title}\n` +
       `${p.contractorName ? `${p.contractorName}様` : "ご入居者様"}\n\n` +
@@ -570,9 +570,9 @@ export default function ProjectDetailPage() {
   // 📱 完了報告用のSMS定型文（作業完了を入居者へシンプルに知らせる）
   const buildSmsDoneHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null }) => {
     if (!p.contractorPhone) return "#";
-    const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
+    const company = "ライトアップコネクト"; // 名乗りは統一（積水アプリの対応工事店表記と一致）
     const tantoName = role === "ADMIN" ? "小林" : myName;
-    const tanto = tantoName && tantoName !== company ? `、担当の${tantoName}` : "";
+    const tanto = tantoName ? `、工事担当の${tantoName}` : "";
     const work = p.workType || "電気設備の作業";
     const body =
       `${p.title}\n` +

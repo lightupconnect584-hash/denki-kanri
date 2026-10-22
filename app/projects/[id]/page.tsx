@@ -524,6 +524,26 @@ export default function ProjectDetailPage() {
     return isIOS ? `sms:${num}&body=${enc}` : `sms:${num}?body=${enc}`;
   };
 
+  // 📱 完了報告用のSMS定型文（作業完了を入居者へシンプルに知らせる）
+  const buildSmsDoneHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null }) => {
+    if (!p.contractorPhone) return "#";
+    const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
+    const tantoName = role === "ADMIN" ? "小林" : myName;
+    const tanto = tantoName && tantoName !== company ? `、担当の${tantoName}` : "";
+    const work = p.workType || "電気設備の作業";
+    const body =
+      `${p.title}\n` +
+      `${p.contractorName ? `${p.contractorName}様` : "ご入居者様"}\n\n` +
+      `お世話になります。電気工事店の${company}${tanto}です。\n\n` +
+      `「${work}」の作業が完了いたしましたので、ご報告いたします。\n\n` +
+      `その後、気になる点や不具合などございましたら、この番号までご連絡ください。\n` +
+      `この度はご協力いただきありがとうございました。`;
+    const num = p.contractorPhone.replace(/[^0-9+]/g, "");
+    const enc = encodeURIComponent(body);
+    const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+    return isIOS ? `sms:${num}&body=${enc}` : `sms:${num}?body=${enc}`;
+  };
+
   useEffect(() => {
     if (status === "unauthenticated") {
       const back = typeof window !== "undefined" ? window.location.pathname : `/projects/${id}`;
@@ -1038,8 +1058,14 @@ export default function ProjectDetailPage() {
               <span className="text-xl shrink-0">✅</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-green-300">完了後の連絡が必要な案件です</p>
-                <p className="text-xs text-green-400/80 mt-0.5">作業完了の連絡を入れたら右のボタンを押してください</p>
+                <p className="text-xs text-green-400/80 mt-0.5">作業完了の連絡を入れたら「連絡した」を押してください{project.smsAllowed && project.contractorPhone ? "。SMSは完了報告の文面入りで開きます（送信前に確認を）" : ""}</p>
               </div>
+              {project.smsAllowed && project.contractorPhone && (
+                <a
+                  href={buildSmsDoneHref(project)}
+                  className="shrink-0 text-xs bg-blue-700 text-white rounded-lg px-3 py-2 font-bold hover:bg-blue-600 transition"
+                >💬 SMSで完了報告</a>
+              )}
               <button
                 onClick={async () => {
                   await fetch(`/api/projects/${id}`, {

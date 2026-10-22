@@ -499,14 +499,22 @@ export default function ProjectDetailPage() {
 
   // 📱 SMS定型文: アポ取り/折り返し連絡の下書きを自動作成してSMSアプリに渡す
   // （SMSアプリの送信前画面で必ず内容を確認・修正してもらう前提）
-  const buildSmsHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null; contactTag: string | null }) => {
+  const buildSmsHref = (p: { contractorPhone: string | null; contractorName: string | null; title: string; workType: string | null; contactTag: string | null; client?: { name: string } | null }) => {
     if (!p.contractorPhone) return "#";
-    const sender = role === "ADMIN" ? "ライトアップコネクト" : `ライトアップコネクトより依頼を受けました${myCompany || myName}`;
-    const who = p.contractorName ? `${p.contractorName}様\n` : "";
+    // 会社名と担当者名（自社=ライトアップコネクト／協力会社=その会社名＋本人名）
+    const company = role === "ADMIN" ? "ライトアップコネクト" : (myCompany || myName);
+    const tanto = myName && myName !== company ? `\n担当の${myName}と申します。` : "";
+    // 依頼元の表記: 管理者は取引先名（積水等）、協力会社には取引先情報が無いため「管理会社様」
+    const from = role === "ADMIN" && p.client?.name ? `${p.client.name}様` : "管理会社様";
     const work = p.workType || "電気設備の点検・修理";
-    const body = p.contactTag === "CALLBACK"
-      ? `${who}お世話になります。${sender}の電気工事担当です。「${p.title}」の${work}の件でご連絡いたしました。お手すきの際に、この番号までお電話または返信をいただけますと幸いです。よろしくお願いいたします。`
-      : `${who}お世話になります。${sender}の電気工事担当です。「${p.title}」の${work}の件で、作業訪問の日程を調整させていただきたくご連絡いたしました。ご都合の良い日時を返信いただけますと幸いです。よろしくお願いいたします。`;
+    const body =
+      `${p.title}\n` +
+      `${p.contractorName ? `${p.contractorName}様` : "ご入居者様"}\n\n` +
+      `お世話になります。\n` +
+      `電気工事店の${company}${tanto}\n\n` +
+      `${from}より「${work}」の件でご依頼をいただき、ご連絡いたしました。\n\n` +
+      `本メッセージをご確認いただけましたら、お電話またはメッセージのご返信をいただけますと幸いです。\n\n` +
+      `誠に恐れ入りますが、数日間ご連絡が確認できない場合は対応完了とさせていただきます。ご協力のほどよろしくお願いいたします。`;
     const num = p.contractorPhone.replace(/[^0-9+]/g, "");
     const enc = encodeURIComponent(body);
     // iOSは「&body=」、Androidは「?body=」

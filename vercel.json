@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/morning-visits",
       "schedule": "0 22 * * *"
-    },
-    {
-      "path": "/api/cron/visit-reminder",
-      "schedule": "0 9 * * *"
     }
   ]
 }

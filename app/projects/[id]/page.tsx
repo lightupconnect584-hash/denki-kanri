@@ -507,7 +507,10 @@ export default function ProjectDetailPage() {
     const tantoName = role === "ADMIN" ? "小林" : myName;
     const tanto = tantoName ? `\n工事担当の${tantoName}と申します。` : "";
     // 依頼元の表記: 管理者は取引先名（積水等）、協力会社には取引先情報が無いため「管理会社様」
-    const from = role === "ADMIN" && p.client?.name ? `${p.client.name}様` : "管理会社様";
+    // 入居者向けには支店名（北関東・埼玉等）は不要なので、積水系はシンプルに「積水ハウス様」
+    const from = role === "ADMIN" && p.client?.name
+      ? (p.client.name.includes("積水") ? "積水ハウス様" : `${p.client.name}様`)
+      : "管理会社様";
     const work = p.workType || "電気設備の点検・修理";
     const body =
       `${p.title}\n` +

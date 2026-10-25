@@ -1100,7 +1100,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* ✅ 完了後連絡バナー（作業完了後、入居者/積水への連絡が済むまで） */}
-        {project.afterContactRequired && ["CONFIRMED", "COMPLETED"].includes(project.status) && role === "ADMIN" && (
+        {project.afterContactRequired && ["INSPECTED", "CONFIRMED", "COMPLETED"].includes(project.status) && role === "ADMIN" && (
           !project.afterContactedAt ? (
             <div className="mb-4 bg-green-950/40 border border-green-700 rounded-xl p-4 flex items-center gap-3">
               <span className="text-xl shrink-0">✅</span>

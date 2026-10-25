@@ -122,6 +122,19 @@ export default function SettingsPage() {
 
   // 基本情報（パートナー用）
   // 📍 対応エリア（協力会社が自分で編集。依頼の住所と照合して候補表示に使われる）
+  const PREF_CITIES: Record<string, string[]> = {
+    "埼玉県": ["さいたま市","川越市","熊谷市","川口市","行田市","秩父市","所沢市","飯能市","加須市","本庄市","東松山市","春日部市","狭山市","羽生市","鴻巣市","深谷市","上尾市","草加市","越谷市","蕨市","戸田市","入間市","朝霞市","志木市","和光市","新座市","桶川市","久喜市","北本市","八潮市","富士見市","三郷市","蓮田市","坂戸市","幸手市","鶴ヶ島市","日高市","吉川市","ふじみ野市","白岡市","伊奈町","三芳町","毛呂山町","越生町","滑川町","嵐山町","小川町","川島町","吉見町","鳩山町","ときがわ町","横瀬町","皆野町","長瀞町","小鹿野町","東秩父村","美里町","神川町","上里町","寄居町","宮代町","杉戸町","松伏町"],
+    "群馬県": ["前橋市","高崎市","桐生市","伊勢崎市","太田市","沼田市","館林市","渋川市","藤岡市","富岡市","安中市","みどり市","榛東村","吉岡町","上野村","神流町","下仁田町","南牧村","甘楽町","中之条町","長野原町","嬬恋村","草津町","高山村","東吾妻町","片品村","川場村","昭和村","みなかみ町","玉村町","板倉町","明和町","千代田町","大泉町","邑楽町"],
+    "栃木県": ["宇都宮市","足利市","栃木市","佐野市","鹿沼市","日光市","小山市","真岡市","大田原市","矢板市","那須塩原市","さくら市","那須烏山市","下野市","上三川町","益子町","茂木町","市貝町","芳賀町","壬生町","野木町","塩谷町","高根沢町","那須町","那珂川町"],
+    "茨城県": ["水戸市","日立市","土浦市","古河市","石岡市","結城市","龍ケ崎市","下妻市","常総市","常陸太田市","高萩市","北茨城市","笠間市","取手市","牛久市","つくば市","ひたちなか市","鹿嶋市","潮来市","守谷市","常陸大宮市","那珂市","筑西市","坂東市","稲敷市","かすみがうら市","桜川市","神栖市","行方市","鉾田市","つくばみらい市","小美玉市","茨城町","大洗町","城里町","東海村","大子町","美浦村","阿見町","河内町","八千代町","五霞町","境町","利根町"],
+  };
+  const [openPref, setOpenPref] = useState<string | null>(null);
+  const areaTokens = () => serviceAreasText.split(/[、,\s\u3000\n]+/).filter(Boolean);
+  const toggleAreaToken = (t: string) => {
+    const tokens = areaTokens();
+    const next = tokens.includes(t) ? tokens.filter((v) => v !== t) : [...tokens, t];
+    setServiceAreasText(next.join(" "));
+  };
   const [serviceAreasText, setServiceAreasText] = useState("");
   const [areasSaved, setAreasSaved] = useState(false);
   useEffect(() => {
@@ -1575,28 +1588,54 @@ export default function SettingsPage() {
               <p className="text-sm font-bold text-gray-100">📍 対応エリア</p>
               {areasSaved && <span className="text-xs text-green-400">✓ 保存しました</span>}
             </div>
-            <p className="text-xs text-gray-500 mb-2">県全域OKなら下のボタンでON、一部だけなら市区町村名を入力（例: 川越市 所沢市）。組み合わせ可。都合が変わったらいつでも更新してください。</p>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {["埼玉県", "群馬県", "栃木県", "茨城県"].map((pref) => {
-                const tokens = serviceAreasText.split(/[、,\s\u3000\n]+/).filter(Boolean);
-                const on = tokens.includes(pref);
+            <p className="text-xs text-gray-500 mb-2">県全域OKなら「◯◯県全域」をON。一部だけなら「市町村を選ぶ」からタップで選択。都合が変わったらいつでも更新してください。</p>
+            <div className="space-y-2 mb-2">
+              {Object.keys(PREF_CITIES).map((pref) => {
+                const tokens = areaTokens();
+                const prefOn = tokens.includes(pref);
+                const cities = PREF_CITIES[pref];
+                const selCount = cities.filter((c) => tokens.includes(c)).length;
                 return (
-                  <button key={pref} type="button"
-                    onClick={() => {
-                      const next = on ? tokens.filter((t) => t !== pref) : [...tokens, pref];
-                      setServiceAreasText(next.join(" "));
-                    }}
-                    className={`text-xs rounded-full px-3 py-1.5 border transition ${on ? "bg-sky-600 text-white border-sky-600 font-bold" : "text-gray-300 border-gray-600 hover:border-sky-500"}`}>
-                    {pref}全域{on ? " ✓" : ""}
-                  </button>
+                  <div key={pref} className="border border-gray-700 rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-2 px-2.5 py-2 bg-gray-900/50">
+                      <button type="button"
+                        onClick={() => toggleAreaToken(pref)}
+                        className={`text-xs rounded-full px-3 py-1.5 border transition shrink-0 ${prefOn ? "bg-sky-600 text-white border-sky-600 font-bold" : "text-gray-300 border-gray-600 hover:border-sky-500"}`}>
+                        {pref}全域{prefOn ? " ✓" : ""}
+                      </button>
+                      {!prefOn && (
+                        <button type="button"
+                          onClick={() => setOpenPref(openPref === pref ? null : pref)}
+                          className="text-xs text-gray-400 hover:text-sky-300 ml-auto px-2 py-1.5">
+                          {selCount > 0 ? `${selCount}市町村を選択中` : "市町村を選ぶ"} {openPref === pref ? "▲" : "▼"}
+                        </button>
+                      )}
+                      {prefOn && <span className="text-[11px] text-gray-500 ml-auto">県内すべて対応</span>}
+                    </div>
+                    {!prefOn && openPref === pref && (
+                      <div className="flex flex-wrap gap-1.5 p-2.5">
+                        {cities.map((c) => {
+                          const on = tokens.includes(c);
+                          return (
+                            <button key={c} type="button"
+                              onClick={() => toggleAreaToken(c)}
+                              className={`text-xs rounded-full px-2.5 py-1 border transition ${on ? "bg-sky-600 text-white border-sky-600 font-bold" : "text-gray-300 border-gray-600 hover:border-sky-500"}`}>
+                              {c}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
+            <p className="text-[11px] text-gray-500 mb-1">選択中のエリア一覧＋自由メモ（直接編集OK。「◯◯市周辺」のようなメモを足しても大丈夫です）</p>
             <textarea
               value={serviceAreasText}
               onChange={(e) => setServiceAreasText(e.target.value)}
               rows={2}
-              placeholder="例: 川越市 所沢市 ふじみ野市"
+              placeholder="例: 太田市周辺 ／ 高速で1時間圏内なら相談可"
               className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
             />
             <div className="flex justify-end mt-2">

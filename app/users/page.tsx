@@ -212,6 +212,11 @@ export default function UsersPage() {
               📞 {u.phone}
             </a>
           )}
+          {u.role === "PARTNER" && Array.isArray((u as unknown as { serviceAreas?: string[] }).serviceAreas) && ((u as unknown as { serviceAreas: string[] }).serviceAreas.length > 0) && (
+            <p className="text-xs text-sky-300/90 truncate" title="対応エリア（本人が設定画面で編集）">
+              📍 {(u as unknown as { serviceAreas: string[] }).serviceAreas.join("・")}
+            </p>
+          )}
           {leadtime[u.id] && (() => {
             const lt = leadtime[u.id];
             // 件数を考慮したランク: 高負荷(30件〜)は基準を緩め、少件数は参考扱い

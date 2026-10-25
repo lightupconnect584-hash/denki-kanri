@@ -121,6 +121,26 @@ export default function SettingsPage() {
   const [usedColors, setUsedColors] = useState<string[]>([]);
 
   // 基本情報（パートナー用）
+  // 📍 対応エリア（協力会社が自分で編集。依頼の住所と照合して候補表示に使われる）
+  const [serviceAreasText, setServiceAreasText] = useState("");
+  const [areasSaved, setAreasSaved] = useState(false);
+  useEffect(() => {
+    fetch("/api/auth/profile").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (d && Array.isArray(d.serviceAreas)) setServiceAreasText(d.serviceAreas.join(" "));
+    }).catch(() => {});
+  }, []);
+  const saveServiceAreas = async () => {
+    const areas = serviceAreasText.split(/[、,\s\u3000\n]+/).map((v) => v.trim()).filter(Boolean);
+    await fetch("/api/auth/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ serviceAreas: areas }),
+    }).catch(() => {});
+    setServiceAreasText(areas.join(" "));
+    setAreasSaved(true);
+    setTimeout(() => setAreasSaved(false), 2000);
+  };
+
   const [basicInfo, setBasicInfo] = useState({
     companyName: "",
     address: "", birthDate: "", bloodType: "",
@@ -1546,6 +1566,27 @@ export default function SettingsPage() {
             <span>🔑 オートロック解除番号</span>
             <span className="text-gray-400">→</span>
           </Link>
+        )}
+
+        {/* 📍 対応エリア（パートナーのみ・本人が編集） */}
+        {role === "PARTNER" && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-bold text-gray-100">📍 対応エリア</p>
+              {areasSaved && <span className="text-xs text-green-400">✓ 保存しました</span>}
+            </div>
+            <p className="text-xs text-gray-500 mb-2">対応できる市区町村をスペースや改行区切りで入力してください（例: 川越市 所沢市 ふじみ野市）。依頼の振り分け時の参考になります。都合が変わったらいつでも更新してください。</p>
+            <textarea
+              value={serviceAreasText}
+              onChange={(e) => setServiceAreasText(e.target.value)}
+              rows={2}
+              placeholder="例: 川越市 所沢市 ふじみ野市"
+              className="w-full border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+            />
+            <div className="flex justify-end mt-2">
+              <button onClick={saveServiceAreas} className="text-xs bg-blue-600 text-white rounded-lg px-4 py-1.5 hover:bg-blue-700 transition">保存</button>
+            </div>
+          </div>
         )}
 
         {/* 基本情報（パートナーのみ） */}

@@ -31,6 +31,7 @@ model User {
   licenseNumber    String?
   licenseExpiry    DateTime?
   vehicleNumber    String?
+  serviceAreas     String[] @default([]) // 対応エリア（市区町村名。本人が設定で編集・依頼の住所と照合して候補表示）
   calendarToken String?  @unique // カレンダー購読（ICS）用の秘密トークン
   googleCalendarId String? // 訪問予定の書き込み先GoogleカレンダーID（未設定はprimary）
   googleRefreshToken String? // Googleカレンダー連携（リフレッシュトークン）

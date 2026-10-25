@@ -21,6 +21,7 @@ const profileSelect = {
   licenseNumber: true,
   licenseExpiry: true,
   vehicleNumber: true,
+  serviceAreas: true,
 };
 
 export async function GET() {
@@ -91,6 +92,23 @@ export async function PATCH(req: NextRequest) {
   if ("thankYouEnabled" in body) updateData.thankYouEnabled = Boolean(body.thankYouEnabled);
   if ("thankYouImageUrl" in body) updateData.thankYouImageUrl = body.thankYouImageUrl || null;
   if ("thankYouMessage" in body) updateData.thankYouMessage = body.thankYouMessage || null;
+  if ("serviceAreas" in body && Array.isArray(body.serviceAreas)) {
+    updateData.serviceAreas = body.serviceAreas
+      .map((v: unknown) => String(v).trim().replace(/[\s\u3000]+/g, ""))
+      .filter((v: string) => v.length > 0)
+      .slice(0, 50);
+    // 対応エリアの変更を管理者へ通知（把握用）
+    try {
+      const { sendPushToUsers, getAdminIds } = await import("@/lib/push");
+      const me = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, companyName: true } });
+      const adminIds = await getAdminIds();
+      await sendPushToUsers(adminIds, {
+        title: "📍 対応エリアが更新されました",
+        body: `${me?.companyName || me?.name || "協力会社"}: ${(updateData.serviceAreas as string[]).join("・") || "（空）"}`,
+        url: "/users",
+      });
+    } catch { /* 通知失敗は無視 */ }
+  }
 
   const user = await prisma.user.update({
     where: { id: userId },

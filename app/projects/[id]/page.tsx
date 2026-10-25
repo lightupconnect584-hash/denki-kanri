@@ -455,7 +455,7 @@ export default function ProjectDetailPage() {
   const role = (session?.user as { role?: string })?.role;
     const [admDocs, setAdmDocs] = useState<{ id: string; originalName: string; url: string }[]>([]);
   // 準備中（担当未定）案件の振り分け
-  const [assignList, setAssignList] = useState<{ id: string; name: string; companyName: string | null }[]>([]);
+  const [assignList, setAssignList] = useState<{ id: string; name: string; companyName: string | null; role?: string; serviceAreas?: string[] }[]>([]);
   const [assignTo, setAssignTo] = useState("");
   const [assigning, setAssigning] = useState(false);
   useEffect(() => {
@@ -1446,9 +1446,16 @@ export default function ProjectDetailPage() {
               >
                 <option value="">担当を選択…</option>
                 {userId && <option value={userId}>🔧 自分で施工</option>}
-                {assignList.filter((u) => u.id !== userId).map((u) => (
-                  <option key={u.id} value={u.id}>{u.companyName || u.name}</option>
-                ))}
+                {[...assignList.filter((u) => u.id !== userId)]
+                  .sort((a, b) => {
+                    const am = (a.serviceAreas || []).some((ar) => project.location.includes(ar)) ? 0 : 1;
+                    const bm = (b.serviceAreas || []).some((ar) => project.location.includes(ar)) ? 0 : 1;
+                    return am - bm;
+                  })
+                  .map((u) => {
+                    const hit = (u.serviceAreas || []).some((ar) => project.location.includes(ar));
+                    return <option key={u.id} value={u.id}>{hit ? "📍 " : ""}{u.companyName || u.name}</option>;
+                  })}
               </select>
               <button
                 onClick={assignPartner}

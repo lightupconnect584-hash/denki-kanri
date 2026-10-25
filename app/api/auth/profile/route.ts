@@ -86,6 +86,7 @@ export async function PATCH(req: NextRequest) {
     thankYouEnabled?: boolean;
     thankYouImageUrl?: string | null;
     thankYouMessage?: string | null;
+    serviceAreas?: string[];
   } = {};
   if ("avatarUrl" in body) updateData.avatarUrl = body.avatarUrl || null;
   if ("phone" in body) updateData.phone = body.phone?.trim() || null;

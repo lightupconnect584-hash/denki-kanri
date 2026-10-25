@@ -1575,7 +1575,23 @@ export default function SettingsPage() {
               <p className="text-sm font-bold text-gray-100">📍 対応エリア</p>
               {areasSaved && <span className="text-xs text-green-400">✓ 保存しました</span>}
             </div>
-            <p className="text-xs text-gray-500 mb-2">対応できる市区町村をスペースや改行区切りで入力してください（例: 川越市 所沢市 ふじみ野市）。依頼の振り分け時の参考になります。都合が変わったらいつでも更新してください。</p>
+            <p className="text-xs text-gray-500 mb-2">県全域OKなら下のボタンでON、一部だけなら市区町村名を入力（例: 川越市 所沢市）。組み合わせ可。都合が変わったらいつでも更新してください。</p>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {["埼玉県", "群馬県", "栃木県", "茨城県"].map((pref) => {
+                const tokens = serviceAreasText.split(/[、,\s\u3000\n]+/).filter(Boolean);
+                const on = tokens.includes(pref);
+                return (
+                  <button key={pref} type="button"
+                    onClick={() => {
+                      const next = on ? tokens.filter((t) => t !== pref) : [...tokens, pref];
+                      setServiceAreasText(next.join(" "));
+                    }}
+                    className={`text-xs rounded-full px-3 py-1.5 border transition ${on ? "bg-sky-600 text-white border-sky-600 font-bold" : "text-gray-300 border-gray-600 hover:border-sky-500"}`}>
+                    {pref}全域{on ? " ✓" : ""}
+                  </button>
+                );
+              })}
+            </div>
             <textarea
               value={serviceAreasText}
               onChange={(e) => setServiceAreasText(e.target.value)}

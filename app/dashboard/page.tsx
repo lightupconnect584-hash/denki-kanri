@@ -488,6 +488,9 @@ export default function DashboardPage() {
                 ? <span className="text-xs bg-orange-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要連絡</span>
                 : <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold">📅 日程調整</span>
             )}
+            {p.afterContactRequired && !p.afterContactedAt && ["INSPECTED", "CONFIRMED", "COMPLETED"].includes(p.status) && role === "ADMIN" && (
+              <span className="text-xs bg-green-700 text-white px-1.5 py-0.5 rounded-full font-bold">✅ 完了後連絡</span>
+            )}
             {role === "ADMIN" && !p.assignedTo && !["CONFIRMED", "COMPLETED", "REJECTED"].includes(p.status) && (
               <span className="text-xs bg-gray-600 text-gray-100 px-1.5 py-0.5 rounded-full font-bold">🕓 準備中（担当未定）</span>
             )}

@@ -97,25 +97,28 @@ export async function PATCH(req: NextRequest) {
     updateData.serviceAreas = body.serviceAreas
       .map((v: unknown) => String(v).trim().replace(/[\s\u3000]+/g, ""))
       .filter((v: string) => v.length > 0)
-      .slice(0, 50);
-    // 対応エリアの変更を管理者へ通知（把握用）
-    try {
-      const { sendPushToUsers, getAdminIds } = await import("@/lib/push");
-      const me = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, companyName: true } });
-      const adminIds = await getAdminIds();
-      await sendPushToUsers(adminIds, {
-        title: "📍 対応エリアが更新されました",
-        body: `${me?.companyName || me?.name || "協力会社"}: ${(updateData.serviceAreas as string[]).join("・") || "（空）"}`,
-        url: "/users",
-      });
-    } catch { /* 通知失敗は無視 */ }
+      .slice(0, 300); // 全市町村タップ選択（最大約170）＋メモに余裕を持たせる
   }
 
   const user = await prisma.user.update({
     where: { id: userId },
     data: updateData,
     select: profileSelect,
-  });
+  })
+
+  // 対応エリアが変更された場合は、保存成功後に管理者へ通知（把握用）
+  if ("serviceAreas" in updateData) {
+    try {
+      const { sendPushToUsers, getAdminIds } = await import("@/lib/push");
+      const me = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, companyName: true } });
+      const adminIds = await getAdminIds();
+      await sendPushToUsers(adminIds, {
+        title: "📍 対応エリアが更新されました",
+        body: `${me?.companyName || me?.name || "協力会社"}: ${(updateData.serviceAreas as string[]).join("・").slice(0, 100) || "（空）"}`,
+        url: "/users",
+      });
+    } catch { /* 通知失敗は無視 */ }
+  };
 
   return NextResponse.json(user);
 }

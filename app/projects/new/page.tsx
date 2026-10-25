@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import { matchesServiceArea } from "@/lib/serviceArea";
 
 interface Partner {
   id: string;
@@ -685,18 +686,14 @@ export default function NewProjectPage() {
                 <option value="">担当を選択してください</option>
                 {myId && <option value={myId}>🔧 自分で施工（{myName || "管理者"}）</option>}
                 {[...partners]
-                  .sort((a, b) => {
-                    const am = (a.serviceAreas || []).some((ar) => form.location.includes(ar)) ? 0 : 1;
-                    const bm = (b.serviceAreas || []).some((ar) => form.location.includes(ar)) ? 0 : 1;
-                    return am - bm;
-                  })
+                  .sort((a, b) => (matchesServiceArea(a.serviceAreas, form.location) ? 0 : 1) - (matchesServiceArea(b.serviceAreas, form.location) ? 0 : 1))
                   .map((p) => {
-                    const hit = (p.serviceAreas || []).some((ar) => form.location.includes(ar));
+                    const hit = matchesServiceArea(p.serviceAreas, form.location);
                     return <option key={p.id} value={p.id}>{hit ? "📍 " : ""}{p.companyName || p.name}</option>;
                   })}
               </select>
               {(() => {
-                const hits = partners.filter((p) => (p.serviceAreas || []).some((ar) => form.location.includes(ar)));
+                const hits = partners.filter((p) => matchesServiceArea(p.serviceAreas, form.location));
                 if (!form.location || hits.length === 0) return null;
                 return (
                   <p className="text-xs text-sky-300 mt-1.5">📍 この住所に対応: {hits.map((p) => p.companyName || p.name).join("／")}</p>

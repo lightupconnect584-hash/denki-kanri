@@ -21,6 +21,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import StatusBadge from "@/components/StatusBadge";
 import CollageEditor, { type CollagePhoto } from "@/components/CollageEditor";
+import { matchesServiceArea } from "@/lib/serviceArea";
 
 interface Photo {
   id: string;
@@ -461,7 +462,7 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     if (role !== "ADMIN") return;
     fetch("/api/users").then((r) => (r.ok ? r.json() : [])).then((d) => {
-      if (Array.isArray(d)) setAssignList(d.filter((u: { role: string; inviteToken?: string | null }) => !u.inviteToken));
+      if (Array.isArray(d)) setAssignList(d.filter((u: { role: string; inviteToken?: string | null }) => u.role === "PARTNER" && !u.inviteToken));
     }).catch(() => {});
   }, [role]);
   const assignPartner = async () => {
@@ -1447,13 +1448,9 @@ export default function ProjectDetailPage() {
                 <option value="">担当を選択…</option>
                 {userId && <option value={userId}>🔧 自分で施工</option>}
                 {[...assignList.filter((u) => u.id !== userId)]
-                  .sort((a, b) => {
-                    const am = (a.serviceAreas || []).some((ar) => project.location.includes(ar)) ? 0 : 1;
-                    const bm = (b.serviceAreas || []).some((ar) => project.location.includes(ar)) ? 0 : 1;
-                    return am - bm;
-                  })
+                  .sort((a, b) => (matchesServiceArea(a.serviceAreas, project.location) ? 0 : 1) - (matchesServiceArea(b.serviceAreas, project.location) ? 0 : 1))
                   .map((u) => {
-                    const hit = (u.serviceAreas || []).some((ar) => project.location.includes(ar));
+                    const hit = matchesServiceArea(u.serviceAreas, project.location);
                     return <option key={u.id} value={u.id}>{hit ? "📍 " : ""}{u.companyName || u.name}</option>;
                   })}
               </select>

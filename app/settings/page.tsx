@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { PREF_CITIES } from "@/lib/serviceArea";
 
 // 色ファミリー定義（同系色グループ）
 const COLOR_FAMILIES: string[][] = [
@@ -122,12 +123,6 @@ export default function SettingsPage() {
 
   // 基本情報（パートナー用）
   // 📍 対応エリア（協力会社が自分で編集。依頼の住所と照合して候補表示に使われる）
-  const PREF_CITIES: Record<string, string[]> = {
-    "埼玉県": ["さいたま市","川越市","熊谷市","川口市","行田市","秩父市","所沢市","飯能市","加須市","本庄市","東松山市","春日部市","狭山市","羽生市","鴻巣市","深谷市","上尾市","草加市","越谷市","蕨市","戸田市","入間市","朝霞市","志木市","和光市","新座市","桶川市","久喜市","北本市","八潮市","富士見市","三郷市","蓮田市","坂戸市","幸手市","鶴ヶ島市","日高市","吉川市","ふじみ野市","白岡市","伊奈町","三芳町","毛呂山町","越生町","滑川町","嵐山町","小川町","川島町","吉見町","鳩山町","ときがわ町","横瀬町","皆野町","長瀞町","小鹿野町","東秩父村","美里町","神川町","上里町","寄居町","宮代町","杉戸町","松伏町"],
-    "群馬県": ["前橋市","高崎市","桐生市","伊勢崎市","太田市","沼田市","館林市","渋川市","藤岡市","富岡市","安中市","みどり市","榛東村","吉岡町","上野村","神流町","下仁田町","南牧村","甘楽町","中之条町","長野原町","嬬恋村","草津町","高山村","東吾妻町","片品村","川場村","昭和村","みなかみ町","玉村町","板倉町","明和町","千代田町","大泉町","邑楽町"],
-    "栃木県": ["宇都宮市","足利市","栃木市","佐野市","鹿沼市","日光市","小山市","真岡市","大田原市","矢板市","那須塩原市","さくら市","那須烏山市","下野市","上三川町","益子町","茂木町","市貝町","芳賀町","壬生町","野木町","塩谷町","高根沢町","那須町","那珂川町"],
-    "茨城県": ["水戸市","日立市","土浦市","古河市","石岡市","結城市","龍ケ崎市","下妻市","常総市","常陸太田市","高萩市","北茨城市","笠間市","取手市","牛久市","つくば市","ひたちなか市","鹿嶋市","潮来市","守谷市","常陸大宮市","那珂市","筑西市","坂東市","稲敷市","かすみがうら市","桜川市","神栖市","行方市","鉾田市","つくばみらい市","小美玉市","茨城町","大洗町","城里町","東海村","大子町","美浦村","阿見町","河内町","八千代町","五霞町","境町","利根町"],
-  };
   const [openPref, setOpenPref] = useState<string | null>(null);
   const areaTokens = () => serviceAreasText.split(/[、,\s\u3000\n]+/).filter(Boolean);
   const toggleAreaToken = (t: string) => {
@@ -137,21 +132,21 @@ export default function SettingsPage() {
   };
   const [serviceAreasText, setServiceAreasText] = useState("");
   const [areasSaved, setAreasSaved] = useState(false);
-  useEffect(() => {
-    fetch("/api/auth/profile").then((r) => (r.ok ? r.json() : null)).then((d) => {
-      if (d && Array.isArray(d.serviceAreas)) setServiceAreasText(d.serviceAreas.join(" "));
-    }).catch(() => {});
-  }, []);
   const saveServiceAreas = async () => {
     const areas = serviceAreasText.split(/[、,\s\u3000\n]+/).map((v) => v.trim()).filter(Boolean);
-    await fetch("/api/auth/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serviceAreas: areas }),
-    }).catch(() => {});
-    setServiceAreasText(areas.join(" "));
-    setAreasSaved(true);
-    setTimeout(() => setAreasSaved(false), 2000);
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceAreas: areas }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      setServiceAreasText(areas.join(" "));
+      setAreasSaved(true);
+      setTimeout(() => setAreasSaved(false), 2000);
+    } catch {
+      alert("対応エリアの保存に失敗しました。通信環境を確認してもう一度お試しください");
+    }
   };
 
   const [basicInfo, setBasicInfo] = useState({
@@ -396,6 +391,7 @@ export default function SettingsPage() {
           vehicleNumber:  data.vehicleNumber  || "",
         };
         setBasicInfo(filled);
+        if (Array.isArray(data.serviceAreas)) setServiceAreasText(data.serviceAreas.join(" "));
         // 必須項目が未入力ならデフォルトで開く
         const allFilled = !!(filled.address && filled.birthDate && filled.bloodType && filled.emergencyName && filled.emergencyPhone);
         if (!allFilled) {

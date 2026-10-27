@@ -46,6 +46,7 @@ export default function UsersPage() {
   const [mapMode, setMapMode] = useState<"map" | "list">("map"); // 地図/一覧の切替
   const [geo, setGeo] = useState<{ w: number; h: number; m: { p: string; n: string; g: number[][][] }[] } | null>(null);
   const [selMuni, setSelMuni] = useState<{ p: string; n: string } | null>(null);
+  const [hiddenPartners, setHiddenPartners] = useState<Set<string>>(new Set()); // 地図で非表示にする会社
   useEffect(() => {
     if (!showAreaMap || geo) return;
     fetch("/geo/kanto4.json").then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setGeo(d); }).catch(() => {});
@@ -593,13 +594,19 @@ export default function UsersPage() {
                       {md === "map" ? "🗾 地図" : "📋 一覧"}
                     </button>
                   ))}
-                  <div className="flex flex-wrap gap-2.5 ml-auto">
-                    {covered.map((u) => (
-                      <span key={u.id} className="flex items-center gap-1 text-[11px] text-gray-300">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colorOf(u) }} />
-                        {nameOf(u)}
-                      </span>
-                    ))}
+                  <div className="flex flex-wrap gap-1.5 ml-auto">
+                    {covered.map((u) => {
+                      const off = hiddenPartners.has(u.id);
+                      return (
+                        <button key={u.id}
+                          onClick={() => setHiddenPartners((prev) => { const n = new Set(prev); if (n.has(u.id)) n.delete(u.id); else n.add(u.id); return n; })}
+                          className={`flex items-center gap-1 text-[11px] rounded-full px-2 py-1 border transition ${off ? "opacity-40 border-gray-700 text-gray-500" : "border-gray-600 text-gray-200"}`}
+                          title="タップで地図の表示/非表示を切替">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colorOf(u) }} />
+                          {nameOf(u)}{off ? "（非表示）" : ""}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 {mapMode === "map" && (
@@ -608,9 +615,30 @@ export default function UsersPage() {
                   ) : (
                     <div>
                       <svg viewBox={`0 0 ${geo.w} ${geo.h}`} className="w-full h-auto rounded-lg bg-gray-950">
+                        <defs>
+                          {/* 重なり用ストライプ: 表示中の会社の組み合わせごとに生成 */}
+                          {(() => {
+                            const combos = new Map<string, User[]>();
+                            geo.m.forEach((mu) => {
+                              const cov = coverOf(mu.p, mu.n).filter((u) => !hiddenPartners.has(u.id));
+                              if (cov.length > 1) combos.set(cov.map((u) => u.id).sort().join("+"), cov);
+                            });
+                            return Array.from(combos.entries()).map(([key, us]) => (
+                              <pattern key={key} id={`pat-${key}`} patternUnits="userSpaceOnUse" width={10 * us.length} height={10 * us.length} patternTransform="rotate(45)">
+                                {us.map((u, i) => (
+                                  <rect key={u.id} x={i * 10} y={0} width={10} height={10 * us.length} fill={colorOf(u)} />
+                                ))}
+                              </pattern>
+                            ));
+                          })()}
+                        </defs>
                         {geo.m.map((mu) => {
-                          const cov = coverOf(mu.p, mu.n);
-                          const fill = cov.length === 0 ? "#1f2937" : colorOf(cov[0]);
+                          const cov = coverOf(mu.p, mu.n).filter((u) => !hiddenPartners.has(u.id));
+                          const fill = cov.length === 0
+                            ? "#1f2937"
+                            : cov.length === 1
+                            ? colorOf(cov[0])
+                            : `url(#pat-${cov.map((u) => u.id).sort().join("+")})`;
                           const multi = cov.length > 1;
                           const isSel = selMuni?.p === mu.p && selMuni?.n === mu.n;
                           return mu.g.map((ring, ri) => (
@@ -639,7 +667,7 @@ export default function UsersPage() {
                             </p>
                           );
                         })() : (
-                          <p className="text-[11px] text-gray-500">市町村をタップで詳細。<span className="text-amber-300">黄色い縁取り＝複数社対応</span>、濃いグレー＝未カバー</p>
+                          <p className="text-[11px] text-gray-500">タップで詳細。<span className="text-amber-300">縞模様＝複数社が重なるエリア</span>（色の組合せ=その会社たち）、濃いグレー＝未カバー。上の会社名タップで表示切替</p>
                         )}
                         <p className="text-[10px] text-gray-600 shrink-0 ml-2">出典: 国土数値情報（国交省）を加工</p>
                       </div>

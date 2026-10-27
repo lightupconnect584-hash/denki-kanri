@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import { PREF_CITIES } from "@/lib/serviceArea";
 
 interface User {
   serviceAreas?: string[];
@@ -41,6 +42,8 @@ export default function UsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [areaOpenId, setAreaOpenId] = useState<string | null>(null); // 対応エリアの全件展開
+  const [showAreaMap, setShowAreaMap] = useState(false); // 🗺 エリアマップ
+  const [uncoveredOpen, setUncoveredOpen] = useState<string | null>(null); // 未カバー市町村の展開
   // 受付→完了報告のリードタイム（直近90日・要アポ除外）
   const [leadtime, setLeadtime] = useState<Record<string, { n: number; avg: number; med: number }>>({});
   useEffect(() => {
@@ -555,6 +558,90 @@ export default function UsersPage() {
         <div className="mb-6">
           <p className="text-xs font-bold text-gray-400 mb-2 px-1">👑 管理者 ({admins.length})</p>
           <div className="space-y-3">{admins.map(renderUserCard)}</div>
+        </div>
+
+        {/* 🗺 対応エリアマップ: 重なり・空白地帯の確認用 */}
+        <div className="mb-4">
+          <button
+            onClick={() => setShowAreaMap(!showAreaMap)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 rounded-xl border border-gray-700 text-sm text-gray-200 hover:bg-gray-700 transition"
+          >
+            <span>🗺 対応エリアマップ（重なり・手薄なところを確認）</span>
+            <span className="text-gray-500">{showAreaMap ? "▲ 閉じる" : "▼ 表示"}</span>
+          </button>
+          {showAreaMap && (() => {
+            const covered = partners.filter((u) => (u.serviceAreas?.length ?? 0) > 0);
+            const colorOf = (u: User) => u.color || "#9ca3af";
+            const nameOf = (u: User) => u.companyName || u.name;
+            const prefLayout: Record<string, string> = { "群馬県": "1 / 1", "栃木県": "1 / 2", "埼玉県": "2 / 1", "茨城県": "2 / 2" };
+            return (
+              <div className="mt-2 bg-gray-800 rounded-xl border border-gray-700 p-3">
+                {/* 凡例 */}
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {covered.map((u) => (
+                    <span key={u.id} className="flex items-center gap-1.5 text-xs text-gray-300">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colorOf(u) }} />
+                      {nameOf(u)}
+                    </span>
+                  ))}
+                  {covered.length === 0 && <span className="text-xs text-gray-500">対応エリアを設定した協力会社がまだいません</span>}
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {Object.keys(PREF_CITIES).sort((a, b) => (prefLayout[a] || "").localeCompare(prefLayout[b] || "")).map((pref) => {
+                    const cities = PREF_CITIES[pref];
+                    const fullCover = covered.filter((u) => u.serviceAreas!.includes(pref));
+                    const cityCover: { city: string; users: User[] }[] = cities
+                      .map((c) => ({ city: c, users: covered.filter((u) => u.serviceAreas!.includes(c)) }))
+                      .filter((x) => x.users.length > 0);
+                    const coveredSet = new Set<string>();
+                    if (fullCover.length > 0) cities.forEach((c) => coveredSet.add(c));
+                    cityCover.forEach((x) => coveredSet.add(x.city));
+                    const uncovered = cities.filter((c) => !coveredSet.has(c));
+                    const bg = fullCover.length > 0 ? `${colorOf(fullCover[0])}22` : undefined;
+                    return (
+                      <div key={pref} className="border border-gray-700 rounded-lg p-2.5" style={{ backgroundColor: bg }}>
+                        <p className="text-xs font-bold text-gray-100 mb-1.5 flex items-center gap-1.5 flex-wrap">
+                          {pref}
+                          {fullCover.map((u) => (
+                            <span key={u.id} className="text-[10px] text-white rounded-full px-2 py-0.5 font-bold" style={{ backgroundColor: colorOf(u) }}>
+                              {nameOf(u)} 全域
+                            </span>
+                          ))}
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {cityCover.map((x) =>
+                            x.users.map((u) => (
+                              <span key={x.city + u.id} className="text-[10px] text-white rounded px-1.5 py-0.5 font-bold" style={{ backgroundColor: colorOf(u) }}>
+                                {x.city}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                        <div className="mt-1.5">
+                          {uncovered.length === 0 ? (
+                            <p className="text-[10px] text-green-400">✓ 全市町村カバー</p>
+                          ) : (
+                            <button
+                              onClick={() => setUncoveredOpen(uncoveredOpen === pref ? null : pref)}
+                              className="text-[10px] text-gray-500 hover:text-amber-300 underline underline-offset-2"
+                            >未カバー {uncovered.length}市町村 {uncoveredOpen === pref ? "▲" : "▼"}</button>
+                          )}
+                          {uncoveredOpen === pref && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {uncovered.map((c) => (
+                                <span key={c} className="text-[10px] text-gray-500 border border-gray-700 rounded px-1.5 py-0.5">{c}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-gray-500 mt-2">薄い背景色＝その県を全域対応している会社のカラー。タグ＝個別対応の市町村（複数社対応なら社数分並びます）</p>
+              </div>
+            );
+          })()}
         </div>
 
         <div>

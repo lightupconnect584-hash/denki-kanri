@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { PREF_CITIES } from "@/lib/serviceArea";
+import AreaMapPicker from "@/components/AreaMapPicker";
 
 // 色ファミリー定義（同系色グループ）
 const COLOR_FAMILIES: string[][] = [
@@ -1585,6 +1586,9 @@ export default function SettingsPage() {
               {areasSaved && <span className="text-xs text-green-400">✓ 保存しました</span>}
             </div>
             <p className="text-xs text-gray-500 mb-2">県全域OKなら「◯◯県全域」をON。一部だけなら「市町村を選ぶ」からタップで選択。都合が変わったらいつでも更新してください。</p>
+            <div className="mb-3">
+              <AreaMapPicker tokens={areaTokens()} onToggleCity={(city) => toggleAreaToken(city)} />
+            </div>
             <div className="space-y-2 mb-2">
               {Object.keys(PREF_CITIES).map((pref) => {
                 const tokens = areaTokens();

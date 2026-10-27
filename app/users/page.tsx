@@ -581,7 +581,7 @@ export default function UsersPage() {
             const covered = partners.filter((u) => (u.serviceAreas?.length ?? 0) > 0);
             const colorOf = (u: User) => u.color || "#9ca3af";
             const nameOf = (u: User) => u.companyName || u.name;
-            const prefOrder = ["群馬県", "栃木県", "埼玉県", "茨城県"];
+            const prefOrder = ["群馬県", "栃木県", "埼玉県", "茨城県", "東京都"];
             // 市町村ごとの対応会社（県全域は展開して含める）
             const coverOf = (pref: string, city: string) =>
               covered.filter((u) => u.serviceAreas!.includes(pref) || u.serviceAreas!.includes(city));

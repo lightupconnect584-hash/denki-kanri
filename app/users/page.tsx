@@ -43,6 +43,13 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [areaOpenId, setAreaOpenId] = useState<string | null>(null); // 対応エリアの全件展開
   const [showAreaMap, setShowAreaMap] = useState(false); // 🗺 エリアマップ
+  const [mapMode, setMapMode] = useState<"map" | "list">("map"); // 地図/一覧の切替
+  const [geo, setGeo] = useState<{ w: number; h: number; m: { p: string; n: string; g: number[][][] }[] } | null>(null);
+  const [selMuni, setSelMuni] = useState<{ p: string; n: string } | null>(null);
+  useEffect(() => {
+    if (!showAreaMap || geo) return;
+    fetch("/geo/kanto4.json").then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setGeo(d); }).catch(() => {});
+  }, [showAreaMap, geo]);
   const [uncoveredOpen, setUncoveredOpen] = useState<string | null>(null); // 未カバー市町村の展開
   // 受付→完了報告のリードタイム（直近90日・要アポ除外）
   const [leadtime, setLeadtime] = useState<Record<string, { n: number; avg: number; med: number }>>({});
@@ -574,8 +581,72 @@ export default function UsersPage() {
             const colorOf = (u: User) => u.color || "#9ca3af";
             const nameOf = (u: User) => u.companyName || u.name;
             const prefOrder = ["群馬県", "栃木県", "埼玉県", "茨城県"];
+            // 市町村ごとの対応会社（県全域は展開して含める）
+            const coverOf = (pref: string, city: string) =>
+              covered.filter((u) => u.serviceAreas!.includes(pref) || u.serviceAreas!.includes(city));
             return (
               <div className="mt-2 bg-gray-800 rounded-xl border border-gray-700 p-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  {(["map", "list"] as const).map((md) => (
+                    <button key={md} onClick={() => setMapMode(md)}
+                      className={`text-xs rounded-lg px-3 py-1.5 border transition ${mapMode === md ? "bg-blue-600 text-white border-blue-600" : "text-gray-300 border-gray-600"}`}>
+                      {md === "map" ? "🗾 地図" : "📋 一覧"}
+                    </button>
+                  ))}
+                  <div className="flex flex-wrap gap-2.5 ml-auto">
+                    {covered.map((u) => (
+                      <span key={u.id} className="flex items-center gap-1 text-[11px] text-gray-300">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colorOf(u) }} />
+                        {nameOf(u)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {mapMode === "map" && (
+                  !geo ? (
+                    <p className="text-center text-gray-500 text-sm py-8">地図を読み込み中...</p>
+                  ) : (
+                    <div>
+                      <svg viewBox={`0 0 ${geo.w} ${geo.h}`} className="w-full h-auto rounded-lg bg-gray-950">
+                        {geo.m.map((mu) => {
+                          const cov = coverOf(mu.p, mu.n);
+                          const fill = cov.length === 0 ? "#1f2937" : colorOf(cov[0]);
+                          const multi = cov.length > 1;
+                          const isSel = selMuni?.p === mu.p && selMuni?.n === mu.n;
+                          return mu.g.map((ring, ri) => (
+                            <polygon
+                              key={mu.p + mu.n + ri}
+                              points={ring.map((pt) => pt.join(",")).join(" ")}
+                              fill={fill}
+                              fillOpacity={cov.length === 0 ? 1 : 0.85}
+                              stroke={isSel ? "#ffffff" : multi ? "#fbbf24" : "#374151"}
+                              strokeWidth={isSel ? 3 : multi ? 2 : 0.7}
+                              onClick={() => setSelMuni(isSel ? null : { p: mu.p, n: mu.n })}
+                              className="cursor-pointer"
+                            />
+                          ));
+                        })}
+                      </svg>
+                      <div className="flex items-center justify-between mt-1.5">
+                        {selMuni ? (() => {
+                          const cov = coverOf(selMuni.p, selMuni.n);
+                          return (
+                            <p className="text-xs text-gray-200">
+                              <span className="font-bold">{selMuni.n}</span>（{selMuni.p}）:
+                              {cov.length === 0 ? <span className="text-red-400"> 対応業者なし</span> : cov.map((u) => (
+                                <span key={u.id} className="ml-1.5 text-white rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: colorOf(u) }}>{nameOf(u)}</span>
+                              ))}
+                            </p>
+                          );
+                        })() : (
+                          <p className="text-[11px] text-gray-500">市町村をタップで詳細。<span className="text-amber-300">黄色い縁取り＝複数社対応</span>、濃いグレー＝未カバー</p>
+                        )}
+                        <p className="text-[10px] text-gray-600 shrink-0 ml-2">出典: 国土数値情報（国交省）を加工</p>
+                      </div>
+                    </div>
+                  )
+                )}
+                {mapMode === "list" && (<>
                 {covered.length === 0 && (
                   <p className="text-sm text-gray-500 text-center py-4">対応エリアを設定した協力会社がまだいません</p>
                 )}
@@ -633,6 +704,7 @@ export default function UsersPage() {
                     </div>
                   );
                 })}
+                </>)}
               </div>
             );
           })()}

@@ -40,6 +40,7 @@ export default function UsersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
+  const [areaOpenId, setAreaOpenId] = useState<string | null>(null); // 対応エリアの全件展開
   // 受付→完了報告のリードタイム（直近90日・要アポ除外）
   const [leadtime, setLeadtime] = useState<Record<string, { n: number; avg: number; med: number }>>({});
   useEffect(() => {
@@ -213,11 +214,29 @@ export default function UsersPage() {
               📞 {u.phone}
             </a>
           )}
-          {u.role === "PARTNER" && (u.serviceAreas?.length ?? 0) > 0 && (
-            <p className="text-xs text-sky-300/90 truncate" title="対応エリア（本人が設定画面で編集）">
-              📍 {u.serviceAreas!.join("・")}
-            </p>
-          )}
+          {u.role === "PARTNER" && (u.serviceAreas?.length ?? 0) > 0 && (() => {
+            const areas = u.serviceAreas!;
+            const open = areaOpenId === u.id;
+            const LIMIT = 5;
+            const shown = open ? areas : areas.slice(0, LIMIT);
+            const isPref = (a: string) => a.endsWith("県");
+            return (
+              <div className="flex flex-wrap items-center gap-1 mt-1" title="対応エリア（本人が設定画面で編集）">
+                <span className="text-xs text-sky-400 shrink-0">📍</span>
+                {shown.map((a) => (
+                  <span key={a} className={`text-[11px] rounded px-1.5 py-0.5 border ${isPref(a) ? "bg-sky-900/60 text-sky-200 border-sky-700 font-bold" : "bg-gray-700/60 text-gray-300 border-gray-600"}`}>
+                    {isPref(a) ? `${a}全域` : a}
+                  </span>
+                ))}
+                {areas.length > LIMIT && (
+                  <button
+                    onClick={() => setAreaOpenId(open ? null : u.id)}
+                    className="text-[11px] text-sky-400 hover:text-sky-200 underline underline-offset-2 px-1"
+                  >{open ? "たたむ ▲" : `他${areas.length - LIMIT}件 ▼`}</button>
+                )}
+              </div>
+            );
+          })()}
           {leadtime[u.id] && (() => {
             const lt = leadtime[u.id];
             // 件数を考慮したランク: 高負荷(30件〜)は基準を緩め、少件数は参考扱い

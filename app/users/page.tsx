@@ -654,6 +654,35 @@ export default function UsersPage() {
                             />
                           ));
                         })}
+                        {/* 市町村名ラベル（大きめの市町村＋選択中のみ。読みやすさ優先） */}
+                        {geo.m.map((mu) => {
+                          const ring = mu.g[0];
+                          if (!ring) return null;
+                          // 重心とおおよその横幅
+                          let cx = 0, cy = 0, minX = 1e9, maxX = -1e9;
+                          ring.forEach(([x, y]) => { cx += x; cy += y; minX = Math.min(minX, x); maxX = Math.max(maxX, x); });
+                          cx /= ring.length; cy /= ring.length;
+                          const width = maxX - minX;
+                          const isSel = selMuni?.p === mu.p && selMuni?.n === mu.n;
+                          if (width < 34 && !isSel) return null; // 小さい町村はラベル省略（タップで名前が出る）
+                          const short = mu.n.replace(/(市|町|村)$/, "");
+                          return (
+                            <text
+                              key={`label-${mu.p}-${mu.n}`}
+                              x={cx}
+                              y={cy}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fontSize={isSel ? 15 : 11}
+                              fontWeight="bold"
+                              fill="#ffffff"
+                              stroke="#111827"
+                              strokeWidth={2.5}
+                              paintOrder="stroke"
+                              pointerEvents="none"
+                            >{short}</text>
+                          );
+                        })}
                       </svg>
                       <div className="flex items-center justify-between mt-1.5">
                         {selMuni ? (() => {

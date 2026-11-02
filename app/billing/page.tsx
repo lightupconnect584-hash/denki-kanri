@@ -95,9 +95,10 @@ export default function BillingPage() {
 
   // 未締め案件を指定月で締める（projectIds を渡すとその案件のみ）
   const UNCLOSED = "__unclosed__";
-  const closeMonth = async (month: string, projectIds: string[]) => {
+  const closeMonth = async (month: string, projectIds: string[], opts?: { stay?: boolean; label?: string }) => {
     if (projectIds.length === 0) return;
-    if (!confirm(`選択した ${projectIds.length}件 を「${monthLabel(month)}分」として締めますか？`)) return;
+    const who = opts?.label ? `「${opts.label}」の` : "選択した ";
+    if (!confirm(`${who}${projectIds.length}件 を「${monthLabel(month)}分」として締めますか？`)) return;
     setClosing(true);
     await fetch("/api/billing/close", {
       method: "POST",
@@ -106,8 +107,11 @@ export default function BillingPage() {
     });
     await fetchProjects();
     setClosing(false);
-    markCycleDismissed(closingCycle);
-    setSelectedMonth(month);
+    // 会社ごとの締めは未締め画面に留まる（他の会社を続けて締められるように）
+    if (!opts?.stay) {
+      markCycleDismissed(closingCycle);
+      setSelectedMonth(month);
+    }
   };
 
   // 未締めを作業月ごとに一括で締める（過去データの再設定用）
@@ -510,6 +514,7 @@ export default function BillingPage() {
             <div className="bg-amber-950/40 border border-amber-700 rounded-xl p-3 mb-4">
               <p className="text-xs text-amber-200 mb-2">
                 締める月を選んで確定します。チェックを外した案件は今回締めず、次回に回ります。
+                会社ごとに締める場合は、下の各社見出しの「この会社の◯件を締める」から。
               </p>
               <div className="flex items-center gap-2 flex-wrap">
                 <select
@@ -574,9 +579,21 @@ export default function BillingPage() {
               <div key={group.name} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 {role === "ADMIN" && (
                   <>
-                    <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between">
-                      <p className="font-medium text-gray-100 text-sm">{group.name}</p>
-                      <p className="text-sm font-bold text-blue-700">合計 ¥{group.total.toLocaleString()}</p>
+                    <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between gap-2 flex-wrap">
+                      <p className="font-medium text-gray-100 text-sm flex-1 min-w-0 truncate">{group.name}</p>
+                      <p className="text-sm font-bold text-blue-700 shrink-0">合計 ¥{group.total.toLocaleString()}</p>
+                      {selectedMonth === UNCLOSED && showCloseBar && (() => {
+                        const ids = group.projects.filter((p) => !heldIds.has(p.id)).map((p) => p.id);
+                        return (
+                          <button
+                            onClick={() => closeMonth(closeTargetMonth, ids, { stay: true, label: group.name })}
+                            disabled={closing || ids.length === 0}
+                            className="shrink-0 text-xs bg-amber-600 text-white rounded-lg px-2.5 py-1.5 font-bold hover:bg-amber-700 disabled:opacity-50 transition"
+                          >
+                            この会社の{ids.length}件を締める
+                          </button>
+                        );
+                      })()}
                     </div>
                     {key !== "unassigned" && (
                       <div className="px-4 pt-3">{renderMonthlyInvoice(key)}</div>

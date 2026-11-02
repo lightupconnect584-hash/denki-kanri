@@ -56,6 +56,9 @@ export async function syncSalesEntryForProject(
     }
     const existing = await prisma.salesEntry.findUnique({ where: { projectId: project.id } });
     if (existing) {
+      // 締め月より後の月に置かれた行は、意図的な「翌月請求」なので動かさない
+      // （例: 協力会社への支払いは10月締め・積水への請求は11月、のような分離）
+      if (existing.yearMonth > month) return;
       if (existing.yearMonth !== month) {
         const max = await prisma.salesEntry.aggregate({
           where: { yearMonth: month },

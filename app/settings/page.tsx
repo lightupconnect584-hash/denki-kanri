@@ -151,7 +151,7 @@ export default function SettingsPage() {
   };
 
   const [basicInfo, setBasicInfo] = useState({
-    companyName: "",
+    companyName: "", fullName: "",
     address: "", birthDate: "", bloodType: "",
     emergencyName: "", emergencyPhone: "",
     licenseType: "", licenseNumber: "", licenseExpiry: "",
@@ -381,6 +381,7 @@ export default function SettingsPage() {
         if (data.usedColors) setUsedColors(data.usedColors);
         const filled = {
           companyName:    data.companyName    || "",
+          fullName:       data.fullName       || "",
           address:        data.address        || "",
           birthDate:      data.birthDate      ? data.birthDate.slice(0, 10) : "",
           bloodType:      data.bloodType      || "",
@@ -1024,6 +1025,16 @@ export default function SettingsPage() {
                     placeholder="例：株式会社〇〇電設 / 山田電気工事"
                     className={ic} />
                   <p className="text-xs text-gray-500 mt-1">依頼一覧に表示される名前です</p>
+                </div>
+
+                {/* 氏名（フルネーム） */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">氏名（フルネーム）</label>
+                  <input type="text" value={basicInfo.fullName}
+                    onChange={(e) => setBasicInfo(p => ({ ...p, fullName: e.target.value }))}
+                    placeholder="例：山田 太郎"
+                    className={ic} />
+                  <p className="text-xs text-gray-500 mt-1">正式なお名前の記録用です（表示名は苗字のままでOK）</p>
                 </div>
 
                 {/* 住所 */}

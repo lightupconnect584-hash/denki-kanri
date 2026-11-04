@@ -22,6 +22,7 @@ model User {
   thankYouImageUrl String?
   thankYouMessage  String?
   // 基本情報（協力会社向け）
+  fullName         String?   // 氏名（フルネーム）。表示名(name)は苗字のみ運用のため、正式名はここに残す
   address          String?
   birthDate        DateTime?
   bloodType        String?

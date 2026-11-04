@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
       id: true, name: true, email: true, companyName: true, role: true,
       avatarUrl: true, color: true, lastLoginAt: true, inviteToken: true, phone: true, serviceAreas: true,
       // 基本情報（協力会社向け）
+      fullName: true,
       address: true, birthDate: true, bloodType: true,
       emergencyName: true, emergencyPhone: true,
       licenseType: true, licenseNumber: true, licenseExpiry: true,

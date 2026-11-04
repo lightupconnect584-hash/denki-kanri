@@ -42,3 +42,7 @@ next-env.d.ts
 
 /app/generated/prisma
 .env*.local
+作業単価表_*.pdf
+scripts/set-fullnames.js
+scripts/rename-new-partners.js
+scripts/cleanup-invite.js

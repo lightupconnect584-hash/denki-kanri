@@ -12,6 +12,7 @@ const profileSelect = {
   thankYouMessage: true,
   color: true,
   // 基本情報
+  fullName: true,
   address: true,
   birthDate: true,
   bloodType: true,
@@ -66,6 +67,7 @@ export async function PATCH(req: NextRequest) {
       where: { id: userId },
       data: {
         ...(d.companyName !== undefined ? { companyName: d.companyName?.trim() || null } : {}),
+        fullName:       d.fullName?.trim()       || null,
         address:        d.address?.trim()        || null,
         birthDate:      d.birthDate              ? new Date(d.birthDate) : null,
         bloodType:      d.bloodType              || null,

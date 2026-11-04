@@ -20,6 +20,7 @@ interface User {
   inviteToken: string | null;
   loginLogs: { createdAt: string }[];
   // 基本情報
+  fullName: string | null;
   address: string | null;
   birthDate: string | null;
   bloodType: string | null;
@@ -356,6 +357,10 @@ export default function UsersPage() {
           {profileExpandId === u.id && (
             <div className="border border-gray-700 bg-gray-700/40 rounded-xl p-3 space-y-2 text-xs">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <div>
+                  <span className="text-gray-500">氏名</span>
+                  <p className="text-gray-100 font-medium mt-0.5">{u.fullName || <span className="text-red-400">未入力</span>}</p>
+                </div>
                 <div>
                   <span className="text-gray-500">住所</span>
                   <p className="text-gray-100 font-medium mt-0.5">{u.address || <span className="text-red-400">未入力</span>}</p>

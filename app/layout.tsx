@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
 import BottomNav from "@/components/BottomNav";
+import UnreadChatBanner from "@/components/UnreadChatBanner";
 
 export const metadata: Metadata = {
   title: "システム",
@@ -29,6 +30,7 @@ export default function RootLayout({
       </head>
       <body className="h-dvh flex flex-col overflow-hidden bg-gray-900">
         <SessionProvider>
+          <UnreadChatBanner />
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             {children}
           </div>

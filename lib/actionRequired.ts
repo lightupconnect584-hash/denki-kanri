@@ -47,6 +47,12 @@ export function adminActionReason(p: ActionCheckProject): ActionReason | null {
     return null;
   }
 
+  // 完了報告が届いたら最優先で確認を促す
+  // （日程調整・応答なし等の連絡系より先。報告が来た＝作業済みなので連絡フローは終わっている）
+  if (p.status === "INSPECTED") {
+    return { label: "完了報告の確認", color: "bg-purple-100 text-purple-700" };
+  }
+
   // 入居者立ち会い・要連絡（連絡が取れるまで表示）
   if (p.contactRequired && !p.contactedAt && !DONE.includes(p.status)) {
     return p.contactTag === "CALLBACK"
@@ -62,10 +68,6 @@ export function adminActionReason(p: ActionCheckProject): ActionReason | null {
   // ✅ 完了後連絡（作業完了後、入居者/積水への連絡が済むまで表示）
   if (p.afterContactRequired && !p.afterContactedAt && DONE.includes(p.status)) {
     return { label: "✅ 完了後の連絡をする", color: "bg-green-100 text-green-700" };
-  }
-
-  if (p.status === "INSPECTED") {
-    return { label: "完了報告の確認", color: "bg-purple-100 text-purple-700" };
   }
   if (
     ["QUOTE_REQUESTED", "QUOTE_REVIEWING"].includes(p.status) &&
@@ -105,15 +107,15 @@ export function partnerActionReason(p: ActionCheckProject): ActionReason | null 
     return null;
   }
 
-  // 入居者立ち会い・要連絡（連絡が取れるまで表示）
-  if (p.contactRequired && !p.contactedAt && !DONE.includes(p.status)) {
+  // 入居者立ち会い・要連絡（連絡が取れるまで表示。報告済み＝作業済みの案件には出さない）
+  if (p.contactRequired && !p.contactedAt && !DONE.includes(p.status) && p.status !== "INSPECTED") {
     return p.contactTag === "CALLBACK"
       ? { label: "📞 入居者へ折り返し連絡", color: "bg-orange-100 text-orange-700" }
       : { label: "📅 日程調整（アポを取る）", color: "bg-red-100 text-red-700" };
   }
 
   // 📵 連絡したのに応答がないまま日数が経過（訪問日が決まっていない）→ 再連絡か完了処理の判断を促す
-  if (p.contactRequired && p.contactedAt && !p.visitDate && !DONE.includes(p.status) && daysSince(p.contactedAt) >= 3) {
+  if (p.contactRequired && p.contactedAt && !p.visitDate && !DONE.includes(p.status) && p.status !== "INSPECTED" && daysSince(p.contactedAt) >= 3) {
     return { label: `📵 応答なし${daysSince(p.contactedAt)}日 — 再連絡か保留（連絡不能はキャンセル）`, color: "bg-orange-100 text-orange-700" };
   }
 

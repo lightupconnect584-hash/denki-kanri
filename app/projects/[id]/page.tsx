@@ -234,7 +234,7 @@ export default function ProjectDetailPage() {
     if (!confirm(`${includedCount}枚を1枚にまとめて報告に保存し、元の${targets.length}枚は削除します。${removedNote}\nよろしいですか？（元に戻せません）`)) return;
     setCombining(true);
     try {
-      const fname = `${project?.title || "写真まとめ"}_まとめ${includedCount}枚.jpg`;
+      const fname = `${project?.title || "写真"}.jpg`;
       const fd = new FormData();
       fd.append("file", new File([outBlob], fname, { type: "image/jpeg" }));
       const up = await fetch("/api/upload", { method: "POST", body: fd });
@@ -1055,6 +1055,7 @@ export default function ProjectDetailPage() {
       <Header />
       {collagePhotos && (
         <CollageEditor
+          downloadName={project?.title}
           photos={collagePhotos}
           confirming={combining}
           onConfirm={confirmCollage}

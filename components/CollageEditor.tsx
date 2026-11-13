@@ -27,11 +27,13 @@ export default function CollageEditor({
   onConfirm,
   onCancel,
   confirming,
+  downloadName,
 }: {
   photos: CollagePhoto[];
   onConfirm: (blob: Blob, includedCount: number) => void;
   onCancel: () => void;
   confirming: boolean;
+  downloadName?: string; // ⬇ダウンロード時のファイル名（建物名）
 }) {
   const [bitmaps, setBitmaps] = useState<Map<string, ImageBitmap>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -237,6 +239,21 @@ export default function CollageEditor({
     canvas.toBlob((blob) => { if (blob) onConfirm(blob, includedCount); }, "image/jpeg", 0.85);
   };
 
+  // ⬇ まとめ画像をその場でダウンロード（置き換えせずに保存だけもできる）
+  const download = () => {
+    if (includedCount === 0) return;
+    const canvas = document.createElement("canvas");
+    drawCollage(canvas, OUT_W, true);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(downloadName || "写真").trim()}.jpg`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    }, "image/jpeg", 0.85);
+  };
+
   const scaleLabel = (s: number) => (s === 1.4 ? "大" : s === 0.7 ? "小" : "標準");
 
   return (
@@ -342,6 +359,9 @@ export default function CollageEditor({
 
         <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-700 shrink-0">
           <button onClick={onCancel} className="text-sm text-gray-400 px-4 py-2 hover:text-gray-200">キャンセル</button>
+          <button onClick={download} disabled={loading || includedCount === 0}
+            className="text-sm text-green-300 border border-green-700 rounded-xl px-4 py-2.5 hover:bg-green-900/40 disabled:opacity-50 transition shrink-0"
+            title="まとめ画像をダウンロード（置き換えはしない）">⬇ 保存</button>
           <button onClick={confirm} disabled={loading || confirming || includedCount === 0}
             className="flex-1 bg-purple-600 text-white text-sm font-bold rounded-xl py-2.5 hover:bg-purple-700 disabled:opacity-50 transition">
             {confirming ? "置き換え中..." : `🧩 ${includedCount}枚をまとめて置き換え${excluded.size > 0 ? `（🗑${excluded.size}枚は削除）` : ""}`}

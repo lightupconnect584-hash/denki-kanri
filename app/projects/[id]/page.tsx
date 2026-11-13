@@ -214,7 +214,9 @@ export default function ProjectDetailPage() {
   const [collagePhotos, setCollagePhotos] = useState<CollagePhoto[] | null>(null);
   const [collageInspId, setCollageInspId] = useState<string | null>(null);
   const openCollage = (inspectionId: string, photos: { id: string; originalName: string }[]) => {
-    const targets = photos.filter((ph) => photoSelected[ph.id]);
+    // まとめる前提の運用: 選択が2枚未満なら全写真を対象にする
+    const selected = photos.filter((ph) => photoSelected[ph.id]);
+    const targets = selected.length >= 2 ? selected : photos;
     if (targets.length < 2) return;
     setCollageInspId(inspectionId);
     setCollagePhotos(targets.map((ph) => ({
@@ -225,13 +227,14 @@ export default function ProjectDetailPage() {
   };
 
   // エディタで確定 → アップロードして報告に追加・元の写真を削除
-  const confirmCollage = async (outBlob: Blob) => {
+  const confirmCollage = async (outBlob: Blob, includedCount: number) => {
     if (!collagePhotos || !collageInspId) return;
     const targets = collagePhotos;
-    if (!confirm(`この配置で1枚にまとめて報告に保存し、元の${targets.length}枚は削除します。\nよろしいですか？（元に戻せません）`)) return;
+    const removedNote = includedCount < targets.length ? `（うち🗑${targets.length - includedCount}枚はまとめず削除）` : "";
+    if (!confirm(`${includedCount}枚を1枚にまとめて報告に保存し、元の${targets.length}枚は削除します。${removedNote}\nよろしいですか？（元に戻せません）`)) return;
     setCombining(true);
     try {
-      const fname = `${project?.title || "写真まとめ"}_まとめ${targets.length}枚.jpg`;
+      const fname = `${project?.title || "写真まとめ"}_まとめ${includedCount}枚.jpg`;
       const fd = new FormData();
       fd.append("file", new File([outBlob], fname, { type: "image/jpeg" }));
       const up = await fetch("/api/upload", { method: "POST", body: fd });
@@ -2311,6 +2314,14 @@ export default function ProjectDetailPage() {
                     })}
                     {role === "ADMIN" && (
                       <div className="mt-2">
+                        {/* まとめる前提の運用: 整理パネルを開かなくても全写真で即まとめ編集へ（中で名前変更・🗑削除もできる） */}
+                        {insp.photos.length >= 2 && (
+                          <button
+                            onClick={() => openCollage(insp.id, insp.photos)}
+                            disabled={combining}
+                            className="text-xs bg-purple-600 text-white font-bold rounded-lg px-3 py-1.5 border border-purple-600 hover:bg-purple-700 disabled:opacity-50 transition mr-2"
+                          >{combining ? "合成中..." : "🧩 写真をまとめる"}</button>
+                        )}
                         <button
                           onClick={() => {
                             if (photoOrganizeId === insp.id) { setPhotoOrganizeId(null); return; }
@@ -2408,9 +2419,10 @@ export default function ProjectDetailPage() {
                               >↓ 選択した写真をダウンロード（{insp.photos.filter((ph) => !!photoSelected[ph.id]).length}枚）</button>
                               <button
                                 onClick={() => openCollage(insp.id, insp.photos)}
-                                disabled={combining || insp.photos.filter((ph) => !!photoSelected[ph.id]).length < 2}
+                                disabled={combining || insp.photos.length < 2}
                                 className="text-xs text-purple-300 border border-purple-700 rounded-lg px-3 py-1.5 hover:bg-purple-900/40 disabled:opacity-40 transition"
-                              >{combining ? "合成中..." : "🧩 1枚にまとめて置き換え"}</button>
+                                title="選択していなければ全写真が対象になります"
+                              >{(() => { const n = insp.photos.filter((ph) => !!photoSelected[ph.id]).length; return combining ? "合成中..." : `🧩 1枚にまとめて置き換え${n >= 2 ? `（選択${n}枚）` : "（全部）"}`; })()}</button>
                               <label className={`text-xs rounded-lg px-3 py-1.5 border transition cursor-pointer ${addingPhotos ? "bg-gray-700 text-gray-500 border-gray-600" : "text-sky-300 border-sky-700 hover:bg-sky-900/40"}`}>
                                 {addingPhotos ? "追加中..." : "＋ 写真を追加"}
                                 <input type="file" accept="image/*" multiple className="hidden" disabled={addingPhotos} onChange={(e) => addPhotosToInspection(insp.id, e)} />

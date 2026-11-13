@@ -29,7 +29,7 @@ export default function CollageEditor({
   confirming,
 }: {
   photos: CollagePhoto[];
-  onConfirm: (blob: Blob) => void;
+  onConfirm: (blob: Blob, includedCount: number) => void;
   onCancel: () => void;
   confirming: boolean;
 }) {
@@ -40,6 +40,11 @@ export default function CollageEditor({
     Object.fromEntries(photos.map((p) => [p.id, { scale: 1, flipH: false, crop: null, fullRow: false, breakAfter: false }]))
   );
   const [perRow, setPerRow] = useState<number>(0); // 0=自動
+  // 名前はエディタ内で直接編集できる（キャプションに反映）。🗑で写真をまとめから外す＝置き換え時に削除
+  const [names, setNames] = useState<Record<string, string>>(
+    Object.fromEntries(photos.map((p) => [p.id, p.name]))
+  );
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [showNumbers, setShowNumbers] = useState(true); // 各写真に順番の番号バッジを描く
   const [cropTarget, setCropTarget] = useState<string | null>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
@@ -75,7 +80,7 @@ export default function CollageEditor({
 
   // 合成描画（プレビューも本番も同じロジック。scaleFactorで解像度を切替）
   const drawCollage = useCallback((canvas: HTMLCanvasElement, outW: number, withCaption: boolean) => {
-    const ids = order.filter((id) => bitmaps.has(id));
+    const ids = order.filter((id) => bitmaps.has(id) && !excluded.has(id));
     if (ids.length === 0) return;
     const n = ids.length;
     const pr = perRow || (n <= 4 ? 2 : 3);
@@ -139,13 +144,13 @@ export default function CollageEditor({
           ctx.fillStyle = "#111827";
           ctx.font = `bold ${Math.round(26 * (outW / OUT_W))}px sans-serif`;
           ctx.textBaseline = "middle";
-          let label = photoById(id).name || "";
+          let label = names[id] ?? (photoById(id).name || "");
           while (label && ctx.measureText(label).width > w - 16) label = label.slice(0, -1);
           ctx.fillText(label, x + 8, y + h + cap / 2);
         }
         if (showNumbers) {
           // 順番の番号バッジ（左上の紺色の丸に白数字）
-          const num = order.indexOf(id) + 1;
+          const num = ids.indexOf(id) + 1;
           const r = Math.max(14, 26 * (outW / OUT_W));
           const cx = x + r + 6 * (outW / OUT_W);
           const cy = y + r + 6 * (outW / OUT_W);
@@ -167,7 +172,7 @@ export default function CollageEditor({
       });
       y += h + cap + gap;
     });
-  }, [order, bitmaps, edits, perRow, effSize, photoById, showNumbers]);
+  }, [order, bitmaps, edits, perRow, effSize, photoById, showNumbers, names, excluded]);
 
   // プレビュー更新
   useEffect(() => {
@@ -223,10 +228,13 @@ export default function CollageEditor({
     });
   };
 
+  const includedCount = order.filter((id) => !excluded.has(id)).length;
+
   const confirm = () => {
+    if (includedCount === 0) return;
     const canvas = document.createElement("canvas");
     drawCollage(canvas, OUT_W, true);
-    canvas.toBlob((blob) => { if (blob) onConfirm(blob); }, "image/jpeg", 0.85);
+    canvas.toBlob((blob) => { if (blob) onConfirm(blob, includedCount); }, "image/jpeg", 0.85);
   };
 
   const scaleLabel = (s: number) => (s === 1.4 ? "大" : s === 0.7 ? "小" : "標準");
@@ -270,22 +278,30 @@ export default function CollageEditor({
               </div>
 
               {/* 写真ごとの調整（≡をドラッグ or ↑↓で並び替え） */}
-              <p className="text-[11px] text-gray-500 -mb-2">≡ドラッグで並び替え ／ ⬜1行＝その写真を行いっぱいに ／ ⏎＝その写真の後で改行</p>
+              <p className="text-[11px] text-gray-500 -mb-2">≡ドラッグで並び替え ／ ⬜1行＝行いっぱい ／ ⏎＝その後で改行 ／ 名前はそのまま編集可 ／ 🗑＝まとめから外す（置き換え時に削除）</p>
               <div className="space-y-2" ref={listRef} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}>
                 {order.map((id, i) => {
                   const p = photoById(id);
                   const e = edits[id];
+                  const isExcluded = excluded.has(id);
                   return (
-                    <div key={id} className={`flex items-center gap-1.5 flex-wrap border rounded-lg px-2 py-1.5 transition ${draggingId === id ? "bg-blue-900/50 border-blue-500 shadow-lg" : "bg-gray-800 border-gray-700"}`}>
+                    <div key={id} className={`flex items-center gap-1.5 flex-wrap border rounded-lg px-2 py-1.5 transition ${draggingId === id ? "bg-blue-900/50 border-blue-500 shadow-lg" : isExcluded ? "bg-gray-900 border-red-900/60 opacity-60" : "bg-gray-800 border-gray-700"}`}>
                       <span
                         onPointerDown={dragStart(id)}
                         className="text-gray-400 text-lg px-1.5 py-1 cursor-grab active:cursor-grabbing touch-none select-none shrink-0"
                         title="ドラッグで並び替え"
                       >≡</span>
-                      <span className="text-xs text-gray-500 w-5 text-center shrink-0">{i + 1}</span>
+                      <span className="text-xs text-gray-500 w-5 text-center shrink-0">{isExcluded ? "–" : order.filter((v) => !excluded.has(v)).indexOf(id) + 1}</span>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p.url} alt="" className={`w-12 h-9 object-cover rounded shrink-0 ${e?.flipH ? "scale-x-[-1]" : ""}`} />
-                      <span className="text-xs text-gray-300 flex-1 min-w-0 truncate">{p.name || "（名称なし）"}</span>
+                      <input
+                        type="text"
+                        value={names[id] ?? ""}
+                        onChange={(ev) => setNames((prev) => ({ ...prev, [id]: ev.target.value }))}
+                        placeholder="写真の名前（キャプションに入ります）"
+                        disabled={isExcluded}
+                        className="flex-1 min-w-[110px] bg-gray-900/70 border border-gray-700 focus:border-blue-500 focus:outline-none rounded px-2 py-1 text-xs text-gray-100 disabled:opacity-40"
+                      />
                       <button onClick={() => move(id, -1)} disabled={i === 0}
                         className="text-xs text-gray-300 border border-gray-600 rounded px-2 py-1 disabled:opacity-30">↑</button>
                       <button onClick={() => move(id, 1)} disabled={i === order.length - 1}
@@ -305,6 +321,17 @@ export default function CollageEditor({
                       <button onClick={() => setEdits((prev) => ({ ...prev, [id]: { ...prev[id], breakAfter: !prev[id].breakAfter } }))}
                         className={`text-xs rounded px-2 py-1 border transition ${e?.breakAfter ? "bg-purple-700 text-white border-purple-700" : "text-gray-300 border-gray-600"}`}
                         title="この写真の後で改行（次の写真は下の行から）">⏎</button>
+                      {isExcluded ? (
+                        <>
+                          <span className="text-[11px] text-red-300 shrink-0">置き換え時に削除</span>
+                          <button onClick={() => setExcluded((prev) => { const n = new Set(prev); n.delete(id); return n; })}
+                            className="text-xs rounded px-2 py-1 border text-gray-200 border-gray-500 hover:border-blue-500" title="まとめに戻す">↩ 戻す</button>
+                        </>
+                      ) : (
+                        <button onClick={() => setExcluded((prev) => new Set(prev).add(id))}
+                          className="text-xs rounded px-2 py-1 border text-red-300 border-red-800 hover:bg-red-900/40 transition"
+                          title="この写真をまとめから外す（置き換え時に削除されます）">🗑</button>
+                      )}
                     </div>
                   );
                 })}
@@ -315,9 +342,9 @@ export default function CollageEditor({
 
         <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-700 shrink-0">
           <button onClick={onCancel} className="text-sm text-gray-400 px-4 py-2 hover:text-gray-200">キャンセル</button>
-          <button onClick={confirm} disabled={loading || confirming}
+          <button onClick={confirm} disabled={loading || confirming || includedCount === 0}
             className="flex-1 bg-purple-600 text-white text-sm font-bold rounded-xl py-2.5 hover:bg-purple-700 disabled:opacity-50 transition">
-            {confirming ? "置き換え中..." : "🧩 この配置で1枚にまとめて置き換え"}
+            {confirming ? "置き換え中..." : `🧩 ${includedCount}枚をまとめて置き換え${excluded.size > 0 ? `（🗑${excluded.size}枚は削除）` : ""}`}
           </button>
         </div>
       </div>

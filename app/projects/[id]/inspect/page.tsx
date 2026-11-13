@@ -45,6 +45,7 @@ export default function InspectPage() {
   const [cause, setCause] = useState("");
   const [response, setResponse] = useState("");
   const [materials, setMaterials] = useState("");
+  const [modelNo, setModelNo] = useState(""); // 交換後の機器型番（交換工事のとき）
   const [insulation, setInsulation] = useState("");
   const [clamp, setClamp] = useState("");
   const [repairProposal, setRepairProposal] = useState("");
@@ -281,6 +282,7 @@ export default function InspectPage() {
     if (situation.trim()) parts.push(`【状況】\n${situation.trim()}`);
     if (cause.trim()) parts.push(`【原因】\n${cause.trim()}`);
     if (response.trim()) parts.push(`【実施内容】\n${response.trim()}`);
+    if (modelNo.trim()) parts.push(`【交換後の型番】${modelNo.trim()}`);
     if (materials.trim()) parts.push(`【使用部材】\n${materials.trim()}`);
     if (insulation.trim()) parts.push(`【絶縁抵抗値】${insulation.trim()}`);
     if (clamp.trim()) parts.push(`【クランプ値】${clamp.trim()}`);
@@ -421,6 +423,19 @@ export default function InspectPage() {
               />
               {listening && <p className="text-xs text-red-400 mt-1">● 聞き取り中… 話した内容がそのまま入ります。終わったら「⏹ 停止」</p>}
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
+                交換後の機器型番
+                <span className="font-normal text-gray-500 ml-1">交換工事のとき（任意）</span>
+              </label>
+              <input
+                type="text"
+                value={modelNo}
+                onChange={(e) => setModelNo(e.target.value)}
+                placeholder="例: Panasonic BQR8562 / TOTO TCF8GM34"
+                className={fieldClass}
+              />
+            </div>
             <button
               type="button"
               onClick={() => setForceDetailed(true)}
@@ -528,6 +543,20 @@ export default function InspectPage() {
                 value={materials}
                 onChange={(e) => setMaterials(e.target.value)}
                 placeholder="例: 漏電ブレーカー BJS3031N ×1"
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">
+                交換後の機器型番
+                <span className="font-normal text-gray-500 ml-1">交換工事のとき（任意）</span>
+              </label>
+              <input
+                type="text"
+                value={modelNo}
+                onChange={(e) => setModelNo(e.target.value)}
+                placeholder="例: Panasonic BQR8562 / TOTO TCF8GM34"
                 className={fieldClass}
               />
             </div>

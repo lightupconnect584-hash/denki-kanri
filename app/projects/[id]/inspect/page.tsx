@@ -218,7 +218,7 @@ export default function InspectPage() {
           const img = new window.Image();
           const url = URL.createObjectURL(file);
           img.onload = () => {
-            const MAX = 1280; // 保存容量節約（報告写真は1280pxで十分判読可能）
+            const MAX = 1600; // 画質と容量のバランス（銘板・型番の判読性を確保）
             let w = img.width;
             let h = img.height;
             if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
@@ -232,7 +232,7 @@ export default function InspectPage() {
               URL.revokeObjectURL(url);
               if (!blob) { resolve(file); return; }
               resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
-            }, "image/jpeg", 0.62);
+            }, "image/jpeg", 0.8);
           };
           img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("画像の読み込みに失敗しました")); };
           img.src = url;

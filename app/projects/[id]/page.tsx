@@ -270,7 +270,7 @@ export default function ProjectDetailPage() {
           const img = new window.Image();
           const url = URL.createObjectURL(file);
           img.onload = () => {
-            const MAX = 1280;
+            const MAX = 1600;
             let w = img.width, h = img.height;
             if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
             const canvas = document.createElement("canvas");
@@ -281,7 +281,7 @@ export default function ProjectDetailPage() {
             canvas.toBlob((blob) => {
               URL.revokeObjectURL(url);
               resolve(blob ? new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }) : file);
-            }, "image/jpeg", 0.62);
+            }, "image/jpeg", 0.8);
           };
           img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
           img.src = url;
@@ -815,7 +815,7 @@ export default function ProjectDetailPage() {
             const img = new window.Image();
             const url = URL.createObjectURL(file);
             img.onload = () => {
-              const MAX = 1280; // 保存容量節約（報告写真は1280pxで十分判読可能）
+              const MAX = 1600; // 画質と容量のバランス（銘板・型番の判読性を確保）
               let w = img.width, h = img.height;
               if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
               const canvas = document.createElement("canvas");
@@ -827,7 +827,7 @@ export default function ProjectDetailPage() {
                 URL.revokeObjectURL(url);
                 if (!blob) { resolve(file); return; }
                 resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
-              }, "image/jpeg", 0.62);
+              }, "image/jpeg", 0.8);
             };
             img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
             img.src = url;

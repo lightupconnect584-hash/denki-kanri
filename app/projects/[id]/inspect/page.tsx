@@ -185,7 +185,7 @@ export default function InspectPage() {
     return null;
   }
 
-  const MAX_PHOTOS_TOTAL = 12;
+  const MAX_PHOTOS_TOTAL = 15;
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: "before" | "during" | "after" | "other") => {
     if (!e.target.files) return;

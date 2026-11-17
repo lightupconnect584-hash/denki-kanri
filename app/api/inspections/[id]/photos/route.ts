@@ -26,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   );
   if (valid.length === 0) return NextResponse.json({ error: "photos required" }, { status: 400 });
 
-  const MAX = 12;
+  const MAX = 15;
   // 置き換え合成（追加後に元の写真を削除する）場合は、削除予定分を差し引いて判定
   const willRemove = Math.max(0, Number(body.willRemove) || 0);
   const remaining = MAX - (inspection._count.photos - willRemove);

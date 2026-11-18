@@ -482,7 +482,8 @@ export default function DashboardPage() {
           <p className="font-semibold text-gray-100 truncate leading-snug" title={p.title}>{p.title}</p>
           {/* ステータス＋バッジ行 */}
           <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-            <StatusBadge status={p.status} />
+            {/* 自社案件は作成時点で受注済＝情報量ゼロなので、完了報告済以降だけバッジを出す */}
+            {!(isSelfJob && p.status === "ACCEPTED") && <StatusBadge status={p.status} />}
             {p.contactRequired && !p.contactedAt && (
               p.contactTag === "CALLBACK"
                 ? <span className="text-xs bg-orange-600 text-white px-1.5 py-0.5 rounded-full font-bold">📞 要連絡</span>
